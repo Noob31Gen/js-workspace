@@ -1,3 +1,5 @@
+declare const chrome: any;
+
 export interface ExtensionFetchResponse {
   success: boolean;
   ok?: boolean;
@@ -17,7 +19,7 @@ export async function checkExtensionConnected(): Promise<boolean> {
   }
   return new Promise((resolve) => {
     try {
-      chrome.runtime.sendMessage({ type: 'PING' }, (response) => {
+      chrome.runtime.sendMessage({ type: 'PING' }, (response: any) => {
         if (chrome.runtime.lastError || !response || !response.pong) {
           resolve(false);
         } else {
@@ -39,7 +41,7 @@ export async function fetchViaExtension(url: string, options: any = {}): Promise
   }
 
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type: 'FETCH_PROXY', url, options }, (response) => {
+    chrome.runtime.sendMessage({ type: 'FETCH_PROXY', url, options }, (response: any) => {
       if (chrome.runtime.lastError) {
         resolve({ success: false, error: chrome.runtime.lastError.message });
       } else {

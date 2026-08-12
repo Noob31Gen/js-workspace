@@ -3,171 +3,79 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ScriptEditor } from '@/components/workspace/ScriptEditor';
 import { DynamicOptionForm } from '@/components/workspace/DynamicOptionForm';
 import { ConsoleViewer } from '@/components/workspace/ConsoleViewer';
+import { FramePreview } from '@/components/workspace/FramePreview';
 import { DocViewerModal } from '@/components/workspace/DocViewerModal';
+import { WorkspaceManagerModal } from '@/components/workspace/WorkspaceManagerModal';
 import { parseScriptOptions } from '@/lib/parser';
-import { ScriptRunner, ConsoleLogMessage } from '@/lib/worker-runner';
-import { Terminal, ShieldCheck, Sparkles } from 'lucide-react';
-
-const INITIAL_SCRIPTS = [
-  {
-    id: 'url-harvester',
-    name: 'URL Link Harvester',
-    description: 'Scrapes web pages & extracts hyperlinks',
-    category: 'Network',
-    code: `/**
- * @name URL Link Harvester
- * @description Fetches a web page and extracts all hyperlinked URLs matching custom filter criteria.
- * 
- * @param {string} targetUrl Target Web Page URL - default: "https://news.ycombinator.com"
- * @param {number} maxLinks Maximum Links to Extract - default: 15
- * @param {boolean} uniqueOnly Deduplicate Returned Links - default: true
- * @param {select:all|http-only|https-only} protocolFilter Filter Protocols - default: "https-only"
- */
-async function run({ targetUrl, maxLinks, uniqueOnly, protocolFilter }) {
-  console.log(\`📡 Fetching page content from: \${targetUrl}...\`);
-
-  let html;
-  try {
-    const res = await fetch(targetUrl);
-    html = await res.text();
-  } catch (err) {
-    console.warn(\`⚠️ Standard fetch failed (CORS restriction likely). Using sample demo HTML data...\`);
-    html = '<a href="https://github.com">GitHub</a> <a href="https://news.ycombinator.com">HackerNews</a> <a href="https://react.dev">React</a>';
-  }
-
-  console.log(\`Parsing HTML payload (\${html.length} characters)...\`);
-
-  const hrefRegex = /href=["'](https?:\\/\\/[^"']+)["']/gi;
-  const links = [];
-  let match;
-
-  while ((match = hrefRegex.exec(html)) !== null && links.length < maxLinks) {
-    const link = match[1];
-
-    if (protocolFilter === 'https-only' && !link.startsWith('https://')) continue;
-    if (protocolFilter === 'http-only' && !link.startsWith('http://')) continue;
-
-    if (!uniqueOnly || !links.includes(link)) {
-      links.push(link);
-    }
-  }
-
-  console.log(\`✅ Found \${links.length} URLs:\`);
-  console.table(links.map((url, idx) => ({ Index: idx + 1, URL: url })));
-
-  return links;
-}`
-  },
-  {
-    id: 'api-aggregator',
-    name: 'API Data Processor',
-    description: 'Queries REST endpoints & formats JSON tables',
-    category: 'API',
-    code: `/**
- * @name API Data Processor
- * @description Queries public JSON endpoints, filters records, and outputs clean table data.
- * 
- * @param {string} endpoint JSON Endpoint URL - default: "https://jsonplaceholder.typicode.com/posts"
- * @param {number} limit Maximum Records - default: 5
- * @param {boolean} includeMeta Print JSON Schema Metadata - default: true
- */
-async function run({ endpoint, limit, includeMeta }) {
-  console.log(\`🔍 Requesting JSON data from \${endpoint}...\`);
-
-  const response = await fetch(\`\${endpoint}?_limit=\${limit}\`);
-  if (!response.ok) {
-    throw new Error(\`API returned HTTP status \${response.status}\`);
-  }
-
-  const posts = await response.json();
-  console.log(\`Received \${posts.length} records.\`);
-
-  if (includeMeta) {
-    console.log("Record Schema Keys:", Object.keys(posts[0] || {}));
-  }
-
-  console.table(posts.map(p => ({ ID: p.id, Title: p.title.slice(0, 35) + '...', User: p.userId })));
-
-  return posts;
-}`
-  },
-  {
-    id: 'text-analyzer',
-    name: 'Text & Keyword Analyzer',
-    description: 'Computes character count & word frequency',
-    category: 'Utilities',
-    code: `/**
- * @name Text & Keyword Analyzer
- * @description Computes word statistics, character counts, and keyword frequencies.
- * 
- * @param {text} sampleText Input Text to Analyze - default: "JavaScript is a versatile language for browser execution and workspace automation."
- * @param {number} topWords Number of Top Words to Output - default: 5
- * @param {boolean} ignoreCase Case Insensitive Matching - default: true
- */
-async function run({ sampleText, topWords, ignoreCase }) {
-  console.log("Analyzing text input...");
-
-  const textToProcess = ignoreCase ? sampleText.toLowerCase() : sampleText;
-  const words = textToProcess.match(/\\b\\w+\\b/g) || [];
-  const charCount = sampleText.length;
-
-  const wordCounts = {};
-  words.forEach(w => {
-    wordCounts[w] = (wordCounts[w] || 0) + 1;
-  });
-
-  const sortedWords = Object.entries(wordCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, topWords);
-
-  console.log(\`Statistics: Total Characters: \${charCount} | Total Words: \${words.length}\`);
-  console.log(\`Top \${topWords} Most Frequent Words:\`);
-  console.table(sortedWords.map(([word, freq]) => ({ Word: word, Frequency: freq })));
-
-  return { charCount, wordCount: words.length, topWords: sortedWords };
-}`
-  }
-];
+import { ScriptRunner, ConsoleLogMessage, FramePayload, ExecutionResult } from '@/lib/worker-runner';
+import { WorkspaceStore, Workspace, WorkspaceNode } from '@/lib/workspace-store';
+import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check } from 'lucide-react';
 
 const runner = new ScriptRunner();
 
 export function App() {
-  const [scripts, setScripts] = useState(INITIAL_SCRIPTS);
-  const [activeScriptId, setActiveScriptId] = useState('url-harvester');
-  const [code, setCode] = useState(INITIAL_SCRIPTS[0].code);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => WorkspaceStore.loadWorkspaces());
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(() => workspaces[0]?.id || 'ws-default-demo');
+  const [activeFileId, setActiveFileId] = useState<string>(() => workspaces[0]?.activeFileId || 'file-main-orchestrator');
+
   const [optionValues, setOptionValues] = useState<Record<string, any>>({});
   const [logs, setLogs] = useState<ConsoleLogMessage[]>([]);
+  const [frame, setFrame] = useState<FramePayload | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [outputResult, setOutputResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
+  const [executionTimeMs, setExecutionTimeMs] = useState<number | undefined>(undefined);
+
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [isWsManagerOpen, setIsWsManagerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
-  // Parse JSDoc parameters whenever code changes
-  const parsedMeta = parseScriptOptions(code);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
+  const activeFile = activeWorkspace?.nodes.find(n => n.id === activeFileId) || activeWorkspace?.nodes.find(n => n.type === 'file');
+  const activeCode = activeFile?.code || '';
 
+  // Persist workspace changes
   useEffect(() => {
-    const active = scripts.find(s => s.id === activeScriptId);
-    if (active) {
-      setCode(active.code);
-      setLogs([]);
-      setOutputResult(null);
-      setErrorResult(null);
-    }
-  }, [activeScriptId]);
+    WorkspaceStore.saveWorkspaces(workspaces);
+  }, [workspaces]);
+
+  // Parse JSDoc parameters whenever active code changes
+  const parsedMeta = parseScriptOptions(activeCode);
+
+  const handleUpdateActiveCode = (newCode: string) => {
+    if (!activeFile) return;
+    setWorkspaces(prevWorkspaces =>
+      prevWorkspaces.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          nodes: ws.nodes.map(n => n.id === activeFile.id ? { ...n, code: newCode } : n)
+        };
+      })
+    );
+  };
 
   const handleRunScript = () => {
     setLogs([]);
+    setFrame(null);
     setOutputResult(null);
     setErrorResult(null);
     setIsRunning(true);
 
     runner.execute({
-      code,
+      code: activeCode,
       args: optionValues,
+      nodes: activeWorkspace.nodes,
+      currentFilePath: activeFile?.path || 'main.js',
       onLog: (msg) => setLogs(prev => [...prev, msg]),
-      onSuccess: (result) => {
+      onSuccess: (res: ExecutionResult) => {
         setIsRunning(false);
-        setOutputResult(result);
+        setOutputResult(res.raw);
+        if (res.frame) {
+          setFrame(res.frame);
+          setActiveTab('preview');
+        }
+        setExecutionTimeMs(res.executionTimeMs);
       },
       onError: (err) => {
         setIsRunning(false);
@@ -182,47 +90,230 @@ export function App() {
     setErrorResult('Execution terminated by user.');
   };
 
-  const handleNewScript = () => {
-    const newId = `custom-${Date.now()}`;
-    const newScript = {
+  // Node CRUD handlers
+  const handleToggleFolder = (folderId: string) => {
+    setWorkspaces(prev => prev.map(ws => {
+      if (ws.id !== activeWorkspaceId) return ws;
+      return {
+        ...ws,
+        nodes: ws.nodes.map(n => n.id === folderId ? { ...n, expanded: !n.expanded } : n)
+      };
+    }));
+  };
+
+  const handleCreateFile = (parentId: string | null, name: string) => {
+    const parent = activeWorkspace.nodes.find(n => n.id === parentId);
+    const parentPath = parent ? parent.path : '';
+    const filePath = parentPath ? `${parentPath}/${name}` : name;
+    const newId = `file-${Date.now()}`;
+
+    const newNode: WorkspaceNode = {
       id: newId,
-      name: 'Custom Script',
-      description: 'User created script',
-      category: 'Custom',
-      code: `/**\n * @name Custom Script\n * @param {string} input - default: "Hello World"\n */\nasync function run({ input }) {\n  console.log("Output:", input);\n  return input;\n}`
+      name,
+      type: 'file',
+      path: filePath,
+      parentId,
+      code: `/**\n * @name ${name}\n * @description Custom script\n */\nexport function hello() {\n  return "Hello from ${name}";\n}\n\nasync function run() {\n  return hello();\n}`
     };
-    setScripts(prev => [newScript, ...prev]);
-    setActiveScriptId(newId);
+
+    setWorkspaces(prev => prev.map(ws => {
+      if (ws.id !== activeWorkspaceId) return ws;
+      return {
+        ...ws,
+        nodes: [...ws.nodes, newNode],
+        activeFileId: newId
+      };
+    }));
+    setActiveFileId(newId);
+  };
+
+  const handleCreateFolder = (parentId: string | null, name: string) => {
+    const parent = activeWorkspace.nodes.find(n => n.id === parentId);
+    const parentPath = parent ? parent.path : '';
+    const folderPath = parentPath ? `${parentPath}/${name}` : name;
+    const newId = `folder-${Date.now()}`;
+
+    const newNode: WorkspaceNode = {
+      id: newId,
+      name,
+      type: 'folder',
+      path: folderPath,
+      parentId,
+      expanded: true
+    };
+
+    setWorkspaces(prev => prev.map(ws => {
+      if (ws.id !== activeWorkspaceId) return ws;
+      return {
+        ...ws,
+        nodes: [...ws.nodes, newNode]
+      };
+    }));
+  };
+
+  const handleRenameNode = (nodeId: string, newName: string) => {
+    setWorkspaces(prev => prev.map(ws => {
+      if (ws.id !== activeWorkspaceId) return ws;
+      const target = ws.nodes.find(n => n.id === nodeId);
+      if (!target) return ws;
+
+      const parent = ws.nodes.find(n => n.id === target.parentId);
+      const parentPath = parent ? parent.path : '';
+      const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+
+      return {
+        ...ws,
+        nodes: ws.nodes.map(n => n.id === nodeId ? { ...n, name: newName, path: newPath } : n)
+      };
+    }));
+  };
+
+  const handleDeleteNode = (nodeId: string) => {
+    setWorkspaces(prev => prev.map(ws => {
+      if (ws.id !== activeWorkspaceId) return ws;
+      const filtered = ws.nodes.filter(n => n.id !== nodeId && n.parentId !== nodeId);
+      const remainingFile = filtered.find(n => n.type === 'file');
+      return {
+        ...ws,
+        nodes: filtered,
+        activeFileId: remainingFile ? remainingFile.id : ''
+      };
+    }));
+  };
+
+  // Workspace CRUD handlers
+  const handleCreateWorkspace = (name: string, description: string) => {
+    const newWsId = `ws-${Date.now()}`;
+    const defaultFileId = `file-main-${Date.now()}`;
+    const newWs: Workspace = {
+      id: newWsId,
+      name,
+      description,
+      activeFileId: defaultFileId,
+      nodes: [
+        {
+          id: defaultFileId,
+          name: 'main.js',
+          type: 'file',
+          path: 'main.js',
+          parentId: null,
+          code: `/**\n * @name ${name} Main\n * @description Entry script\n */\nasync function run() {\n  console.log("Welcome to ${name}!");\n  return "Hello World";\n}`
+        }
+      ]
+    };
+
+    setWorkspaces(prev => [...prev, newWs]);
+    setActiveWorkspaceId(newWsId);
+    setActiveFileId(defaultFileId);
+  };
+
+  const handleDeleteWorkspace = (id: string) => {
+    if (workspaces.length <= 1) return;
+    const remaining = workspaces.filter(w => w.id !== id);
+    setWorkspaces(remaining);
+    setActiveWorkspaceId(remaining[0].id);
+    setActiveFileId(remaining[0].activeFileId || '');
+  };
+
+  const handleExportWorkspace = (id: string) => {
+    const ws = workspaces.find(w => w.id === id);
+    if (!ws) return;
+    const blob = new Blob([JSON.stringify(ws, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${ws.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-workspace.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportWorkspace = (imported: Workspace) => {
+    const newWs: Workspace = {
+      ...imported,
+      id: `ws-${Date.now()}`
+    };
+    setWorkspaces(prev => [...prev, newWs]);
+    setActiveWorkspaceId(newWs.id);
+    const file = newWs.nodes.find(n => n.type === 'file');
+    if (file) setActiveFileId(file.id);
   };
 
   return (
     <AppLayout
-      scripts={scripts}
-      activeScriptId={activeScriptId}
-      onSelectScript={setActiveScriptId}
-      onNewScript={handleNewScript}
+      workspaces={workspaces}
+      activeWorkspaceId={activeWorkspaceId}
+      activeFileId={activeFileId}
+      nodes={activeWorkspace.nodes}
+      onSelectFile={setActiveFileId}
+      onToggleFolder={handleToggleFolder}
+      onCreateFile={handleCreateFile}
+      onCreateFolder={handleCreateFolder}
+      onRenameNode={handleRenameNode}
+      onDeleteNode={handleDeleteNode}
+      onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
       onSelectDoc={setSelectedDoc}
     >
-      {/* Banner / Title Header */}
-      <div className="space-y-2 mb-4">
-        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
-          {parsedMeta.name}
-        </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          {parsedMeta.description}
-        </p>
+      {/* Banner / Title & Active File Breadcrumb */}
+      <div className="space-y-2 mb-4 border-b border-border/40 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground mb-1">
+              <span className="text-primary font-bold">{activeWorkspace.name}</span>
+              <span>/</span>
+              <span className="bg-muted px-2 py-0.5 rounded text-foreground font-semibold flex items-center gap-1 border border-border/40">
+                <FileCode className="h-3 w-3 text-primary" />
+                {activeFile?.path || 'No File Selected'}
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text">
+              {parsedMeta.name || activeFile?.name || 'Workspace'}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              {parsedMeta.description}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeTab === 'editor'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
+              }`}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              Editor Workspace
+            </button>
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeTab === 'preview'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
+              }`}
+            >
+              <Layout className="h-3.5 w-3.5" />
+              Frame Preview {frame && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Editor & Option Inputs Grid */}
+      {/* Editor & Dynamic Option Form Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ScriptEditor
-            code={code}
-            onChangeCode={setCode}
-            onRun={handleRunScript}
-            onStop={handleStopScript}
-            isRunning={isRunning}
-          />
+        <div className="lg:col-span-2 space-y-6">
+          {activeTab === 'editor' ? (
+            <ScriptEditor
+              code={activeCode}
+              onChangeCode={handleUpdateActiveCode}
+              onRun={handleRunScript}
+              onStop={handleStopScript}
+              isRunning={isRunning}
+            />
+          ) : (
+            <FramePreview frame={frame} />
+          )}
         </div>
 
         <div className="space-y-6">
@@ -240,7 +331,22 @@ export function App() {
         onClearLogs={() => setLogs([])}
         outputResult={outputResult}
         errorResult={errorResult}
+        executionTimeMs={executionTimeMs}
       />
+
+      {/* Workspace Manager Modal */}
+      {isWsManagerOpen && (
+        <WorkspaceManagerModal
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          onClose={() => setIsWsManagerOpen(false)}
+          onSelectWorkspace={setActiveWorkspaceId}
+          onCreateWorkspace={handleCreateWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          onImportWorkspace={handleImportWorkspace}
+          onExportWorkspace={handleExportWorkspace}
+        />
+      )}
 
       {/* Modal Documentation Viewer */}
       <DocViewerModal
