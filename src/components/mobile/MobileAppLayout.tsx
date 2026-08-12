@@ -118,6 +118,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         onOpenDocs={onOpenDocs}
         onImportClick={onImportClick}
         onOpenExtensionModal={onOpenExtensionModal}
+        onOpenResultWindow={onOpenResultWindow}
         extensionActive={extensionActive}
         isOnline={isOnline}
       />

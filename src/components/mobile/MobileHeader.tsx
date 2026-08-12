@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Terminal, Folder, Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, Wifi, WifiOff, FileCode } from 'lucide-react';
+import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2 } from 'lucide-react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 
 interface MobileHeaderProps {
@@ -14,6 +14,7 @@ interface MobileHeaderProps {
   onOpenDocs: (docName: string) => void;
   onImportClick: () => void;
   onOpenExtensionModal: () => void;
+  onOpenResultWindow?: () => void;
   extensionActive: boolean;
   isOnline: boolean;
 }
@@ -30,6 +31,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onOpenDocs,
   onImportClick,
   onOpenExtensionModal,
+  onOpenResultWindow,
   extensionActive,
   isOnline
 }) => {
@@ -46,7 +48,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
           <FileCode className="h-4 w-4" />
         </div>
-        <div className="truncate min-w-0">
+        <div className="truncate min-w-0 flex-1">
           <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">
             {workspaceName}
           </div>
@@ -58,26 +60,12 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 
       {/* Right: Quick Action Buttons & Menu */}
       <div className="flex items-center gap-1.5 shrink-0">
-        {/* Quick Manual Save */}
-        <button
-          type="button"
-          onClick={onSaveScript}
-          className={`p-2 rounded-xl border transition-all cursor-pointer shadow-xs ${
-            justSaved
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              : 'bg-card border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted'
-          }`}
-          title="Save Script (Ctrl+S)"
-        >
-          {justSaved ? <Check className="h-4 w-4 text-emerald-400" /> : <Save className="h-4 w-4" />}
-        </button>
-
         {/* Run / Stop Button */}
         {!isRunning ? (
           <button
             type="button"
             onClick={onRun}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             <span>Run</span>
@@ -86,7 +74,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           <button
             type="button"
             onClick={onStop}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-destructive text-destructive-foreground text-xs font-bold shadow-md hover:bg-destructive/90 animate-pulse transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive text-destructive-foreground text-xs font-bold shadow-md hover:bg-destructive/90 animate-pulse transition-all cursor-pointer"
           >
             <Square className="h-3.5 w-3.5 fill-current" />
             <span>Stop</span>
@@ -105,7 +93,30 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 font-sans text-xs animate-in fade-in zoom-in duration-150">
+            <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 font-sans text-xs animate-in fade-in zoom-in duration-150">
+              <button
+                type="button"
+                onClick={() => { onSaveScript(); setShowMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center justify-between transition-colors font-medium"
+              >
+                <div className="flex items-center gap-2.5">
+                  {justSaved ? <Check className="h-4 w-4 text-emerald-400" /> : <Save className="h-4 w-4 text-primary" />}
+                  <span>{justSaved ? 'Saved!' : 'Save Script'}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-mono">Ctrl+S</span>
+              </button>
+
+              {onOpenResultWindow && (
+                <button
+                  type="button"
+                  onClick={() => { onOpenResultWindow(); setShowMenu(false); }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-primary font-bold hover:bg-muted flex items-center gap-2.5 transition-colors"
+                >
+                  <Maximize2 className="h-4 w-4 shrink-0" />
+                  <span>Open Full Result Window</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => { onImportClick(); setShowMenu(false); }}
