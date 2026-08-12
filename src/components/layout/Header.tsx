@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { precacheNpmPackage } from '@/lib/pwa-register';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
@@ -11,6 +11,8 @@ interface HeaderProps {
   onImportZip?: (file: File) => void;
   onImportBundle?: (file: File) => void;
   onImportSingleFile?: (file: File) => void;
+  onToggleMobileSidebar?: () => void;
+  isMobileSidebarOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,7 +20,9 @@ export const Header: React.FC<HeaderProps> = ({
   onImportFolder,
   onImportZip,
   onImportBundle,
-  onImportSingleFile
+  onImportSingleFile,
+  onToggleMobileSidebar,
+  isMobileSidebarOpen
 }) => {
   const [extensionActive, setExtensionActive] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -104,9 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
         type="file"
         ref={folderInputRef}
         onChange={handleFolderChange}
-        // @ts-ignore
-        webkitdirectory=""
-        directory=""
+        {...({ webkitdirectory: '', directory: '' } as any)}
         multiple
         className="hidden"
       />
@@ -133,14 +135,23 @@ export const Header: React.FC<HeaderProps> = ({
       />
 
       <div className="flex items-center gap-3">
+        {/* Mobile Sidebar Hamburger Toggle */}
+        <button
+          onClick={onToggleMobileSidebar}
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-muted/40 text-foreground hover:bg-muted transition-all"
+          title="Toggle Navigation Menu"
+        >
+          {isMobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow">
           <Terminal className="h-5 w-5" />
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary to-primary/80 bg-clip-text flex items-center gap-2">
             JS Workspace.
-            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-sans font-medium text-muted-foreground border border-border/60">
-              v1.0 Offline PWA
+            <span className="hidden sm:inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-sans font-medium text-muted-foreground border border-border/60">
+              v1.5.0 PWA
             </span>
           </h1>
           <p className="text-[11px] text-muted-foreground hidden sm:block">
@@ -213,7 +224,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Offline / Online Status Badge */}
         <button
           onClick={() => setIsOfflineModalOpen(true)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
             isOnline
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
               : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
@@ -222,22 +233,21 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {isOnline ? (
             <>
-              <Wifi className="h-3.5 w-3.5 text-emerald-400" />
+              <Wifi className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
               <span className="hidden sm:inline">PWA Ready (Online)</span>
-              <span className="sm:hidden">Online</span>
             </>
           ) : (
             <>
-              <WifiOff className="h-3.5 w-3.5 text-amber-400" />
-              <span>Offline Mode</span>
+              <WifiOff className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Offline Mode</span>
             </>
           )}
         </button>
 
-        {/* Extension Connection Status Badge (Clickable to open download modal) */}
+        {/* Extension Connection Status Badge */}
         <button
           onClick={() => setIsExtensionModalOpen(true)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
             extensionActive 
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' 
               : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
@@ -246,12 +256,12 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {extensionActive ? (
             <>
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
               <span className="hidden lg:inline">CORS Helper Connected</span>
             </>
           ) : (
             <>
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
+              <ShieldAlert className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               <span className="hidden lg:inline">CORS Helper Inactive</span>
             </>
           )}
@@ -260,30 +270,21 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Documentation Button */}
         <button
           onClick={() => onOpenDocs('ARCHITECTURE.md')}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-2 sm:px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
+          title="In-page Documentation"
         >
-          <BookOpen className="h-3.5 w-3.5" />
+          <BookOpen className="h-3.5 w-3.5 shrink-0" />
           <span className="hidden md:inline">Docs</span>
         </button>
-
-        <a
-          href="https://noob31.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
-        >
-          <Globe className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">My Website</span>
-        </a>
 
         <a
           href="https://github.com/Noob31Gen/noob31-multitool"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
+          className="hidden lg:inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
         >
           <Code2 className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">GitHub</span>
+          <span>GitHub</span>
           <ExternalLink className="h-3 w-3 opacity-60" />
         </a>
       </div>

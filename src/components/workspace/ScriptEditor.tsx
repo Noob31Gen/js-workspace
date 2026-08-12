@@ -1,7 +1,8 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
-import { Play, Square, Copy, Check, Download, Code2, Save, Undo2, Redo2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Play, Square, Copy, Check, Download, Code2, Save, Undo2, Redo2, AlertTriangle, CheckCircle2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ScriptEditorProps {
   code: string;
@@ -26,52 +27,59 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   isRunning,
   onSaveScript
 }) => {
-  const [copied, setCopied] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-
-  // Undo / Redo History Stack
-  const [history, setHistory] = useState<string[]>([code]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
-  const isHistoryUpdate = useRef(false);
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
-  // Record history on code change (debounced)
+  const [justSaved, setJustSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  // Undo / Redo History Stack
+  const [history, setHistory] = useState<string[]>([code]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const isInternalChange = useRef(false);
+
   useEffect(() => {
-    if (isHistoryUpdate.current) {
-      isHistoryUpdate.current = false;
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
       return;
     }
 
-    const timer = setTimeout(() => {
-      if (code !== history[historyIndex]) {
-        const nextHistory = history.slice(0, historyIndex + 1);
-        nextHistory.push(code);
-        setHistory(nextHistory);
-        setHistoryIndex(nextHistory.length - 1);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
+    if (history[historyIndex] !== code) {
+      const nextHistory = history.slice(0, historyIndex + 1);
+      nextHistory.push(code);
+      setHistory(nextHistory);
+      setHistoryIndex(nextHistory.length - 1);
+    }
   }, [code]);
+
+  // Esc key listener to exit full-screen editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMaximized) {
+        setIsMaximized(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMaximized]);
 
   const handleUndo = () => {
     if (historyIndex > 0) {
-      const prevIndex = historyIndex - 1;
-      isHistoryUpdate.current = true;
-      setHistoryIndex(prevIndex);
-      onChangeCode(history[prevIndex]);
+      const newIndex = historyIndex - 1;
+      isInternalChange.current = true;
+      setHistoryIndex(newIndex);
+      onChangeCode(history[newIndex]);
     }
   };
 
   const handleRedo = () => {
     if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1;
-      isHistoryUpdate.current = true;
-      setHistoryIndex(nextIndex);
-      onChangeCode(history[nextIndex]);
+      const newIndex = historyIndex + 1;
+      isInternalChange.current = true;
+      setHistoryIndex(newIndex);
+      onChangeCode(history[newIndex]);
     }
   };
 
@@ -81,44 +89,6 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     }
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2000);
-  };
-
-  // Keyboard Shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Y)
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl+S / Cmd+S (Save)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      handleManualSave();
-      return;
-    }
-
-    // Ctrl+Z (Undo)
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
-      e.preventDefault();
-      handleUndo();
-      return;
-    }
-
-    // Ctrl+Y or Ctrl+Shift+Z (Redo)
-    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
-      e.preventDefault();
-      handleRedo();
-      return;
-    }
-
-    // Tab key for 2-space indentation
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const target = e.currentTarget;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const newCode = code.substring(0, start) + '  ' + code.substring(end);
-      onChangeCode(newCode);
-
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2;
-      }, 0);
-    }
   };
 
   const handleCopy = () => {
@@ -132,15 +102,17 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'workspace-script.js';
+    a.download = 'script.js';
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // Sync scroll positions
+  // Sync scrolling between textarea, line numbers, and Prism pre overlay
   const handleScroll = () => {
     if (textareaRef.current) {
-      const { scrollTop, scrollLeft } = textareaRef.current;
+      const scrollTop = textareaRef.current.scrollTop;
+      const scrollLeft = textareaRef.current.scrollLeft;
+
       if (preRef.current) {
         preRef.current.scrollTop = scrollTop;
         preRef.current.scrollLeft = scrollLeft;
@@ -151,24 +123,66 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     }
   };
 
-  // Real-time JS Syntax Error Validator
+  // Support Tab key indentation & keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = e.currentTarget.selectionStart;
+      const end = e.currentTarget.selectionEnd;
+
+      const newCode = code.substring(0, start) + '  ' + code.substring(end);
+      onChangeCode(newCode);
+
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
+        }
+      }, 0);
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      handleManualSave();
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      } else {
+        e.preventDefault();
+        handleUndo();
+      }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      handleRedo();
+    }
+  };
+
+  // Real-time JS Syntax Error Validator (Supports ES Modules with import/export statements)
   const syntaxError: SyntaxErrorDetails | null = useMemo(() => {
     if (!code || !code.trim()) return null;
     try {
-      // Wrap code in Function to validate syntax
-      new Function(`return (async () => {\n${code}\n})();`);
+      const sanitizedCode = code
+        .replace(/^[ \t]*import\s+[\s\S]*?from\s+['"].*?['"];?/gm, (match) => `/* ${match} */`)
+        .replace(/^[ \t]*import\s+['"].*?['"];?/gm, (match) => `/* ${match} */`)
+        .replace(/^[ \t]*export\s+default\s+/gm, '/* export default */ ')
+        .replace(/^[ \t]*export\s+\{/gm, '/* export */ {')
+        .replace(/^[ \t]*export\s+(const|let|var|function|class|async)\s+/gm, '$1 ');
+
+      new Function(`return (async () => {\n${sanitizedCode}\n})();`);
       return null;
     } catch (err: any) {
       let line: number | null = null;
       let column: number | null = null;
       const msg = err.message || 'Syntax Error';
 
-      // Parse line number from stack or message if available
       const lineMatch = err.stack?.match(/<anonymous>:(\d+):(\d+)/) || msg.match(/line (\d+)/i) || msg.match(/(\d+):(\d+)/);
       if (lineMatch) {
         const parsedLine = parseInt(lineMatch[1], 10);
         if (!isNaN(parsedLine)) {
-          // Adjust line offset because of Function wrapper header line
           line = Math.max(1, parsedLine > 1 ? parsedLine - 1 : parsedLine);
         }
       }
@@ -196,51 +210,77 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     return Array.from({ length: lines }, (_, i) => i + 1);
   }, [code]);
 
-  return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-[580px]">
+  const editorContent = (
+    <div
+      className={`rounded-xl border border-border/60 bg-card overflow-hidden shadow-2xl flex flex-col transition-all ${
+        isMaximized ? 'w-full h-full max-w-7xl mx-auto' : 'h-[460px] sm:h-[520px]'
+      }`}
+    >
       {/* Editor Header Bar */}
       <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-3.5 py-2 shrink-0 overflow-x-auto select-none gap-3">
         {/* Left Side: Title & Syntax Indicator */}
         <div className="flex items-center gap-2.5 min-w-0 shrink-0">
           <Code2 className="h-4 w-4 text-primary shrink-0" />
           <span className="text-xs font-bold font-mono tracking-tight text-foreground whitespace-nowrap hidden sm:inline">
-            Script Editor
+            Script Editor {isMaximized && '(Full Window)'}
           </span>
 
           {syntaxError ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/15 px-2.5 py-1 text-xs font-mono font-medium text-destructive border border-destructive/30 whitespace-nowrap">
+            <span
+              className="inline-flex items-center gap-1 rounded-md bg-destructive/15 px-2 py-0.5 text-xs font-mono font-medium text-destructive border border-destructive/30 whitespace-nowrap cursor-help"
+              title={syntaxError.message}
+            >
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              <span>Syntax Error</span>
+              <span className="hidden sm:inline">Syntax Error</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-mono font-medium text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-mono font-medium text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-              <span>Syntax Valid</span>
+              <span className="hidden sm:inline">Syntax Valid</span>
             </span>
           )}
         </div>
 
         {/* Right Side: Editor Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Enlarge / Minimize Toggle Button */}
+          <button
+            onClick={() => setIsMaximized(!isMaximized)}
+            className="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+            title={isMaximized ? 'Minimize Editor (Esc)' : 'Enlarge Editor Window'}
+          >
+            {isMaximized ? (
+              <>
+                <Minimize2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Minimize</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Enlarge</span>
+              </>
+            )}
+          </button>
+
           {/* Manual Save Button */}
           <button
             onClick={handleManualSave}
-            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
               justSaved
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-muted'
             }`}
             title="Manual Save Script (Ctrl+S)"
           >
             {justSaved ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span>Saved!</span>
+                <span className="hidden sm:inline">Saved!</span>
               </>
             ) : (
               <>
                 <Save className="h-3.5 w-3.5 shrink-0" />
-                <span>Save</span>
+                <span className="hidden sm:inline">Save</span>
               </>
             )}
           </button>
@@ -250,7 +290,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             <button
               onClick={handleUndo}
               disabled={historyIndex <= 0}
-              className="p-1 px-2.5 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
+              className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="h-3.5 w-3.5" />
@@ -259,7 +299,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             <button
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
-              className="p-1 px-2.5 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
+              className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
               title="Redo (Ctrl+Y)"
             >
               <Redo2 className="h-3.5 w-3.5" />
@@ -269,36 +309,36 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           {/* Export Button */}
           <button
             onClick={handleDownload}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+            className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
             title="Export script to file"
           >
             <Download className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden md:inline">Export</span>
+            <span>Export</span>
           </button>
 
           {/* Copy Button */}
           <button
             onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+            className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
             title="Copy script to clipboard"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
-            <span className="hidden md:inline">{copied ? 'Copied' : 'Copy'}</span>
+            <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
 
           {/* Run / Stop Button */}
           {!isRunning ? (
             <button
               onClick={onRun}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <Play className="h-3.5 w-3.5 fill-current shrink-0" />
-              <span>Run Script</span>
+              <span>Run</span>
             </button>
           ) : (
             <button
               onClick={onStop}
-              className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
             >
               <Square className="h-3.5 w-3.5 fill-current shrink-0" />
               <span>Stop</span>
@@ -324,8 +364,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                     isErrorLine ? 'text-destructive font-bold bg-destructive/20 rounded px-1' : ''
                   }`}
                 >
-                  {isErrorLine && <AlertTriangle className="h-2.5 w-2.5 text-destructive mr-1 shrink-0" />}
-                  <span>{n}</span>
+                  {n}
                 </div>
               );
             })}
@@ -352,27 +391,39 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
               onScroll={handleScroll}
               onKeyDown={handleKeyDown}
               spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              autoComplete="off"
               className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed text-transparent caret-emerald-400 bg-transparent focus:outline-none resize-none border-0 whitespace-pre selection:bg-primary/30 selection:text-foreground"
               placeholder="// Write your JavaScript script here..."
             />
           </div>
         </div>
 
-        {/* Syntax Error Banner */}
+        {/* Bottom Error Details Banner if Syntax Error */}
         {syntaxError && (
-          <div className="px-4 py-2 bg-destructive/15 border-t border-destructive/30 text-destructive text-xs font-mono flex items-center justify-between shrink-0">
+          <div className="bg-destructive/15 border-t border-destructive/30 px-3.5 py-2 text-xs font-mono text-destructive flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 truncate">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
-              <span className="truncate">{syntaxError.message}</span>
-            </div>
-            {syntaxError.line && (
-              <span className="px-2 py-0.5 rounded bg-destructive/20 font-bold shrink-0 ml-2">
-                Line {syntaxError.line}
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="truncate">
+                {syntaxError.line ? `Line ${syntaxError.line}: ` : ''}
+                {syntaxError.message}
               </span>
-            )}
+            </div>
           </div>
         )}
       </div>
     </div>
   );
+
+  if (isMaximized) {
+    return createPortal(
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md p-3 sm:p-6 flex items-center justify-center animate-in fade-in zoom-in duration-150">
+        {editorContent}
+      </div>,
+      document.body
+    );
+  }
+
+  return editorContent;
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WorkspaceNode, Workspace } from '@/lib/workspace-store';
 import { FolderTree } from './FolderTree';
-import { Layers, Search, BookOpen, FileText, Sparkles, Settings, Plus, ChevronDown } from 'lucide-react';
+import { Layers, Search, ChevronDown } from 'lucide-react';
 
 interface SidebarProps {
   workspaces: Workspace[];
@@ -18,9 +18,6 @@ interface SidebarProps {
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (doc: string) => void;
-  onImportFolder?: (fileList: FileList) => void;
-  onImportZip?: (file: File) => void;
-  onImportSingleFile?: (file: File) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -36,11 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onMoveNode,
-  onOpenWorkspaceManager,
-  onOpenDocs,
-  onImportFolder,
-  onImportZip,
-  onImportSingleFile
+  onOpenWorkspaceManager
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
@@ -50,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border/60 bg-card/40 p-3.5 flex flex-col justify-between h-full max-h-full overflow-hidden">
+    <aside className="w-full md:w-64 shrink-0 border-r border-border/60 bg-card/40 p-3.5 flex flex-col justify-between h-full max-h-full overflow-hidden select-none">
       <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pr-1">
         {/* Active Workspace Selector Banner */}
         <div
@@ -93,48 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onDuplicateNode={onDuplicateNode}
             onMoveNode={onMoveNode}
             onRestoreDemo={onOpenWorkspaceManager}
-            onImportFolder={onImportFolder}
-            onImportZip={onImportZip}
-            onImportSingleFile={onImportSingleFile}
           />
         </div>
-
-        {/* Technical Documentation Section */}
-        <div className="space-y-1.5 pt-3 border-t border-border/40">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2 flex items-center gap-1.5">
-            <BookOpen className="h-3.5 w-3.5 text-primary" />
-            Documentation
-          </div>
-          <div className="space-y-0.5">
-            <button
-              onClick={() => onOpenDocs('ARCHITECTURE.md')}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-2"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Architecture Specs
-            </button>
-            <button
-              onClick={() => onOpenDocs('SCRIPT_SPECIFICATION.md')}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-2"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              Option & JSDoc Guide
-            </button>
-            <button
-              onClick={() => onOpenDocs('EXTENSION_INTEGRATION.md')}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground flex items-center gap-2"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              CORS Extension Bridge
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Info */}
-      <div className="pt-3 border-t border-border/40 text-[10px] text-muted-foreground/70 flex items-center justify-between font-mono">
-        <span>Noob31 JS Sandbox</span>
-        <span>React 19 + Vite</span>
       </div>
     </aside>
   );

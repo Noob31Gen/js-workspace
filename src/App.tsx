@@ -375,6 +375,8 @@ export function App() {
     );
   };
 
+  const [mobileTab, setMobileTab] = useState<'editor' | 'parameters' | 'console' | 'preview'>('editor');
+
   return (
     <AppLayout
       workspaces={workspaces}
@@ -397,112 +399,187 @@ export function App() {
       onImportSingleFile={handleImportSingleFile}
     >
       {/* Banner / Title & Active File Breadcrumb */}
-      <div className="space-y-2 mb-4 border-b border-border/40 pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground mb-1">
-              <span className="text-primary font-bold">{activeWorkspace.name}</span>
+      <div className="space-y-2 mb-2 sm:mb-4 border-b border-border/40 pb-2 sm:pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-mono text-muted-foreground mb-0.5 truncate">
+              <span className="text-primary font-bold truncate">{activeWorkspace.name}</span>
               <span>/</span>
-              <span className="bg-muted px-2 py-0.5 rounded text-foreground font-semibold flex items-center gap-1 border border-border/40">
-                <FileCode className="h-3 w-3 text-primary" />
-                {activeFile?.path || 'No File Selected'}
+              <span className="bg-muted px-1.5 py-0.5 rounded text-foreground font-semibold flex items-center gap-1 border border-border/40 truncate max-w-[160px] sm:max-w-none">
+                <FileCode className="h-3 w-3 text-primary shrink-0" />
+                <span className="truncate">{activeFile?.name || 'No File Selected'}</span>
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text">
+            <h1 className="text-lg sm:text-4xl font-sans font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text truncate">
               {parsedMeta.name || activeFile?.name || 'Workspace'}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              {parsedMeta.description}
-            </p>
+            {parsedMeta.description && (
+              <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground mt-1">
+                {parsedMeta.description}
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Desktop View Switcher */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <button
               onClick={() => setActiveTab('editor')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${activeTab === 'editor'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeTab === 'editor'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
-                }`}
+              }`}
             >
               <Code2 className="h-3.5 w-3.5" />
               Editor Workspace
             </button>
             <button
               onClick={() => setActiveTab('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${activeTab === 'preview'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                activeTab === 'preview'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
-                }`}
+              }`}
             >
               <Layout className="h-3.5 w-3.5" />
               Frame Preview {frame && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
             </button>
           </div>
+
+          {/* Mobile View Segmented Controller (Visible on < 768px) */}
+          <div className="md:hidden w-full flex items-center rounded-xl bg-muted/60 p-1 border border-border/60 text-xs font-medium select-none gap-1">
+            <button
+              onClick={() => setMobileTab('editor')}
+              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all text-[11px] whitespace-nowrap ${
+                mobileTab === 'editor' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground'
+              }`}
+            >
+              <Code2 className="h-3.5 w-3.5 shrink-0" />
+              <span>Code</span>
+            </button>
+
+            <button
+              onClick={() => setMobileTab('parameters')}
+              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all text-[11px] whitespace-nowrap ${
+                mobileTab === 'parameters' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground'
+              }`}
+            >
+              <Sliders className="h-3.5 w-3.5 shrink-0" />
+              <span>Params</span>
+            </button>
+
+            <button
+              onClick={() => setMobileTab('console')}
+              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all text-[11px] whitespace-nowrap ${
+                mobileTab === 'console' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground'
+              }`}
+            >
+              <Terminal className="h-3.5 w-3.5 shrink-0" />
+              <span>Console</span>
+            </button>
+
+            <button
+              onClick={() => setMobileTab('preview')}
+              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all text-[11px] whitespace-nowrap ${
+                mobileTab === 'preview' ? 'bg-primary text-primary-foreground font-bold shadow-xs' : 'text-muted-foreground'
+              }`}
+            >
+              <Layout className="h-3.5 w-3.5 shrink-0" />
+              <span>Preview</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Editor & Dynamic Option Form Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {activeTab === 'editor' ? (
-            activeFile && (activeFile.fileKind || getFileKind(activeFile.name)) !== 'code' ? (
-              <DataFileViewer
-                file={activeFile}
-                onChangeContent={handleUpdateActiveCode}
-              />
+      {/* --- DESKTOP VIEW (Visible on >= 768px md:block) --- */}
+      <div className="hidden md:block space-y-6">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            {activeTab === 'editor' ? (
+              activeFile && (activeFile.fileKind || getFileKind(activeFile.name)) !== 'code' ? (
+                <DataFileViewer
+                  file={activeFile}
+                  onChangeContent={handleUpdateActiveCode}
+                />
+              ) : (
+                <ScriptEditor
+                  code={activeCode}
+                  onChangeCode={handleUpdateActiveCode}
+                  onRun={handleRunScript}
+                  onStop={handleStopScript}
+                  isRunning={isRunning}
+                  onSaveScript={handleUpdateActiveCode}
+                />
+              )
             ) : (
-              <ScriptEditor
-                code={activeCode}
-                onChangeCode={handleUpdateActiveCode}
-                onRun={handleRunScript}
-                onStop={handleStopScript}
-                isRunning={isRunning}
-                onSaveScript={handleUpdateActiveCode}
-              />
-            )
-          ) : (
-            <FramePreview frame={frame} />
-          )}
-        </div>
-
-        <div className="space-y-6">
-          {/* Open Dedicated Output Window Banner (Placed ABOVE Parameters) */}
-          <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 flex items-center justify-between gap-3 shadow-xs">
-            <div>
-              <div className="text-xs font-bold text-primary flex items-center gap-1.5">
-                <Maximize2 className="h-3.5 w-3.5" />
-                <span>Separate Output Window</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">
-                View side-by-side console logs and return payloads
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsResultWindowOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all cursor-pointer shrink-0"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              <span>Open Window</span>
-            </button>
+              <FramePreview frame={frame} />
+            )}
           </div>
 
+          <div>
+            <DynamicOptionForm
+              options={parsedMeta.options}
+              values={optionValues}
+              onChangeValue={(key, val) => setOptionValues(prev => ({ ...prev, [key]: val }))}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <ConsoleViewer
+            logs={logs}
+            onClearLogs={() => setLogs([])}
+            outputResult={outputResult}
+            errorResult={errorResult}
+            executionTimeMs={executionTimeMs}
+            onOpenResultWindow={() => setIsResultWindowOpen(true)}
+          />
+        </div>
+      </div>
+
+      {/* --- MOBILE VIEW (Visible on < 768px md:hidden) --- */}
+      <div className="md:hidden space-y-4">
+        {mobileTab === 'editor' && (
+          activeFile && (activeFile.fileKind || getFileKind(activeFile.name)) !== 'code' ? (
+            <DataFileViewer
+              file={activeFile}
+              onChangeContent={handleUpdateActiveCode}
+            />
+          ) : (
+            <ScriptEditor
+              code={activeCode}
+              onChangeCode={handleUpdateActiveCode}
+              onRun={handleRunScript}
+              onStop={handleStopScript}
+              isRunning={isRunning}
+              onSaveScript={handleUpdateActiveCode}
+            />
+          )
+        )}
+
+        {mobileTab === 'parameters' && (
           <DynamicOptionForm
             options={parsedMeta.options}
             values={optionValues}
             onChangeValue={(key, val) => setOptionValues(prev => ({ ...prev, [key]: val }))}
           />
-        </div>
-      </div>
+        )}
 
-      {/* Live Console Output Drawer */}
-      <ConsoleViewer
-        logs={logs}
-        onClearLogs={() => setLogs([])}
-        outputResult={outputResult}
-        errorResult={errorResult}
-        executionTimeMs={executionTimeMs}
-      />
+        {mobileTab === 'console' && (
+          <ConsoleViewer
+            logs={logs}
+            onClearLogs={() => setLogs([])}
+            outputResult={outputResult}
+            errorResult={errorResult}
+            executionTimeMs={executionTimeMs}
+            onOpenResultWindow={() => setIsResultWindowOpen(true)}
+          />
+        )}
+
+        {mobileTab === 'preview' && (
+          <FramePreview frame={frame} />
+        )}
+      </div>
 
       {/* Dedicated Execution Result & Console Window Modal */}
       <ExecutionResultWindowModal

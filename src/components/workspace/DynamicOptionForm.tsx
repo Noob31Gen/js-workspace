@@ -30,8 +30,8 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 space-y-4 shadow-sm">
-      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col h-[460px] sm:h-[520px]">
+      <div className="flex items-center justify-between border-b border-border/40 pb-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
             <Sliders className="h-3.5 w-3.5" />
@@ -59,27 +59,27 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="flex-1 overflow-y-auto pr-1 space-y-3 pt-3">
         {options.map((opt) => {
           const val = values[opt.key] !== undefined ? values[opt.key] : opt.default;
 
           return (
             <div key={opt.key} className="space-y-1.5 p-2.5 rounded-lg bg-muted/20 border border-border/40 hover:border-border/80 transition-colors">
-              <div className="flex items-center justify-between gap-2">
-                <label htmlFor={`input-${opt.key}`} className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <span>{opt.label || opt.key}</span>
-                  <code className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/50">
+              <div className="flex items-center justify-between gap-2 min-w-0 select-none">
+                <label htmlFor={`input-${opt.key}`} className="text-xs font-semibold text-foreground flex items-center gap-1.5 min-w-0 truncate">
+                  <span className="truncate">{opt.label || opt.key}</span>
+                  <code className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/50 shrink-0 whitespace-nowrap">
                     {opt.key}
                   </code>
                 </label>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0 whitespace-nowrap">
                   {opt.source === 'autodetected' && (
-                    <span className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20">
+                    <span className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0">
                       Auto-Detected
                     </span>
                   )}
-                  <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-semibold border border-primary/20">
+                  <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-semibold border border-primary/20 whitespace-nowrap shrink-0">
                     {opt.type}
                   </span>
                 </div>

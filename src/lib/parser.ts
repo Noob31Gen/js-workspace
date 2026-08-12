@@ -21,7 +21,7 @@ export interface ParsedScriptMeta {
 }
 
 /**
- * Parses script source code for JSDoc annotations and automatically falls back to function signature AST/regex argument discovery.
+ * Parses script source code for JSDoc annotations and code-level logic (destructuring, property access, function signatures).
  */
 export function parseScriptOptions(code: string): ParsedScriptMeta {
   const result: ParsedScriptMeta = {
@@ -49,11 +49,12 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
   const categoryMatch = code.match(/@category\s+(.+)/i);
   if (categoryMatch) result.category = categoryMatch[1].trim();
 
+  const jsdocKeys = new Set<string>();
+
   // 2. Extract @param JSDoc annotations
   // Format: @param {type} key Label - default: "val"
   const paramRegex = /@param\s+\{([^}]+)\}\s+([a-zA-Z0-9_$]+)\s+([^-]+)(?:\s*-\s*default:\s*(.+))?/gi;
   let match;
-  const jsdocKeys = new Set<string>();
 
   while ((match = paramRegex.exec(code)) !== null) {
     const rawType = match[1].trim().toLowerCase();
@@ -117,8 +118,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     });
   }
 
-  // 3. Fallback: Automatic Function Argument Discovery if JSDoc missing or partial
-  // Matches: function run({ a, b }), const run = async ({ a, b }) =>, export default function({ a, b })
+  // 3. Extract Destructured Function Parameters: e.g. function main({ file, dryRun = false })
   const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function\s*(?:[a-zA-Z0-9_$]+)?|(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=\s*(?:async\s*)?)\s*\(\s*\{([^}]+)\}\s*\)/gi;
   let funcMatch;
 
@@ -148,7 +148,6 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
             }
           }
 
-          // Format label nicely (camelCase to Title Case)
           const formattedLabel = paramKey
             .replace(/([A-Z])/g, ' $1')
             .replace(/^./, str => str.toUpperCase());
@@ -164,6 +163,93 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
           jsdocKeys.add(paramKey);
         }
       }
+    }
+  }
+
+  // 4. Extract Destructured Variables in Code Body: e.g. const { file, dryRun, retries = 2 } = options;
+  const destructuredVarRegex = /(?:const|let|var)\s*\{([^}]+)\}\s*=\s*(?:options|opts|args|argv|params|config|input)\b/gi;
+  let destMatch;
+
+  while ((destMatch = destructuredVarRegex.exec(code)) !== null) {
+    if (destMatch[1]) {
+      const rawVars = destMatch[1].split(',');
+      for (const rawVar of rawVars) {
+        const trimmed = rawVar.trim();
+        if (!trimmed) continue;
+
+        const [keyRaw, defaultValRaw] = trimmed.split('=').map(s => s.trim());
+        const key = keyRaw.replace(/^[^a-zA-Z0-9_$]+/, '');
+
+        if (key && !jsdocKeys.has(key)) {
+          let inferredType: OptionDescriptor['type'] = 'string';
+          let inferredDefault: any = '';
+
+          if (defaultValRaw) {
+            if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+              inferredType = 'boolean';
+              inferredDefault = defaultValRaw === 'true';
+            } else if (!isNaN(Number(defaultValRaw))) {
+              inferredType = 'number';
+              inferredDefault = Number(defaultValRaw);
+            } else {
+              inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+            }
+          }
+
+          const formattedLabel = key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase());
+
+          result.options.push({
+            key,
+            label: formattedLabel,
+            type: inferredType,
+            default: inferredDefault,
+            source: 'autodetected',
+            description: 'Auto-detected from code destructuring'
+          });
+          jsdocKeys.add(key);
+        }
+      }
+    }
+  }
+
+  // 5. Extract Direct Property Usage in Code Body: e.g. options.file, options.dryRun, options['batch-size']
+  const propAccessRegex = /(?:options|opts|args|argv|params|config|input)\.([a-zA-Z0-9_$]+)|(?:options|opts|args|argv|params|config|input)\[['"]([a-zA-Z0-9_$-]+)['"]\]/gi;
+  let propMatch;
+
+  while ((propMatch = propAccessRegex.exec(code)) !== null) {
+    const rawProp = propMatch[1] || propMatch[2];
+    if (!rawProp) continue;
+
+    const camelKey = rawProp.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+
+    if (!jsdocKeys.has(camelKey) && !jsdocKeys.has(rawProp)) {
+      let inferredType: OptionDescriptor['type'] = 'string';
+      let inferredDefault: any = '';
+
+      if (/^(is|enable|disable|has|use|with|show|hide|dry)/i.test(camelKey)) {
+        inferredType = 'boolean';
+        inferredDefault = false;
+      } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(camelKey)) {
+        inferredType = 'number';
+        inferredDefault = 0;
+      }
+
+      const formattedLabel = camelKey
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key: camelKey,
+        label: formattedLabel,
+        type: inferredType,
+        default: inferredDefault,
+        source: 'autodetected',
+        description: 'Auto-detected from code property usage'
+      });
+      jsdocKeys.add(camelKey);
+      jsdocKeys.add(rawProp);
     }
   }
 

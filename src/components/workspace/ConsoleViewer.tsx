@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConsoleLogMessage } from '@/lib/worker-runner';
-import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson } from 'lucide-react';
+import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2 } from 'lucide-react';
 
 interface ConsoleViewerProps {
   logs: ConsoleLogMessage[];
@@ -8,6 +8,7 @@ interface ConsoleViewerProps {
   outputResult: any;
   errorResult: string | null;
   executionTimeMs?: number;
+  onOpenResultWindow?: () => void;
 }
 
 export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
@@ -15,7 +16,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   onClearLogs,
   outputResult,
   errorResult,
-  executionTimeMs
+  executionTimeMs,
+  onOpenResultWindow
 }) => {
   const [activeTab, setActiveTab] = useState<'logs' | 'result' | 'raw'>('logs');
   const [copied, setCopied] = useState(false);
@@ -30,53 +32,67 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-[340px]">
       {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-bold font-mono text-foreground">
-            <Terminal className="h-4 w-4 text-primary" />
+      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2.5 shrink-0 select-none gap-4">
+        {/* Left Side: Title & Tabs */}
+        <div className="flex items-center gap-4 min-w-0 shrink-0">
+          <div className="flex items-center gap-2 text-xs font-bold font-mono text-foreground whitespace-nowrap">
+            <Terminal className="h-4 w-4 text-primary shrink-0" />
             <span>Console Execution Output</span>
           </div>
 
-          <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs">
+          <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs whitespace-nowrap shrink-0">
             <button
               onClick={() => setActiveTab('logs')}
-              className={`px-2.5 py-0.5 rounded-md font-medium transition-all ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Logs ({logs.length})
             </button>
             <button
               onClick={() => setActiveTab('result')}
-              className={`px-2.5 py-0.5 rounded-md font-medium transition-all ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Return Value
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right Side: Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+          {onOpenResultWindow && (
+            <button
+              onClick={onOpenResultWindow}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 px-3 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+              title="Open Execution Result & Console in Full Window"
+            >
+              <Maximize2 className="h-3.5 w-3.5 shrink-0" />
+              <span>Open Full Window</span>
+            </button>
+          )}
+
           {executionTimeMs !== undefined && (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border/40">
-              <Clock className="h-3 w-3 text-emerald-400" />
-              {executionTimeMs}ms
+            <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border border-border/40 whitespace-nowrap">
+              <Clock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+              <span>{executionTimeMs}ms</span>
             </span>
           )}
 
           {outputResult !== null && (
             <button
               onClick={handleCopyResult}
-              className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap"
+              title="Copy Result payload"
             >
-              {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
               <span>{copied ? 'Copied' : 'Copy Result'}</span>
             </button>
           )}
 
           <button
             onClick={onClearLogs}
-            className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-all"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-all whitespace-nowrap"
             title="Clear output console"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5 shrink-0" />
             <span>Clear</span>
           </button>
         </div>

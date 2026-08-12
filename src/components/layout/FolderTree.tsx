@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { WorkspaceNode } from '@/lib/workspace-store';
-import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, Plus, FilePlus, FolderPlus, Trash2, Edit3, Upload, Archive, FileText, Copy, FolderInput } from 'lucide-react';
+import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, FilePlus, FolderPlus, Trash2, Edit3, Copy, FolderInput } from 'lucide-react';
 
 interface FolderTreeProps {
   nodes: WorkspaceNode[];
@@ -14,9 +14,6 @@ interface FolderTreeProps {
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onRestoreDemo?: () => void;
-  onImportFolder?: (fileList: FileList) => void;
-  onImportZip?: (file: File) => void;
-  onImportSingleFile?: (file: File) => void;
 }
 
 export const FolderTree: React.FC<FolderTreeProps> = ({
@@ -30,21 +27,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onMoveNode,
-  onRestoreDemo,
-  onImportFolder,
-  onImportZip,
-  onImportSingleFile
+  onRestoreDemo
 }) => {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [addingToFolderId, setAddingToFolderId] = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
   const [newItemName, setNewItemName] = useState('');
-  const [showImportMenu, setShowImportMenu] = useState(false);
   const [movingNodeId, setMovingNodeId] = useState<string | null>(null);
-
-  const folderInputRef = useRef<HTMLInputElement>(null);
-  const zipInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getChildren = (parentId: string | null) => {
     return (nodes || [])
@@ -83,27 +72,6 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       }
     }
     setAddingToFolderId(null);
-  };
-
-  const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && onImportFolder) {
-      onImportFolder(e.target.files);
-    }
-    setShowImportMenu(false);
-  };
-
-  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && onImportZip) {
-      onImportZip(e.target.files[0]);
-    }
-    setShowImportMenu(false);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && onImportSingleFile) {
-      onImportSingleFile(e.target.files[0]);
-    }
-    setShowImportMenu(false);
   };
 
   const renderTree = (parentId: string | null, depth: number = 0) => {
@@ -312,36 +280,9 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
 
   return (
     <div className="space-y-2">
-      {/* Hidden File Inputs */}
-      <input
-        type="file"
-        ref={folderInputRef}
-        onChange={handleFolderChange}
-        // @ts-ignore
-        webkitdirectory=""
-        directory=""
-        multiple
-        className="hidden"
-      />
-      <input
-        type="file"
-        ref={zipInputRef}
-        onChange={handleZipChange}
-        accept=".zip"
-        className="hidden"
-      />
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="*"
-        className="hidden"
-      />
-
       <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
         <span>Files & Directories</span>
         <div className="flex items-center gap-1">
-
           <button
             onClick={(e) => handleStartCreate(null, 'file', e)}
             className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
