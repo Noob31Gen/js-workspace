@@ -300,7 +300,7 @@ export function App() {
                 {activeFile?.path || 'No File Selected'}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text">
+            <h1 className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text">
               {parsedMeta.name || activeFile?.name || 'Workspace'}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -311,22 +311,20 @@ export function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('editor')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                activeTab === 'editor'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${activeTab === 'editor'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
-              }`}
+                }`}
             >
               <Code2 className="h-3.5 w-3.5" />
               Editor Workspace
             </button>
             <button
               onClick={() => setActiveTab('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                activeTab === 'preview'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${activeTab === 'preview'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground'
-              }`}
+                }`}
             >
               <Layout className="h-3.5 w-3.5" />
               Frame Preview {frame && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}

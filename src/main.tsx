@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/geist'
 import App from './App.tsx'
 import './index.css'
+import { registerServiceWorker } from './lib/pwa-register'
+
+registerServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
