@@ -3,9 +3,7 @@ const EXTENSION_MANIFEST = `{
   "name": "JS Workspace CORS Fetch Helper",
   "version": "1.0.0",
   "description": "Helper extension allowing local JS Workspace applications to perform cross-origin data fetching.",
-  "permissions": [
-    "host_permissions"
-  ],
+  "permissions": [],
   "host_permissions": [
     "<all_urls>"
   ],
@@ -15,8 +13,10 @@ const EXTENSION_MANIFEST = `{
   "externally_connectable": {
     "matches": [
       "http://localhost/*",
+      "http://localhost:*/*",
+      "http://127.0.0.1/*",
       "http://127.0.0.1:*/*",
-      "https://*.noob31.com/*"
+      "https://*/*"
     ]
   }
 }

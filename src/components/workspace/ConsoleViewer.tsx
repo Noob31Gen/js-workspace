@@ -44,13 +44,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs shrink-0">
             <button
               onClick={() => setActiveTab('logs')}
-              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs cursor-pointer ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              title="View console output log stream"
             >
               Logs ({logs.length})
             </button>
             <button
               onClick={() => setActiveTab('result')}
-              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs cursor-pointer ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              title="View raw JavaScript return value object payload"
             >
               Return Value
             </button>
@@ -63,7 +65,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <button
               onClick={onOpenResultWindow}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 px-3 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer whitespace-nowrap shadow-xs"
-              title="Open Execution Result & Console in Full Window"
+              title="Open execution result & console logs in a full window modal"
             >
               <Maximize2 className="h-3.5 w-3.5 shrink-0" />
               <span>Open Full Window</span>
@@ -71,7 +73,10 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           )}
 
           {executionTimeMs !== undefined && (
-            <span className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border border-border/40 whitespace-nowrap">
+            <span 
+              className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border border-border/40 whitespace-nowrap cursor-help"
+              title={`Script execution completed in ${executionTimeMs} milliseconds`}
+            >
               <Clock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
               <span>{executionTimeMs}ms</span>
             </span>
@@ -80,8 +85,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           {outputResult !== null && (
             <button
               onClick={handleCopyResult}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap"
-              title="Copy Result payload"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap cursor-pointer"
+              title="Copy return value object payload to clipboard"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
               <span>{copied ? 'Copied' : 'Copy Result'}</span>
@@ -90,8 +95,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 
           <button
             onClick={onClearLogs}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-all whitespace-nowrap"
-            title="Clear output console"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-all whitespace-nowrap cursor-pointer"
+            title="Clear all console logs and output history"
           >
             <Trash2 className="h-3.5 w-3.5 shrink-0" />
             <span>Clear</span>
@@ -114,7 +119,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 {onOpenResultWindow && (
                   <button
                     onClick={() => { onOpenResultWindow(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-primary font-medium"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-primary font-medium cursor-pointer"
+                    title="Open execution result & console logs in a full window modal"
                   >
                     <Maximize2 className="h-3.5 w-3.5 shrink-0" />
                     <span>Open Full Window</span>
@@ -124,7 +130,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 {outputResult !== null && (
                   <button
                     onClick={() => { handleCopyResult(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                    title="Copy return value object payload to clipboard"
                   >
                     {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0 text-emerald-400" />}
                     <span>{copied ? 'Copied Payload' : 'Copy Result'}</span>
@@ -134,7 +141,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                 {onClearLogs && (
                   <button
                     onClick={() => { onClearLogs(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-destructive font-medium border-t border-border/40 pt-1.5"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-destructive font-medium border-t border-border/40 pt-1.5 cursor-pointer"
+                    title="Clear all console logs and output history"
                   >
                     <Trash2 className="h-3.5 w-3.5 shrink-0" />
                     <span>Clear Output Console</span>

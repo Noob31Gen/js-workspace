@@ -118,14 +118,16 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
             <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md font-medium transition-all ${viewMode === 'table' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md font-medium transition-all cursor-pointer ${viewMode === 'table' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Render CSV data in interactive spreadsheet table format"
               >
                 <Table className="h-3 w-3" />
                 Table
               </button>
               <button
                 onClick={() => setViewMode('raw')}
-                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md font-medium transition-all ${viewMode === 'raw' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md font-medium transition-all cursor-pointer ${viewMode === 'raw' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                title="View raw unformatted CSV text"
               >
                 <Code className="h-3 w-3" />
                 Raw CSV
@@ -136,7 +138,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
           {fileKind === 'data-json' && (
             <button
               onClick={handleFormatJson}
-              className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
+              className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="Prettify and format JSON structure"
             >
               <Sparkles className="h-3 w-3 text-amber-400" />
               Format JSON
@@ -145,7 +148,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
 
           <button
             onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
+            className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+            title="Copy entire file content to clipboard"
           >
             {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -158,7 +162,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-              title="More File Options"
+              title="More Data File Options"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
@@ -168,7 +172,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
                 {fileKind === 'data-csv' && (
                   <button
                     onClick={() => { setViewMode(viewMode === 'table' ? 'raw' : 'table'); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                    title={`Toggle between table and raw text view`}
                   >
                     <Table className="h-3.5 w-3.5 text-primary" />
                     <span>Switch to {viewMode === 'table' ? 'Raw CSV' : 'Table View'}</span>
@@ -178,7 +183,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
                 {fileKind === 'data-json' && (
                   <button
                     onClick={() => { handleFormatJson(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                    title="Prettify and format JSON structure"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                     <span>Format JSON</span>
@@ -187,7 +193,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
 
                 <button
                   onClick={() => { handleCopy(); setShowMobileMenu(false); }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                  title="Copy entire file content to clipboard"
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
                   <span>{copied ? 'Copied File' : 'Copy File Content'}</span>

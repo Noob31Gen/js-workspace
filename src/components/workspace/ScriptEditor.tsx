@@ -365,7 +365,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                 {!isRunning ? (
                   <button
                     onClick={() => { onRun(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center gap-2 text-primary font-bold transition-all"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center gap-2 text-primary font-bold transition-all cursor-pointer"
+                    title="Execute JavaScript script code in sandboxed web worker"
                   >
                     <Play className="h-3.5 w-3.5 fill-current shrink-0" />
                     <span>Run Script</span>
@@ -373,7 +374,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                 ) : (
                   <button
                     onClick={() => { onStop(); setShowMobileMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 flex items-center gap-2 text-destructive font-bold transition-all"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 flex items-center gap-2 text-destructive font-bold transition-all cursor-pointer"
+                    title="Terminate running script execution"
                   >
                     <Square className="h-3.5 w-3.5 fill-current shrink-0 animate-pulse" />
                     <span>Stop Script</span>
@@ -382,7 +384,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
                 <button
                   onClick={() => { handleManualSave(); setShowMobileMenu(false); }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center justify-between text-foreground font-medium"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center justify-between text-foreground font-medium cursor-pointer"
+                  title="Save current script changes (Ctrl+S)"
                 >
                   <div className="flex items-center gap-2">
                     {justSaved ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Save className="h-3.5 w-3.5 text-primary" />}
@@ -393,7 +396,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
                 <button
                   onClick={() => { setIsMaximized(!isMaximized); setShowMobileMenu(false); }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                  title={isMaximized ? 'Minimize editor window (Esc)' : 'Enlarge editor window full screen'}
                 >
                   {isMaximized ? <Minimize2 className="h-3.5 w-3.5 text-amber-400" /> : <Maximize2 className="h-3.5 w-3.5 text-primary" />}
                   <span>{isMaximized ? 'Minimize Window' : 'Enlarge Window'}</span>
@@ -407,16 +411,16 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                     <button
                       onClick={() => { handleUndo(); }}
                       disabled={historyIndex <= 0}
-                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30"
-                      title="Undo"
+                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30 cursor-pointer"
+                      title="Undo recent edits (Ctrl+Z)"
                     >
                       <Undo2 className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => { handleRedo(); }}
                       disabled={historyIndex >= history.length - 1}
-                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30"
-                      title="Redo"
+                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30 cursor-pointer"
+                      title="Redo recent edits (Ctrl+Y)"
                     >
                       <Redo2 className="h-3.5 w-3.5" />
                     </button>
@@ -427,7 +431,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
                 <button
                   onClick={() => { handleCopy(); setShowMobileMenu(false); }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                  title="Copy complete script code to clipboard"
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
                   <span>{copied ? 'Copied to Clipboard' : 'Copy Code'}</span>
@@ -435,7 +440,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
                 <button
                   onClick={() => { handleDownload(); setShowMobileMenu(false); }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                  title="Export script to local .js file download"
                 >
                   <Download className="h-3.5 w-3.5 text-blue-400" />
                   <span>Export to File</span>

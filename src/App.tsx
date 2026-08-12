@@ -13,6 +13,8 @@ import { DataFileViewer } from '@/components/workspace/DataFileViewer';
 import { parseLocalFolder, parseZipArchive, parseSingleFile } from '@/lib/import-engine';
 import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind, duplicateNodeInWorkspace, moveNodeInWorkspace } from '@/lib/workspace-store';
 import { ExecutionResultWindowModal } from '@/components/workspace/ExecutionResultWindowModal';
+import { FileOutputModal } from '@/components/output/FileOutputModal';
+import { ScriptOutputFile, extractFileObjectsFromReturn } from '@/lib/output-file-handler';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
 
 const runner = new ScriptRunner();
@@ -29,6 +31,8 @@ export function App() {
   const [outputResult, setOutputResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
   const [executionTimeMs, setExecutionTimeMs] = useState<number | undefined>(undefined);
+  const [outputFilesPrompt, setOutputFilesPrompt] = useState<ScriptOutputFile[]>([]);
+  const currentRunFilesRef = React.useRef<ScriptOutputFile[]>([]);
 
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [isWsManagerOpen, setIsWsManagerOpen] = useState(false);
@@ -66,6 +70,7 @@ export function App() {
     setOutputResult(null);
     setErrorResult(null);
     setIsRunning(true);
+    currentRunFilesRef.current = [];
 
     runner.execute({
       code: activeCode,
@@ -77,6 +82,13 @@ export function App() {
         if (mutation.action === 'write' && mutation.content !== undefined) {
           const filePath = mutation.path;
           const fileName = filePath.split('/').pop() || filePath;
+
+          currentRunFilesRef.current.push({
+            name: fileName,
+            path: filePath,
+            content: mutation.content,
+            sizeBytes: mutation.content.length
+          });
 
           setWorkspaces(prevWorkspaces =>
             prevWorkspaces.map(ws => {
@@ -114,12 +126,63 @@ export function App() {
           setActiveTab('preview');
         }
         setExecutionTimeMs(res.executionTimeMs);
+
+        // Detect returned file objects and fs mutations
+        const returnedFiles = extractFileObjectsFromReturn(res.raw);
+        const allFilesMap = new Map<string, ScriptOutputFile>();
+        currentRunFilesRef.current.forEach(f => allFilesMap.set(f.name, f));
+        returnedFiles.forEach(f => allFilesMap.set(f.name, f));
+
+        const finalOutputFiles = Array.from(allFilesMap.values());
+        if (finalOutputFiles.length > 0) {
+          setOutputFilesPrompt(finalOutputFiles);
+        }
       },
       onError: (err) => {
         setIsRunning(false);
         setErrorResult(err);
       }
     });
+  };
+
+  const handleAddToWorkspaceRoot = (file: ScriptOutputFile) => {
+    const fileContent = typeof file.content === 'string'
+      ? file.content
+      : new TextDecoder().decode(file.content as Uint8Array);
+
+    const fileName = file.name;
+    const existingNode = activeNodes.find(n => n.parentId === null && n.name === fileName);
+
+    if (existingNode) {
+      setWorkspaces(prev => prev.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          nodes: ws.nodes.map(n => n.id === existingNode.id ? { ...n, code: fileContent } : n),
+          activeFileId: existingNode.id
+        };
+      }));
+      setActiveFileId(existingNode.id);
+    } else {
+      const newId = `file-root-out-${Date.now()}`;
+      const newNode: WorkspaceNode = {
+        id: newId,
+        name: fileName,
+        type: 'file',
+        path: fileName,
+        parentId: null,
+        code: fileContent
+      };
+      setWorkspaces(prev => prev.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          nodes: [...ws.nodes, newNode],
+          activeFileId: newId
+        };
+      }));
+      setActiveFileId(newId);
+    }
   };
 
   const handleStopScript = () => {
@@ -567,6 +630,14 @@ export function App() {
       <DocViewerModal
         docName={selectedDoc}
         onClose={() => setSelectedDoc(null)}
+      />
+
+      {/* Script File Output Notification Modal */}
+      <FileOutputModal
+        files={outputFilesPrompt}
+        isOpen={outputFilesPrompt.length > 0}
+        onClose={() => setOutputFilesPrompt([])}
+        onAddToWorkspaceRoot={handleAddToWorkspaceRoot}
       />
     </>
   );

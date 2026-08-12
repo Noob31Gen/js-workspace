@@ -77,11 +77,17 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
 
                 <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {opt.source === 'autodetected' && (
-                    <span className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0">
+                    <span 
+                      className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0 cursor-help"
+                      title="Parameter auto-detected from code property usage"
+                    >
                       Auto
                     </span>
                   )}
-                  <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-bold border border-primary/20 whitespace-nowrap shrink-0">
+                  <span 
+                    className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-bold border border-primary/20 whitespace-nowrap shrink-0 cursor-help"
+                    title={`Parameter data type: ${opt.type}`}
+                  >
                     {opt.type}
                   </span>
                 </div>
