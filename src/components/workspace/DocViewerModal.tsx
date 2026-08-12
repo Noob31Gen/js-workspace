@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, BookOpen, FileText } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, BookOpen } from 'lucide-react';
 
 interface DocViewerModalProps {
   docName: string | null;
@@ -50,9 +51,9 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
 
   const content = DOC_CONTENTS[docName] || `Documentation for ${docName} available in docs/${docName}`;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
+      <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-card p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col my-auto">
         <div className="flex items-center justify-between border-b border-border/60 pb-3">
           <div className="flex items-center gap-2 text-primary font-bold text-base">
             <BookOpen className="h-5 w-5" />
@@ -66,7 +67,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto font-mono text-xs text-foreground bg-zinc-950 p-4 rounded-lg border border-zinc-800 whitespace-pre-wrap leading-relaxed">
+        <div className="flex-1 overflow-y-auto font-mono text-xs text-foreground bg-zinc-950 p-4 rounded-lg border border-zinc-800 whitespace-pre-wrap leading-relaxed select-all">
           {content}
         </div>
 
@@ -79,6 +80,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

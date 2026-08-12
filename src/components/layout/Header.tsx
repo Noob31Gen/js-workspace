@@ -1,19 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { precacheNpmPackage } from '@/lib/pwa-register';
 
 interface HeaderProps {
   onOpenDocs: (docName: string) => void;
+  onImportFolder?: (fileList: FileList) => void;
+  onImportZip?: (file: File) => void;
+  onImportBundle?: (file: File) => void;
+  onImportSingleFile?: (file: File) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenDocs }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenDocs,
+  onImportFolder,
+  onImportZip,
+  onImportBundle,
+  onImportSingleFile
+}) => {
   const [extensionActive, setExtensionActive] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState<boolean>(false);
+  const [showImportMenu, setShowImportMenu] = useState<boolean>(false);
   const [customPkgInput, setCustomPkgInput] = useState<string>('');
   const [precachedPkgs, setPrecachedPkgs] = useState<string[]>(['lodash', 'dayjs', 'papaparse']);
   const [cachingPkg, setCachingPkg] = useState<string | null>(null);
+
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+  const bundleInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const verifyExtension = async () => {
@@ -50,8 +67,69 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDocs }) => {
     }
   };
 
+  const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && onImportFolder) {
+      onImportFolder(e.target.files);
+    }
+    setShowImportMenu(false);
+  };
+
+  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportZip) {
+      onImportZip(e.target.files[0]);
+    }
+    setShowImportMenu(false);
+  };
+
+  const handleBundleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportBundle) {
+      onImportBundle(e.target.files[0]);
+    }
+    setShowImportMenu(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportSingleFile) {
+      onImportSingleFile(e.target.files[0]);
+    }
+    setShowImportMenu(false);
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/60 bg-background/80 px-4 backdrop-blur-md sm:px-6">
+      {/* Hidden File Inputs */}
+      <input
+        type="file"
+        ref={folderInputRef}
+        onChange={handleFolderChange}
+        // @ts-ignore
+        webkitdirectory=""
+        directory=""
+        multiple
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={zipInputRef}
+        onChange={handleZipChange}
+        accept=".zip"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={bundleInputRef}
+        onChange={handleBundleChange}
+        accept=".json"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="*"
+        className="hidden"
+      />
+
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow">
           <Terminal className="h-5 w-5" />
@@ -70,6 +148,66 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDocs }) => {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Unified Import Button Outside Editor */}
+        <div className="relative">
+          <button
+            onClick={() => setShowImportMenu(!showImportMenu)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-sm"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span>Import</span>
+            <ChevronDown className="h-3 w-3 opacity-80" />
+          </button>
+
+          {showImportMenu && (
+            <div className="absolute right-0 top-10 z-50 w-60 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 font-sans text-xs animate-in fade-in zoom-in duration-150">
+              <button
+                onClick={() => { folderInputRef.current?.click(); setShowImportMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+              >
+                <Folder className="h-4 w-4 text-amber-400 shrink-0" />
+                <div>
+                  <div className="font-bold">PC Folder</div>
+                  <div className="text-[10px] text-muted-foreground">Creates new workspace</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { zipInputRef.current?.click(); setShowImportMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+              >
+                <Archive className="h-4 w-4 text-blue-400 shrink-0" />
+                <div>
+                  <div className="font-bold">ZIP Archive (.zip)</div>
+                  <div className="text-[10px] text-muted-foreground">Creates new workspace</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { bundleInputRef.current?.click(); setShowImportMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+              >
+                <Layers className="h-4 w-4 text-purple-400 shrink-0" />
+                <div>
+                  <div className="font-bold">Workspace Bundle (.json)</div>
+                  <div className="text-[10px] text-muted-foreground">Creates new workspace</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { fileInputRef.current?.click(); setShowImportMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors border-t border-border/40 pt-2"
+              >
+                <FileText className="h-4 w-4 text-emerald-400 shrink-0" />
+                <div>
+                  <div className="font-bold">Single Data File</div>
+                  <div className="text-[10px] text-muted-foreground">Drops into active workspace</div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Offline / Online Status Badge */}
         <button
           onClick={() => setIsOfflineModalOpen(true)}
@@ -144,10 +282,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDocs }) => {
         </a>
       </div>
 
-      {/* Offline PWA Package Manager Modal */}
-      {isOfflineModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
+      {/* Offline PWA Package Manager Modal - Rendered via Portal to escape header backdrop-blur containing block */}
+      {isOfflineModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-6 shadow-2xl space-y-4 my-auto">
             <div className="flex items-center justify-between border-b border-border/40 pb-3">
               <div className="flex items-center gap-2">
                 <Wifi className="h-5 w-5 text-primary" />
@@ -233,7 +371,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDocs }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );

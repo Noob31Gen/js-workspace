@@ -16,6 +16,9 @@ interface SidebarProps {
   onDeleteNode: (nodeId: string) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (doc: string) => void;
+  onImportFolder?: (fileList: FileList) => void;
+  onImportZip?: (file: File) => void;
+  onImportSingleFile?: (file: File) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,7 +33,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRenameNode,
   onDeleteNode,
   onOpenWorkspaceManager,
-  onOpenDocs
+  onOpenDocs,
+  onImportFolder,
+  onImportZip,
+  onImportSingleFile
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
@@ -81,6 +87,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onRenameNode={onRenameNode}
             onDeleteNode={onDeleteNode}
             onRestoreDemo={onOpenWorkspaceManager}
+            onImportFolder={onImportFolder}
+            onImportZip={onImportZip}
+            onImportSingleFile={onImportSingleFile}
           />
         </div>
 

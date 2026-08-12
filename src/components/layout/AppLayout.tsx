@@ -17,6 +17,10 @@ interface AppLayoutProps {
   onDeleteNode: (nodeId: string) => void;
   onOpenWorkspaceManager: () => void;
   onSelectDoc: (doc: string) => void;
+  onImportFolder?: (fileList: FileList) => void;
+  onImportZip?: (file: File) => void;
+  onImportBundle?: (file: File) => void;
+  onImportSingleFile?: (file: File) => void;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
@@ -32,11 +36,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onRenameNode,
   onDeleteNode,
   onOpenWorkspaceManager,
-  onSelectDoc
+  onSelectDoc,
+  onImportFolder,
+  onImportZip,
+  onImportBundle,
+  onImportSingleFile
 }) => {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
-      <Header onOpenDocs={onSelectDoc} />
+      <Header
+        onOpenDocs={onSelectDoc}
+        onImportFolder={onImportFolder}
+        onImportZip={onImportZip}
+        onImportBundle={onImportBundle}
+        onImportSingleFile={onImportSingleFile}
+      />
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
         <Sidebar
           workspaces={workspaces}
@@ -51,6 +65,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onDeleteNode={onDeleteNode}
           onOpenWorkspaceManager={onOpenWorkspaceManager}
           onOpenDocs={onSelectDoc}
+          onImportFolder={onImportFolder}
+          onImportZip={onImportZip}
+          onImportSingleFile={onImportSingleFile}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-6">

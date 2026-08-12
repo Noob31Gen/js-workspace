@@ -75,23 +75,6 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept="*"
-            className="hidden"
-          />
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
-            title="Import JS script file"
-          >
-            <Upload className="h-3 w-3" />
-            <span className="hidden sm:inline">Import</span>
-          </button>
-
           <button
             onClick={handleDownload}
             className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"

@@ -9,6 +9,7 @@ import { WorkspaceManagerModal } from '@/components/workspace/WorkspaceManagerMo
 import { parseScriptOptions } from '@/lib/parser';
 import { ScriptRunner, ConsoleLogMessage, FramePayload, ExecutionResult } from '@/lib/worker-runner';
 import { DataFileViewer } from '@/components/workspace/DataFileViewer';
+import { parseLocalFolder, parseZipArchive, parseSingleFile } from '@/lib/import-engine';
 import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind } from '@/lib/workspace-store';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check } from 'lucide-react';
 
@@ -273,6 +274,80 @@ export function App() {
     if (file) setActiveFileId(file.id);
   };
 
+  const handleImportFolder = async (fileList: FileList) => {
+    try {
+      const bundle = await parseLocalFolder(fileList);
+      const newWs: Workspace = {
+        id: `ws-folder-${Date.now()}`,
+        name: bundle.workspaceName,
+        description: `Imported PC folder (${bundle.nodes.length} items)`,
+        nodes: bundle.nodes,
+        activeFileId: bundle.activeFileId
+      };
+      setWorkspaces(prev => [...prev, newWs]);
+      setActiveWorkspaceId(newWs.id);
+      if (bundle.activeFileId) setActiveFileId(bundle.activeFileId);
+    } catch (e) {
+      alert('Failed to import local folder: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleImportZip = async (zipFile: File) => {
+    try {
+      const bundle = await parseZipArchive(zipFile);
+      const newWs: Workspace = {
+        id: `ws-zip-${Date.now()}`,
+        name: bundle.workspaceName,
+        description: `Imported ZIP archive (${bundle.nodes.length} items)`,
+        nodes: bundle.nodes,
+        activeFileId: bundle.activeFileId
+      };
+      setWorkspaces(prev => [...prev, newWs]);
+      setActiveWorkspaceId(newWs.id);
+      if (bundle.activeFileId) setActiveFileId(bundle.activeFileId);
+    } catch (e) {
+      alert('Failed to unzip archive: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleImportBundle = async (file: File) => {
+    try {
+      const text = await file.text();
+      const imported = JSON.parse(text) as Workspace;
+      if (!imported.name || !Array.isArray(imported.nodes)) {
+        throw new Error('Invalid workspace bundle format.');
+      }
+      const newWs: Workspace = {
+        ...imported,
+        id: `ws-bundle-${Date.now()}`
+      };
+      setWorkspaces(prev => [...prev, newWs]);
+      setActiveWorkspaceId(newWs.id);
+      const active = newWs.nodes.find(n => n.type === 'file');
+      if (active) setActiveFileId(active.id);
+    } catch (e) {
+      alert('Failed to import workspace bundle: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
+  const handleImportSingleFile = async (file: File) => {
+    try {
+      const node = await parseSingleFile(file, file.name, null);
+      setWorkspaces(prev =>
+        prev.map(ws => {
+          if (ws.id !== activeWorkspaceId) return ws;
+          return {
+            ...ws,
+            nodes: [...ws.nodes, node]
+          };
+        })
+      );
+      setActiveFileId(node.id);
+    } catch (e) {
+      alert('Failed to import file: ' + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   return (
     <AppLayout
       workspaces={workspaces}
@@ -287,6 +362,10 @@ export function App() {
       onDeleteNode={handleDeleteNode}
       onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
       onSelectDoc={setSelectedDoc}
+      onImportFolder={handleImportFolder}
+      onImportZip={handleImportZip}
+      onImportBundle={handleImportBundle}
+      onImportSingleFile={handleImportSingleFile}
     >
       {/* Banner / Title & Active File Breadcrumb */}
       <div className="space-y-2 mb-4 border-b border-border/40 pb-4">
