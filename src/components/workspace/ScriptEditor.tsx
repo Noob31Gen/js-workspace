@@ -213,7 +213,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   const editorContent = (
     <div
       className={`rounded-xl border border-border/60 bg-card overflow-hidden shadow-2xl flex flex-col transition-all ${
-        isMaximized ? 'w-full h-full max-w-7xl mx-auto' : 'h-[460px] sm:h-[520px]'
+        isMaximized ? 'w-full h-full max-w-7xl mx-auto' : 'h-full min-h-0 flex-1'
       }`}
     >
       {/* Editor Header Bar */}

@@ -30,7 +30,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-[340px]">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1">
       {/* Header Bar */}
       <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2.5 shrink-0 select-none gap-4">
         {/* Left Side: Title & Tabs */}

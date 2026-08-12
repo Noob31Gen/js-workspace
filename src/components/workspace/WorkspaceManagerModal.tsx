@@ -61,32 +61,32 @@ export const WorkspaceManagerModal: React.FC<WorkspaceManagerModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-6 shadow-2xl space-y-6 my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-2.5 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-xl max-h-[90dvh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 my-auto">
         <div className="flex items-center justify-between border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
               <Layers className="h-5 w-5" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-2 truncate">
                 Workspace Manager
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Manage multi-folder projects, cross-script dependencies & workspace bundles
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                Manage multi-folder projects & workspace bundles
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground shrink-0"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => setIsCreating(prev => !prev)}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow hover:bg-primary/90 transition-all"

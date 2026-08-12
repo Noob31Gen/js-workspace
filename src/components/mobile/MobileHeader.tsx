@@ -41,7 +41,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="flex items-center gap-2 max-w-[55%] text-left p-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted transition-all cursor-pointer shadow-xs min-w-0"
+        className="flex items-center gap-2 max-w-[48%] flex-1 text-left p-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted transition-all cursor-pointer shadow-xs min-w-0"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
           <FileCode className="h-4 w-4" />

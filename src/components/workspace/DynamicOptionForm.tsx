@@ -30,7 +30,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col h-[460px] sm:h-[520px]">
+    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col h-full min-h-0 flex-1">
       <div className="flex items-center justify-between border-b border-border/40 pb-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
