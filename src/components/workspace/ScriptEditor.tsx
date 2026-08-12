@@ -2,7 +2,7 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
-import { Play, Square, Copy, Check, Download, Code2, Save, Undo2, Redo2, AlertTriangle, CheckCircle2, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Square, Copy, Check, Download, Code2, Save, Undo2, Redo2, AlertTriangle, CheckCircle2, Maximize2, Minimize2, MoreVertical } from 'lucide-react';
 
 interface ScriptEditorProps {
   code: string;
@@ -34,6 +34,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   const [justSaved, setJustSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Undo / Redo History Stack
   const [history, setHistory] = useState<string[]>([code]);
@@ -241,8 +243,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           )}
         </div>
 
-        {/* Right Side: Editor Actions */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        {/* Right Side: Desktop Editor Actions */}
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
           {/* Enlarge / Minimize Toggle Button */}
           <button
             onClick={() => setIsMaximized(!isMaximized)}
@@ -252,12 +254,12 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             {isMaximized ? (
               <>
                 <Minimize2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">Minimize</span>
+                <span>Minimize</span>
               </>
             ) : (
               <>
                 <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">Enlarge</span>
+                <span>Enlarge</span>
               </>
             )}
           </button>
@@ -275,12 +277,12 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             {justSaved ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span className="hidden sm:inline">Saved!</span>
+                <span>Saved!</span>
               </>
             ) : (
               <>
                 <Save className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">Save</span>
+                <span>Save</span>
               </>
             )}
           </button>
@@ -309,7 +311,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           {/* Export Button */}
           <button
             onClick={handleDownload}
-            className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
             title="Export script to file"
           >
             <Download className="h-3.5 w-3.5 shrink-0" />
@@ -319,7 +321,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           {/* Copy Button */}
           <button
             onClick={handleCopy}
-            className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
             title="Copy script to clipboard"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
@@ -344,6 +346,104 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
               <span>Stop</span>
             </button>
           )}
+        </div>
+
+        {/* Right Side: Mobile Mode Clean Actions & 3-Dot Dropdown */}
+        <div className="flex sm:hidden items-center gap-1 shrink-0">
+          {/* Main Run / Stop Action */}
+          {!isRunning ? (
+            <button
+              onClick={onRun}
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+            >
+              <Play className="h-3.5 w-3.5 fill-current shrink-0" />
+              <span>Run</span>
+            </button>
+          ) : (
+            <button
+              onClick={onStop}
+              className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
+            >
+              <Square className="h-3.5 w-3.5 fill-current shrink-0" />
+              <span>Stop</span>
+            </button>
+          )}
+
+          {/* Mobile 3-Dot Options Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-1 rounded-md border border-border/60 bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="More Editor Options"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {showMobileMenu && (
+              <div className="absolute right-0 top-8 z-50 w-48 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+                <button
+                  onClick={() => { handleManualSave(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center justify-between text-foreground font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    {justSaved ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Save className="h-3.5 w-3.5 text-primary" />}
+                    <span>{justSaved ? 'Saved!' : 'Save Script'}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono">Ctrl+S</span>
+                </button>
+
+                <button
+                  onClick={() => { setIsMaximized(!isMaximized); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                >
+                  {isMaximized ? <Minimize2 className="h-3.5 w-3.5 text-amber-400" /> : <Maximize2 className="h-3.5 w-3.5 text-primary" />}
+                  <span>{isMaximized ? 'Minimize Window' : 'Enlarge Window'}</span>
+                </button>
+
+                <div className="my-1 border-t border-border/40" />
+
+                <div className="flex items-center justify-between px-2.5 py-1">
+                  <span className="text-muted-foreground font-medium text-[11px]">Undo / Redo</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { handleUndo(); }}
+                      disabled={historyIndex <= 0}
+                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30"
+                      title="Undo"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { handleRedo(); }}
+                      disabled={historyIndex >= history.length - 1}
+                      className="p-1 rounded bg-muted text-foreground hover:bg-muted/80 disabled:opacity-30"
+                      title="Redo"
+                    >
+                      <Redo2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="my-1 border-t border-border/40" />
+
+                <button
+                  onClick={() => { handleCopy(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
+                  <span>{copied ? 'Copied to Clipboard' : 'Copy Code'}</span>
+                </button>
+
+                <button
+                  onClick={() => { handleDownload(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                >
+                  <Download className="h-3.5 w-3.5 text-blue-400" />
+                  <span>Export to File</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

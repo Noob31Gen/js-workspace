@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WorkspaceNode, getFileKind } from '@/lib/workspace-store';
-import { FileText, FileSpreadsheet, FileJson, Image as ImageIcon, Download, Copy, Check, Table, Code, Search, Sparkles } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileJson, Image as ImageIcon, Download, Copy, Check, Table, Code, Search, Sparkles, MoreVertical } from 'lucide-react';
 
 interface DataFileViewerProps {
   file: WorkspaceNode;
@@ -11,6 +11,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
   const [viewMode, setViewMode] = useState<'table' | 'raw'>('table');
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const fileKind = file.fileKind || getFileKind(file.name);
   const content = file.code || '';
@@ -111,7 +112,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Desktop Toolbar Options */}
+        <div className="hidden sm:flex items-center gap-2">
           {fileKind === 'data-csv' && (
             <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs">
               <button
@@ -148,6 +150,51 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
             {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
+        </div>
+
+        {/* Mobile 3-Dot Options Dropdown */}
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="More File Options"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {showMobileMenu && (
+              <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+                {fileKind === 'data-csv' && (
+                  <button
+                    onClick={() => { setViewMode(viewMode === 'table' ? 'raw' : 'table'); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  >
+                    <Table className="h-3.5 w-3.5 text-primary" />
+                    <span>Switch to {viewMode === 'table' ? 'Raw CSV' : 'Table View'}</span>
+                  </button>
+                )}
+
+                {fileKind === 'data-json' && (
+                  <button
+                    onClick={() => { handleFormatJson(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Format JSON</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { handleCopy(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
+                  <span>{copied ? 'Copied File' : 'Copy File Content'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

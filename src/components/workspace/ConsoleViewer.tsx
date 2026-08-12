@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConsoleLogMessage } from '@/lib/worker-runner';
-import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2 } from 'lucide-react';
+import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2, MoreVertical } from 'lucide-react';
 
 interface ConsoleViewerProps {
   logs: ConsoleLogMessage[];
@@ -21,6 +21,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'logs' | 'result' | 'raw'>('logs');
   const [copied, setCopied] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleCopyResult = () => {
     const text = typeof outputResult === 'object' ? JSON.stringify(outputResult, null, 2) : String(outputResult);
@@ -56,8 +57,8 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+        {/* Right Side: Desktop Action Buttons */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0 whitespace-nowrap">
           {onOpenResultWindow && (
             <button
               onClick={onOpenResultWindow}
@@ -95,6 +96,53 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             <Trash2 className="h-3.5 w-3.5 shrink-0" />
             <span>Clear</span>
           </button>
+        </div>
+
+        {/* Right Side: Mobile 3-Dot Dropdown Menu */}
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+          {onClearLogs && (
+            <button
+              onClick={onClearLogs}
+              className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-destructive transition-all cursor-pointer"
+              title="Clear Console"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="More Console Options"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {showMobileMenu && (
+              <div className="absolute right-0 top-8 z-50 w-48 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+                {onOpenResultWindow && (
+                  <button
+                    onClick={() => { onOpenResultWindow(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-primary font-medium"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>Open Full Window</span>
+                  </button>
+                )}
+
+                {outputResult !== null && (
+                  <button
+                    onClick={() => { handleCopyResult(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
+                    <span>{copied ? 'Copied Result' : 'Copy Result'}</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
