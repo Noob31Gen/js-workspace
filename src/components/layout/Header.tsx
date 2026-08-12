@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { precacheNpmPackage } from '@/lib/pwa-register';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
@@ -12,7 +12,9 @@ interface HeaderProps {
   onImportBundle?: (file: File) => void;
   onImportSingleFile?: (file: File) => void;
   onToggleMobileSidebar?: () => void;
+  onToggleSidebar?: () => void;
   isMobileSidebarOpen?: boolean;
+  isSidebarOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,7 +24,9 @@ export const Header: React.FC<HeaderProps> = ({
   onImportBundle,
   onImportSingleFile,
   onToggleMobileSidebar,
-  isMobileSidebarOpen
+  onToggleSidebar,
+  isMobileSidebarOpen,
+  isSidebarOpen = true
 }) => {
   const [extensionActive, setExtensionActive] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -134,28 +138,39 @@ export const Header: React.FC<HeaderProps> = ({
         className="hidden"
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+        {/* Universal Sidebar Toggle (Desktop & Mobile) */}
+        <button
+          type="button"
+          onClick={onToggleSidebar || onToggleMobileSidebar}
+          className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-card text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs shrink-0"
+          title={isSidebarOpen ? 'Collapse Sidebar (Ctrl+B)' : 'Expand Sidebar (Ctrl+B)'}
+        >
+          <PanelLeft className={`h-4 w-4 text-primary transition-transform duration-200 ${isSidebarOpen ? '' : 'rotate-180'}`} />
+        </button>
+
         {/* Mobile Sidebar Hamburger Toggle */}
         <button
+          type="button"
           onClick={onToggleMobileSidebar}
-          className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-muted/40 text-foreground hover:bg-muted transition-all"
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-muted/40 text-foreground hover:bg-muted transition-all shrink-0"
           title="Toggle Navigation Menu"
         >
           {isMobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow shrink-0">
           <Terminal className="h-5 w-5" />
         </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary to-primary/80 bg-clip-text flex items-center gap-2">
-            JS Workspace.
-            <span className="hidden sm:inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-sans font-medium text-muted-foreground border border-border/60">
+        <div className="shrink-0 min-w-0">
+          <h1 className="text-lg sm:text-xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary to-primary/80 bg-clip-text flex items-center gap-2 whitespace-nowrap">
+            <span>JS Workspace.</span>
+            <span className="hidden md:inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-sans font-medium text-muted-foreground border border-border/60 whitespace-nowrap shrink-0">
               v1.5.0 PWA
             </span>
           </h1>
-          <p className="text-[11px] text-muted-foreground hidden sm:block">
-            Browser Script Execution, Node Modules & PWA Offline Engine
+          <p className="text-[10px] text-muted-foreground hidden lg:block whitespace-nowrap truncate">
+            Browser Script Execution & PWA Offline Engine
           </p>
         </div>
       </div>
@@ -224,11 +239,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Offline / Online Status Badge */}
         <button
           onClick={() => setIsOfflineModalOpen(true)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
-            isOnline
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${isOnline
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
               : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
-          }`}
+            }`}
           title="Click to manage offline PWA packages"
         >
           {isOnline ? (
@@ -247,11 +261,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Extension Connection Status Badge */}
         <button
           onClick={() => setIsExtensionModalOpen(true)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
-            extensionActive 
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' 
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${extensionActive
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
               : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
-          }`}
+            }`}
           title="Click to download helper extension or check connection"
         >
           {extensionActive ? (
@@ -324,11 +337,10 @@ export const Header: React.FC<HeaderProps> = ({
                       key={pkg}
                       disabled={cachingPkg === pkg}
                       onClick={() => handlePrecache(pkg)}
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg border text-xs font-mono font-bold transition-all ${
-                        precachedPkgs.includes(pkg)
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg border text-xs font-mono font-bold transition-all ${precachedPkgs.includes(pkg)
                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                           : 'bg-muted/50 text-foreground border-border hover:bg-primary/20 hover:border-primary'
-                      }`}
+                        }`}
                     >
                       {cachingPkg === pkg ? (
                         <span className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />

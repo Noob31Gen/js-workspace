@@ -31,34 +31,34 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[340px] min-w-0 max-w-full relative z-10">
       {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-3 py-1.5 shrink-0 select-none gap-2">
+      <div className="relative z-30 flex items-center justify-between border-b border-border/60 bg-muted/40 px-3 py-1.5 shrink-0 select-none gap-2 min-w-0 max-w-full overflow-visible">
         {/* Left Side: Title & Tabs */}
-        <div className="flex items-center gap-4 min-w-0 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-bold font-mono text-foreground whitespace-nowrap">
-            <Terminal className="h-4 w-4 text-primary shrink-0" />
-            <span>Console Execution Output</span>
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 truncate">
+          <div className="flex items-center gap-1.5 text-xs font-bold font-mono text-foreground truncate shrink-0">
+            <Terminal className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="truncate">Console</span>
           </div>
 
-          <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs whitespace-nowrap shrink-0">
+          <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs shrink-0">
             <button
               onClick={() => setActiveTab('logs')}
-              className={`px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs ${activeTab === 'logs' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Logs ({logs.length})
             </button>
             <button
               onClick={() => setActiveTab('result')}
-              className={`px-3 py-1 rounded-md font-medium transition-all whitespace-nowrap ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md font-medium transition-all text-xs ${activeTab === 'result' ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Return Value
             </button>
           </div>
         </div>
 
-        {/* Right Side: Desktop Action Buttons */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0 whitespace-nowrap">
+        {/* Right Side: Desktop Large Screen Action Buttons */}
+        <div className="hidden xl:flex items-center gap-2 shrink-0 whitespace-nowrap">
           {onOpenResultWindow && (
             <button
               onClick={onOpenResultWindow}
@@ -98,25 +98,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </button>
         </div>
 
-        {/* Right Side: Mobile 3-Dot Dropdown Menu */}
-        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
-          {onClearLogs && (
-            <button
-              onClick={onClearLogs}
-              className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-destructive transition-all cursor-pointer"
-              title="Clear Console"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-
+        {/* Right Side: Compact 3-Dot Dropdown Menu (< 1280px) */}
+        <div className="flex xl:hidden items-center gap-1.5 shrink-0 ml-auto">
           <div className="relative">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-1 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              className="p-1 rounded-md border border-border/60 bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-xs"
               title="More Console Options"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4 text-foreground" />
             </button>
 
             {showMobileMenu && (
@@ -136,8 +126,18 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                     onClick={() => { handleCopyResult(); setShowMobileMenu(false); }}
                     className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium"
                   >
-                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
-                    <span>{copied ? 'Copied Result' : 'Copy Result'}</span>
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0 text-emerald-400" />}
+                    <span>{copied ? 'Copied Payload' : 'Copy Result'}</span>
+                  </button>
+                )}
+
+                {onClearLogs && (
+                  <button
+                    onClick={() => { onClearLogs(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-destructive font-medium border-t border-border/40 pt-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>Clear Output Console</span>
                   </button>
                 )}
               </div>

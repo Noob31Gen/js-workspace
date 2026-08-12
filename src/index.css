@@ -107,6 +107,7 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
 
   html, body {
@@ -114,9 +115,7 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     margin: 0;
-    overscroll-behavior-y: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
+    padding: 0;
   }
 }
 

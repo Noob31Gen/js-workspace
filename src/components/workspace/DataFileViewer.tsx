@@ -93,27 +93,27 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px] relative z-10">
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          {fileKind === 'data-csv' && <FileSpreadsheet className="h-4 w-4 text-emerald-400" />}
-          {fileKind === 'data-json' && <FileJson className="h-4 w-4 text-amber-400" />}
-          {fileKind === 'data-image' && <ImageIcon className="h-4 w-4 text-blue-400" />}
-          {fileKind === 'data-text' && <FileText className="h-4 w-4 text-purple-400" />}
-          {fileKind === 'binary' && <FileText className="h-4 w-4 text-primary" />}
+      <div className="relative z-30 flex items-center justify-between border-b border-border/60 bg-muted/40 px-3 sm:px-4 py-2.5 overflow-visible gap-2 min-w-0 max-w-full">
+        <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+          {fileKind === 'data-csv' && <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />}
+          {fileKind === 'data-json' && <FileJson className="h-4 w-4 text-amber-400 shrink-0" />}
+          {fileKind === 'data-image' && <ImageIcon className="h-4 w-4 text-blue-400 shrink-0" />}
+          {fileKind === 'data-text' && <FileText className="h-4 w-4 text-purple-400 shrink-0" />}
+          {fileKind === 'binary' && <FileText className="h-4 w-4 text-primary shrink-0" />}
 
-          <span className="text-xs font-bold font-mono tracking-tight text-foreground">
+          <span className="text-xs font-bold font-mono tracking-tight text-foreground truncate shrink-0">
             {file.name}
           </span>
 
-          <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40">
+          <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40 shrink-0 hidden sm:inline">
             {fileKind.toUpperCase()} ({file.sizeBytes || content.length} B)
           </span>
         </div>
 
-        {/* Desktop Toolbar Options */}
-        <div className="hidden sm:flex items-center gap-2">
+        {/* Desktop Large Screen Toolbar Options */}
+        <div className="hidden xl:flex items-center gap-2">
           {fileKind === 'data-csv' && (
             <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs">
               <button
@@ -152,8 +152,8 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
           </button>
         </div>
 
-        {/* Mobile 3-Dot Options Dropdown */}
-        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+        {/* Compact & 3-Dot Options Dropdown (< 1280px) */}
+        <div className="flex xl:hidden items-center gap-1.5 shrink-0 ml-auto">
           <div className="relative">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}

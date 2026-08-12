@@ -214,37 +214,37 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
   const editorContent = (
     <div
-      className={`rounded-xl border border-border/60 bg-card overflow-hidden shadow-2xl flex flex-col transition-all ${
-        isMaximized ? 'w-full h-full max-w-7xl mx-auto' : 'h-full min-h-0 flex-1'
+      className={`rounded-xl border border-border/60 bg-card shadow-2xl flex flex-col transition-all min-w-0 max-w-full relative z-10 ${
+        isMaximized ? 'w-full h-full max-w-7xl mx-auto' : 'h-full min-h-0 flex-1 md:h-[520px]'
       }`}
     >
       {/* Editor Sub-Header Bar */}
-      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-3 py-1.5 shrink-0 select-none gap-2">
+      <div className="relative z-30 flex items-center justify-between border-b border-border/60 bg-muted/40 px-2.5 sm:px-3 py-1.5 shrink-0 select-none gap-2 min-w-0 max-w-full overflow-visible">
         {/* Left Side: Title & Syntax Indicator */}
-        <div className="flex items-center gap-2 min-w-0 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 truncate">
           <Code2 className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="text-xs font-bold font-mono tracking-tight text-foreground whitespace-nowrap">
-            Script Editor {isMaximized && '(Full Window)'}
+          <span className="text-xs font-bold font-mono tracking-tight text-foreground truncate shrink-0">
+            Script Editor
           </span>
 
           {syntaxError ? (
             <span
-              className="inline-flex items-center gap-1 rounded-md bg-destructive/15 px-2 py-0.5 text-[10px] sm:text-xs font-mono font-medium text-destructive border border-destructive/30 whitespace-nowrap cursor-help"
+              className="inline-flex items-center gap-1 rounded-md bg-destructive/15 px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-medium text-destructive border border-destructive/30 whitespace-nowrap shrink-0 cursor-help"
               title={syntaxError.message}
             >
               <AlertTriangle className="h-3 w-3 shrink-0" />
-              <span>Syntax Error</span>
+              <span className="hidden sm:inline">Syntax Error</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] sm:text-xs font-mono font-medium text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-medium text-emerald-400 border border-emerald-500/20 whitespace-nowrap shrink-0">
               <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
-              <span>Syntax Valid</span>
+              <span className="hidden sm:inline">Syntax Valid</span>
             </span>
           )}
         </div>
 
-        {/* Right Side: Desktop Editor Actions */}
-        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+        {/* Right Side: Desktop Large Screen Actions */}
+        <div className="hidden xl:flex items-center gap-1.5 shrink-0">
           {/* Enlarge / Minimize Toggle Button */}
           <button
             onClick={() => setIsMaximized(!isMaximized)}
@@ -348,39 +348,38 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           )}
         </div>
 
-        {/* Right Side: Mobile Mode Clean Actions & 3-Dot Dropdown */}
-        <div className="flex sm:hidden items-center gap-1 shrink-0">
-          {/* Main Run / Stop Action */}
-          {!isRunning ? (
-            <button
-              onClick={onRun}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <Play className="h-3.5 w-3.5 fill-current shrink-0" />
-              <span>Run</span>
-            </button>
-          ) : (
-            <button
-              onClick={onStop}
-              className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
-            >
-              <Square className="h-3.5 w-3.5 fill-current shrink-0" />
-              <span>Stop</span>
-            </button>
-          )}
-
-          {/* Mobile 3-Dot Options Dropdown */}
+        {/* Right Side: Compact 3-Dot Dropdown Menu (< 1280px) */}
+        <div className="flex xl:hidden items-center gap-1 shrink-0 ml-auto">
           <div className="relative">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-1 rounded-md border border-border/60 bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              className="p-1 rounded-md border border-border/60 bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-xs"
               title="More Editor Options"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4 text-foreground" />
             </button>
 
             {showMobileMenu && (
-              <div className="absolute right-0 top-8 z-50 w-48 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 top-8 z-50 w-52 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+                {/* Run / Stop Option */}
+                {!isRunning ? (
+                  <button
+                    onClick={() => { onRun(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center gap-2 text-primary font-bold transition-all"
+                  >
+                    <Play className="h-3.5 w-3.5 fill-current shrink-0" />
+                    <span>Run Script</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { onStop(); setShowMobileMenu(false); }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 flex items-center gap-2 text-destructive font-bold transition-all"
+                  >
+                    <Square className="h-3.5 w-3.5 fill-current shrink-0 animate-pulse" />
+                    <span>Stop Script</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => { handleManualSave(); setShowMobileMenu(false); }}
                   className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center justify-between text-foreground font-medium"

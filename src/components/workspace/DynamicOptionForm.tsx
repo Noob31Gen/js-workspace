@@ -30,7 +30,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
   }
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col h-full min-h-0 flex-1">
+    <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px] min-w-0 max-w-full overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/40 pb-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -64,22 +64,24 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
           const val = values[opt.key] !== undefined ? values[opt.key] : opt.default;
 
           return (
-            <div key={opt.key} className="space-y-1.5 p-2.5 rounded-lg bg-muted/20 border border-border/40 hover:border-border/80 transition-colors">
-              <div className="flex items-center justify-between gap-2 min-w-0 select-none">
-                <label htmlFor={`input-${opt.key}`} className="text-xs font-semibold text-foreground flex items-center gap-1.5 min-w-0 truncate">
-                  <span className="truncate">{opt.label || opt.key}</span>
-                  <code className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/50 shrink-0 whitespace-nowrap">
+            <div key={opt.key} className="space-y-2 p-3 rounded-xl bg-card border border-border/60 hover:border-border/80 transition-colors shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 min-w-0 select-none pb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <label htmlFor={`input-${opt.key}`} className="text-xs font-bold text-foreground truncate min-w-0">
+                    {opt.label || opt.key}
+                  </label>
+                  <code className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/40 shrink-0">
                     {opt.key}
                   </code>
-                </label>
+                </div>
 
-                <div className="flex items-center gap-1 shrink-0 whitespace-nowrap">
+                <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {opt.source === 'autodetected' && (
                     <span className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0">
-                      Auto-Detected
+                      Auto
                     </span>
                   )}
-                  <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-semibold border border-primary/20 whitespace-nowrap shrink-0">
+                  <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-bold border border-primary/20 whitespace-nowrap shrink-0">
                     {opt.type}
                   </span>
                 </div>
@@ -90,9 +92,10 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <input
                   id={`input-${opt.key}`}
                   type="text"
-                  value={val}
+                  value={val ?? ''}
+                  placeholder={opt.default ? String(opt.default) : 'Enter text value...'}
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                 />
               )}
 
@@ -101,9 +104,10 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <input
                   id={`input-${opt.key}`}
                   type="number"
-                  value={val}
-                  onChange={(e) => onChangeValue(opt.key, Number(e.target.value))}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={val ?? ''}
+                  placeholder={String(opt.default ?? '')}
+                  onChange={(e) => onChangeValue(opt.key, e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                 />
               )}
 
@@ -112,7 +116,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                     <span>{opt.min ?? 0}</span>
-                    <span className="text-primary font-bold">{val}</span>
+                    <span className="text-primary font-bold">{val ?? (opt.min ?? 0)}</span>
                     <span>{opt.max ?? 100}</span>
                   </div>
                   <input
@@ -121,7 +125,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                     min={opt.min ?? 0}
                     max={opt.max ?? 100}
                     step={opt.step ?? 1}
-                    value={val}
+                    value={val ?? (opt.min ?? 0)}
                     onChange={(e) => onChangeValue(opt.key, Number(e.target.value))}
                     className="w-full accent-primary cursor-pointer"
                   />
@@ -138,7 +142,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                     onChange={(e) => onChangeValue(opt.key, e.target.checked)}
                     className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary accent-primary cursor-pointer"
                   />
-                  <span className="text-xs text-muted-foreground font-medium">
+                  <span className="text-xs text-foreground font-semibold">
                     {val ? 'Enabled (true)' : 'Disabled (false)'}
                   </span>
                 </label>
@@ -148,9 +152,9 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
               {opt.type === 'select' && (
                 <select
                   id={`input-${opt.key}`}
-                  value={val}
+                  value={val ?? (opt.options?.[0] || '')}
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-xs"
                 >
                   {(opt.options || []).map((o) => (
                     <option key={o} value={o}>
@@ -165,9 +169,10 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <textarea
                   id={`input-${opt.key}`}
                   rows={3}
-                  value={val}
+                  value={val ?? ''}
+                  placeholder="Enter multiline text..."
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
-                  className="w-full rounded-md border border-border bg-background p-2.5 text-xs text-foreground font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border/80 bg-background p-2.5 text-xs text-foreground font-mono font-semibold placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                 />
               )}
 
@@ -179,13 +184,13 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                     type="color"
                     value={val || '#3b82f6'}
                     onChange={(e) => onChangeValue(opt.key, e.target.value)}
-                    className="h-8 w-12 rounded cursor-pointer border border-border bg-background p-0.5"
+                    className="h-8 w-12 rounded cursor-pointer border border-border bg-background p-0.5 shrink-0"
                   />
                   <input
                     type="text"
-                    value={val}
+                    value={val ?? ''}
                     onChange={(e) => onChangeValue(opt.key, e.target.value)}
-                    className="flex-1 rounded-md border border-border bg-background px-3 py-1 text-xs text-foreground font-mono"
+                    className="flex-1 rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold shadow-xs"
                   />
                 </div>
               )}
@@ -195,7 +200,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <textarea
                   id={`input-${opt.key}`}
                   rows={4}
-                  value={typeof val === 'object' ? JSON.stringify(val, null, 2) : val}
+                  value={typeof val === 'object' ? JSON.stringify(val, null, 2) : (val ?? '')}
                   onChange={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value);
@@ -204,13 +209,13 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                       onChangeValue(opt.key, e.target.value);
                     }
                   }}
-                  className="w-full rounded-md border border-border bg-background p-2.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border/80 bg-background p-2.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                   placeholder='{"key": "value"}'
                 />
               )}
 
               {opt.description && (
-                <p className="text-[10px] text-muted-foreground/80 italic pt-0.5">
+                <p className="text-[10px] text-muted-foreground font-medium italic pt-0.5">
                   {opt.description}
                 </p>
               )}

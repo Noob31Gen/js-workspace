@@ -455,10 +455,10 @@ export function App() {
                     <span className="truncate">{activeFile?.path || 'No File Selected'}</span>
                   </span>
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-sans font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-sans font-black tracking-tight text-foreground bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text break-words min-w-0">
                   {parsedMeta.name || activeFile?.name || 'Workspace'}
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl leading-relaxed">
                   {parsedMeta.description}
                 </p>
               </div>

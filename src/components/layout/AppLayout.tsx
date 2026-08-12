@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Workspace, WorkspaceNode } from '@/lib/workspace-store';
@@ -48,6 +48,33 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Desktop sidebar auto-collapses on displays < 1280px to prevent crowding main canvas
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1280) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Keyboard shortcut (Ctrl+B / Cmd+B) to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsSidebarOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleMobileSelectFile = (fileId: string) => {
     onSelectFile(fileId);
     setIsMobileSidebarOpen(false);
@@ -62,28 +89,36 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         onImportBundle={onImportBundle}
         onImportSingleFile={onImportSingleFile}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isMobileSidebarOpen={isMobileSidebarOpen}
+        isSidebarOpen={isSidebarOpen}
       />
 
       <div className="flex flex-1 overflow-hidden h-[calc(100dvh-4rem)] relative">
-        {/* Desktop Sidebar (hidden on mobile md:block) */}
-        <div className="hidden md:block h-full">
-          <Sidebar
-            workspaces={workspaces}
-            activeWorkspaceId={activeWorkspaceId}
-            activeFileId={activeFileId}
-            nodes={nodes}
-            onSelectFile={onSelectFile}
-            onToggleFolder={onToggleFolder}
-            onCreateFile={onCreateFile}
-            onCreateFolder={onCreateFolder}
-            onRenameNode={onRenameNode}
-            onDeleteNode={onDeleteNode}
-            onDuplicateNode={onDuplicateNode}
-            onMoveNode={onMoveNode}
-            onOpenWorkspaceManager={onOpenWorkspaceManager}
-            onOpenDocs={onSelectDoc}
-          />
+        {/* Desktop Sidebar (hidden on mobile, smoothly collapsible on desktop) */}
+        <div
+          className={`hidden md:block h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
+            isSidebarOpen ? 'w-72 opacity-100 border-r border-border/60' : 'w-0 opacity-0 border-r-0'
+          }`}
+        >
+          <div className="w-72 h-full">
+            <Sidebar
+              workspaces={workspaces}
+              activeWorkspaceId={activeWorkspaceId}
+              activeFileId={activeFileId}
+              nodes={nodes}
+              onSelectFile={onSelectFile}
+              onToggleFolder={onToggleFolder}
+              onCreateFile={onCreateFile}
+              onCreateFolder={onCreateFolder}
+              onRenameNode={onRenameNode}
+              onDeleteNode={onDeleteNode}
+              onDuplicateNode={onDuplicateNode}
+              onMoveNode={onMoveNode}
+              onOpenWorkspaceManager={onOpenWorkspaceManager}
+              onOpenDocs={onSelectDoc}
+            />
+          </div>
         </div>
 
         {/* Mobile Slide-Over Sidebar Drawer */}
@@ -124,8 +159,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         )}
 
         {/* Main Workspace Canvas */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 mobile-scroll-container">
-          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-6 lg:p-8 mobile-scroll-container">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 min-w-0">
             {children}
           </div>
         </main>

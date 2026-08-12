@@ -62,8 +62,8 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
   }) as string;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl max-h-[92dvh] h-[90dvh] overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl flex flex-col my-auto animate-in fade-in zoom-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-x-hidden overflow-y-auto">
+      <div className="w-[94vw] sm:w-full max-w-4xl max-h-[92dvh] h-[90dvh] overflow-x-hidden overflow-y-auto rounded-2xl border border-border/80 bg-card shadow-2xl flex flex-col my-auto box-border animate-in fade-in zoom-in duration-150">
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-3.5 sm:px-6 py-2.5 sm:py-3.5 shrink-0">
           <div className="flex items-center gap-3">

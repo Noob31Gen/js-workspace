@@ -30,7 +30,7 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-lg flex flex-col h-full min-h-0 flex-1 space-y-0">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px]">
       {/* Header Toolbar */}
       <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-3 gap-3">
         <div className="flex items-center gap-2">

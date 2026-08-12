@@ -61,18 +61,18 @@ export const WorkspaceManagerModal: React.FC<WorkspaceManagerModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-2.5 sm:p-4 overflow-y-auto">
-      <div className="w-full max-w-xl max-h-[90dvh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 my-auto">
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <Layers className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-2 sm:p-4 overflow-x-hidden overflow-y-auto">
+      <div className="w-[94vw] sm:w-full max-w-xl max-h-[90dvh] overflow-x-hidden overflow-y-auto rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 my-auto box-border">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3 sm:pb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-2 truncate">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-lg font-bold tracking-tight text-foreground flex items-center gap-2 truncate">
                 Workspace Manager
               </h2>
-              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                 Manage multi-folder projects & workspace bundles
               </p>
             </div>
@@ -85,13 +85,13 @@ export const WorkspaceManagerModal: React.FC<WorkspaceManagerModalProps> = ({
           </button>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Action Buttons Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             onClick={() => setIsCreating(prev => !prev)}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow hover:bg-primary/90 transition-all"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow hover:bg-primary/90 transition-all"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             New Workspace
           </button>
 
@@ -105,17 +105,17 @@ export const WorkspaceManagerModal: React.FC<WorkspaceManagerModalProps> = ({
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-muted/30 px-4 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-muted/30 px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition-all"
           >
-            <Upload className="h-4 w-4 text-primary" />
+            <Upload className="h-3.5 w-3.5 text-primary" />
             Import Bundle
           </button>
 
           <button
             onClick={() => onExportWorkspace(activeWorkspaceId)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-muted/30 px-4 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-muted/30 px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition-all"
           >
-            <Download className="h-4 w-4 text-emerald-400" />
+            <Download className="h-3.5 w-3.5 text-emerald-400" />
             Export Active
           </button>
         </div>
