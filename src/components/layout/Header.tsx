@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { precacheNpmPackage } from '@/lib/pwa-register';
+import { ExtensionModal } from '@/components/extension/ExtensionModal';
 
 interface HeaderProps {
   onOpenDocs: (docName: string) => void;
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [extensionActive, setExtensionActive] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState<boolean>(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState<boolean>(false);
   const [showImportMenu, setShowImportMenu] = useState<boolean>(false);
   const [customPkgInput, setCustomPkgInput] = useState<string>('');
   const [precachedPkgs, setPrecachedPkgs] = useState<string[]>(['lodash', 'dayjs', 'papaparse']);
@@ -147,12 +149,12 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Unified Import Button Outside Editor */}
         <div className="relative">
           <button
             onClick={() => setShowImportMenu(!showImportMenu)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-sm"
+            className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-xs"
           >
             <Upload className="h-3.5 w-3.5" />
             <span>Import</span>
@@ -211,10 +213,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Offline / Online Status Badge */}
         <button
           onClick={() => setIsOfflineModalOpen(true)}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all cursor-pointer ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
             isOnline
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
           }`}
           title="Click to manage offline PWA packages"
         >
@@ -232,29 +234,33 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Extension Connection Status Badge */}
-        <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${
-          extensionActive 
-            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-        }`}>
+        {/* Extension Connection Status Badge (Clickable to open download modal) */}
+        <button
+          onClick={() => setIsExtensionModalOpen(true)}
+          className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
+            extensionActive 
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' 
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+          }`}
+          title="Click to download helper extension or check connection"
+        >
           {extensionActive ? (
             <>
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
               <span className="hidden lg:inline">CORS Helper Connected</span>
             </>
           ) : (
             <>
-              <ShieldAlert className="h-3.5 w-3.5" />
+              <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
               <span className="hidden lg:inline">CORS Helper Inactive</span>
             </>
           )}
-        </div>
+        </button>
 
         {/* Documentation Button */}
         <button
           onClick={() => onOpenDocs('ARCHITECTURE.md')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
         >
           <BookOpen className="h-3.5 w-3.5" />
           <span className="hidden md:inline">Docs</span>
@@ -264,7 +270,7 @@ export const Header: React.FC<HeaderProps> = ({
           href="https://noob31.com/"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
         >
           <Globe className="h-3.5 w-3.5" />
           <span className="hidden md:inline">My Website</span>
@@ -274,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
           href="https://github.com/Noob31Gen/noob31-multitool"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/30 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
         >
           <Code2 className="h-3.5 w-3.5" />
           <span className="hidden md:inline">GitHub</span>
@@ -374,6 +380,17 @@ export const Header: React.FC<HeaderProps> = ({
         </div>,
         document.body
       )}
+
+      {/* Extension Package & Status Modal */}
+      <ExtensionModal
+        isOpen={isExtensionModalOpen}
+        extensionActive={extensionActive}
+        onClose={() => setIsExtensionModalOpen(false)}
+        onRefreshStatus={async () => {
+          const active = await checkExtensionConnected();
+          setExtensionActive(active);
+        }}
+      />
     </header>
   );
 };
