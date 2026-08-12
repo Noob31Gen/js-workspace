@@ -542,3 +542,69 @@ export class WorkspaceStore {
     }
   }
 }
+
+/**
+ * Duplicates a file or folder node (recursively copying all child nodes for folders).
+ */
+export function duplicateNodeInWorkspace(nodes: WorkspaceNode[], nodeId: string): WorkspaceNode[] {
+  const target = nodes.find(n => n.id === nodeId);
+  if (!target) return nodes;
+
+  const idMap = new Map<string, string>(); // oldId -> newId
+
+  const duplicateSingleNode = (node: WorkspaceNode, parentIdOverride?: string | null): WorkspaceNode => {
+    const newId = `node-copy-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    idMap.set(node.id, newId);
+
+    const isTopLevelCopy = node.id === nodeId;
+    const newName = isTopLevelCopy ? `${node.name.replace(/(\.[^.]+)?$/, ' (Copy)$1')}` : node.name;
+    const effectiveParentId = parentIdOverride !== undefined ? parentIdOverride : node.parentId;
+
+    return {
+      ...node,
+      id: newId,
+      name: newName,
+      parentId: effectiveParentId
+    };
+  };
+
+  if (target.type === 'file') {
+    const copy = duplicateSingleNode(target);
+    return [...nodes, copy];
+  }
+
+  // Folder recursion
+  const nodesToCopy: WorkspaceNode[] = [];
+  const getSubtree = (parentId: string) => {
+    const children = nodes.filter(n => n.parentId === parentId);
+    for (const child of children) {
+      nodesToCopy.push(child);
+      if (child.type === 'folder') getSubtree(child.id);
+    }
+  };
+
+  getSubtree(target.id);
+
+  const duplicatedTarget = duplicateSingleNode(target);
+  const copies: WorkspaceNode[] = [duplicatedTarget];
+
+  for (const node of nodesToCopy) {
+    const newParentId = idMap.get(node.parentId || '') || duplicatedTarget.id;
+    copies.push(duplicateSingleNode(node, newParentId));
+  }
+
+  return [...nodes, ...copies];
+}
+
+/**
+ * Moves a file or folder node to a new parent folder.
+ */
+export function moveNodeInWorkspace(nodes: WorkspaceNode[], nodeId: string, targetParentId: string | null): WorkspaceNode[] {
+  return nodes.map(node => {
+    if (node.id !== nodeId) return node;
+    return {
+      ...node,
+      parentId: targetParentId
+    };
+  });
+}

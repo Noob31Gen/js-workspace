@@ -15,6 +15,8 @@ interface AppLayoutProps {
   onCreateFolder: (parentId: string | null, name: string) => void;
   onRenameNode: (nodeId: string, newName: string) => void;
   onDeleteNode: (nodeId: string) => void;
+  onDuplicateNode?: (nodeId: string) => void;
+  onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onOpenWorkspaceManager: () => void;
   onSelectDoc: (doc: string) => void;
   onImportFolder?: (fileList: FileList) => void;
@@ -35,6 +37,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onCreateFolder,
   onRenameNode,
   onDeleteNode,
+  onDuplicateNode,
+  onMoveNode,
   onOpenWorkspaceManager,
   onSelectDoc,
   onImportFolder,
@@ -63,6 +67,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onCreateFolder={onCreateFolder}
           onRenameNode={onRenameNode}
           onDeleteNode={onDeleteNode}
+          onDuplicateNode={onDuplicateNode}
+          onMoveNode={onMoveNode}
           onOpenWorkspaceManager={onOpenWorkspaceManager}
           onOpenDocs={onSelectDoc}
           onImportFolder={onImportFolder}

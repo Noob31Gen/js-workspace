@@ -10,8 +10,9 @@ import { parseScriptOptions } from '@/lib/parser';
 import { ScriptRunner, ConsoleLogMessage, FramePayload, ExecutionResult } from '@/lib/worker-runner';
 import { DataFileViewer } from '@/components/workspace/DataFileViewer';
 import { parseLocalFolder, parseZipArchive, parseSingleFile } from '@/lib/import-engine';
-import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind } from '@/lib/workspace-store';
-import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check } from 'lucide-react';
+import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind, duplicateNodeInWorkspace, moveNodeInWorkspace } from '@/lib/workspace-store';
+import { ExecutionResultWindowModal } from '@/components/workspace/ExecutionResultWindowModal';
+import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
 
 const runner = new ScriptRunner();
 
@@ -348,6 +349,32 @@ export function App() {
     }
   };
 
+  const [isResultWindowOpen, setIsResultWindowOpen] = useState(false);
+
+  const handleDuplicateNode = (nodeId: string) => {
+    setWorkspaces(prev =>
+      prev.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          nodes: duplicateNodeInWorkspace(ws.nodes, nodeId)
+        };
+      })
+    );
+  };
+
+  const handleMoveNode = (nodeId: string, targetParentId: string | null) => {
+    setWorkspaces(prev =>
+      prev.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          nodes: moveNodeInWorkspace(ws.nodes, nodeId, targetParentId)
+        };
+      })
+    );
+  };
+
   return (
     <AppLayout
       workspaces={workspaces}
@@ -360,6 +387,8 @@ export function App() {
       onCreateFolder={handleCreateFolder}
       onRenameNode={handleRenameNode}
       onDeleteNode={handleDeleteNode}
+      onDuplicateNode={handleDuplicateNode}
+      onMoveNode={handleMoveNode}
       onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
       onSelectDoc={setSelectedDoc}
       onImportFolder={handleImportFolder}
@@ -428,6 +457,7 @@ export function App() {
                 onRun={handleRunScript}
                 onStop={handleStopScript}
                 isRunning={isRunning}
+                onSaveScript={handleUpdateActiveCode}
               />
             )
           ) : (
@@ -436,6 +466,27 @@ export function App() {
         </div>
 
         <div className="space-y-6">
+          {/* Open Dedicated Output Window Banner (Placed ABOVE Parameters) */}
+          <div className="p-4 rounded-xl border border-primary/30 bg-primary/10 flex items-center justify-between gap-3 shadow-xs">
+            <div>
+              <div className="text-xs font-bold text-primary flex items-center gap-1.5">
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span>Separate Output Window</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                View side-by-side console logs and return payloads
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsResultWindowOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all cursor-pointer shrink-0"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              <span>Open Window</span>
+            </button>
+          </div>
+
           <DynamicOptionForm
             options={parsedMeta.options}
             values={optionValues}
@@ -451,6 +502,18 @@ export function App() {
         outputResult={outputResult}
         errorResult={errorResult}
         executionTimeMs={executionTimeMs}
+      />
+
+      {/* Dedicated Execution Result & Console Window Modal */}
+      <ExecutionResultWindowModal
+        isOpen={isResultWindowOpen}
+        onClose={() => setIsResultWindowOpen(false)}
+        outputResult={outputResult}
+        errorResult={errorResult}
+        executionTimeMs={executionTimeMs}
+        logs={logs}
+        frame={frame}
+        activeFileName={activeFile?.name || 'Script'}
       />
 
       {/* Workspace Manager Modal */}

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { WorkspaceNode } from '@/lib/workspace-store';
-import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, Plus, FilePlus, FolderPlus, Trash2, Edit3, Upload, Archive, FileText } from 'lucide-react';
+import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, Plus, FilePlus, FolderPlus, Trash2, Edit3, Upload, Archive, FileText, Copy, FolderInput } from 'lucide-react';
 
 interface FolderTreeProps {
   nodes: WorkspaceNode[];
@@ -11,6 +11,8 @@ interface FolderTreeProps {
   onCreateFolder: (parentId: string | null, name: string) => void;
   onRenameNode: (nodeId: string, newName: string) => void;
   onDeleteNode: (nodeId: string) => void;
+  onDuplicateNode?: (nodeId: string) => void;
+  onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onRestoreDemo?: () => void;
   onImportFolder?: (fileList: FileList) => void;
   onImportZip?: (file: File) => void;
@@ -26,6 +28,8 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   onCreateFolder,
   onRenameNode,
   onDeleteNode,
+  onDuplicateNode,
+  onMoveNode,
   onRestoreDemo,
   onImportFolder,
   onImportZip,
@@ -36,12 +40,12 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   const [addingToFolderId, setAddingToFolderId] = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
   const [newItemName, setNewItemName] = useState('');
   const [showImportMenu, setShowImportMenu] = useState(false);
+  const [movingNodeId, setMovingNodeId] = useState<string | null>(null);
 
   const folderInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Group nodes by parentId
   const getChildren = (parentId: string | null) => {
     return (nodes || [])
       .filter(n => n.parentId === parentId)
@@ -134,10 +138,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
           const isFolder = node.type === 'folder';
           const isSelected = !isFolder && node.id === activeFileId;
           const isEditing = editingNodeId === node.id;
+          const isMoving = movingNodeId === node.id;
           const isExpanded = node.expanded ?? true;
 
+          const availableFolders = (nodes || []).filter(n => n.type === 'folder' && n.id !== node.id);
+
           return (
-            <div key={node.id} className="group/node">
+            <div key={node.id} className="group/node relative">
               <div
                 onClick={() => {
                   if (isFolder) {
@@ -208,6 +215,31 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                       </button>
                     </>
                   )}
+
+                  {/* Duplicate / Copy Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDuplicateNode?.(node.id);
+                    }}
+                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                    title="Duplicate / Copy"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+
+                  {/* Move Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMovingNodeId(isMoving ? null : node.id);
+                    }}
+                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                    title="Move to folder..."
+                  >
+                    <FolderInput className="h-3 w-3" />
+                  </button>
+
                   <button
                     onClick={(e) => handleStartRename(node, e)}
                     className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
@@ -215,6 +247,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                   >
                     <Edit3 className="h-3 w-3" />
                   </button>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -227,6 +260,43 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Move Destination Dropdown Popover */}
+              {isMoving && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-7 z-40 w-44 rounded-xl border border-border/80 bg-card p-1 shadow-xl text-xs space-y-1 font-sans animate-in fade-in zoom-in duration-100"
+                >
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                    Move to...
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      onMoveNode?.(node.id, null);
+                      setMovingNodeId(null);
+                    }}
+                    className="w-full text-left px-2 py-1 rounded text-foreground hover:bg-muted flex items-center gap-1.5"
+                  >
+                    <Folder className="h-3 w-3 text-primary" />
+                    <span>Root Directory</span>
+                  </button>
+
+                  {availableFolders.map(folder => (
+                    <button
+                      key={folder.id}
+                      onClick={() => {
+                        onMoveNode?.(node.id, folder.id);
+                        setMovingNodeId(null);
+                      }}
+                      className="w-full text-left px-2 py-1 rounded text-foreground hover:bg-muted flex items-center gap-1.5 truncate"
+                    >
+                      <FolderOpen className="h-3 w-3 text-amber-400 shrink-0" />
+                      <span className="truncate">{folder.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {isFolder && isExpanded && (
                 <div className="mt-0.5">
@@ -270,41 +340,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
 
       <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
         <span>Files & Directories</span>
-        <div className="flex items-center gap-1 relative">
-          <button
-            onClick={() => setShowImportMenu(!showImportMenu)}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all flex items-center gap-1 text-[10px]"
-            title="Import PC Folder, ZIP, or File"
-          >
-            <Upload className="h-3 w-3" />
-            <span>Import</span>
-          </button>
-
-          {showImportMenu && (
-            <div className="absolute right-0 top-6 z-40 w-48 rounded-xl border border-border/80 bg-card p-1.5 shadow-xl space-y-1 font-sans text-xs">
-              <button
-                onClick={() => folderInputRef.current?.click()}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2"
-              >
-                <Folder className="h-3.5 w-3.5 text-amber-400" />
-                Import PC Folder (New WS)
-              </button>
-              <button
-                onClick={() => zipInputRef.current?.click()}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2"
-              >
-                <Archive className="h-3.5 w-3.5 text-blue-400" />
-                Import ZIP Archive (New WS)
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2 border-t border-border/40 pt-1.5"
-              >
-                <FileText className="h-3.5 w-3.5 text-emerald-400" />
-                Import File (Active WS)
-              </button>
-            </div>
-          )}
+        <div className="flex items-center gap-1">
 
           <button
             onClick={(e) => handleStartCreate(null, 'file', e)}

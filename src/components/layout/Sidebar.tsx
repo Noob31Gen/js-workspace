@@ -14,6 +14,8 @@ interface SidebarProps {
   onCreateFolder: (parentId: string | null, name: string) => void;
   onRenameNode: (nodeId: string, newName: string) => void;
   onDeleteNode: (nodeId: string) => void;
+  onDuplicateNode?: (nodeId: string) => void;
+  onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (doc: string) => void;
   onImportFolder?: (fileList: FileList) => void;
@@ -32,6 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreateFolder,
   onRenameNode,
   onDeleteNode,
+  onDuplicateNode,
+  onMoveNode,
   onOpenWorkspaceManager,
   onOpenDocs,
   onImportFolder,
@@ -86,6 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onCreateFolder={onCreateFolder}
             onRenameNode={onRenameNode}
             onDeleteNode={onDeleteNode}
+            onDuplicateNode={onDuplicateNode}
+            onMoveNode={onMoveNode}
             onRestoreDemo={onOpenWorkspaceManager}
             onImportFolder={onImportFolder}
             onImportZip={onImportZip}
