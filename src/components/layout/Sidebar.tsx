@@ -35,13 +35,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [filterQuery, setFilterQuery] = useState('');
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
 
-  const filteredNodes = nodes.filter(n =>
+  const filteredNodes = (nodes || []).filter(n =>
     !filterQuery || n.name.toLowerCase().includes(filterQuery.toLowerCase()) || n.path.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border/60 bg-card/40 p-3.5 flex flex-col justify-between hidden md:flex h-[calc(100vh-4rem)]">
-      <div className="space-y-4 overflow-y-auto pr-1">
+    <aside className="w-64 shrink-0 border-r border-border/60 bg-card/40 p-3.5 flex flex-col justify-between h-full max-h-full overflow-hidden">
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pr-1">
         {/* Active Workspace Selector Banner */}
         <div
           onClick={onOpenWorkspaceManager}
@@ -80,6 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onCreateFolder={onCreateFolder}
             onRenameNode={onRenameNode}
             onDeleteNode={onDeleteNode}
+            onRestoreDemo={onOpenWorkspaceManager}
           />
         </div>
 

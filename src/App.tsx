@@ -8,7 +8,8 @@ import { DocViewerModal } from '@/components/workspace/DocViewerModal';
 import { WorkspaceManagerModal } from '@/components/workspace/WorkspaceManagerModal';
 import { parseScriptOptions } from '@/lib/parser';
 import { ScriptRunner, ConsoleLogMessage, FramePayload, ExecutionResult } from '@/lib/worker-runner';
-import { WorkspaceStore, Workspace, WorkspaceNode } from '@/lib/workspace-store';
+import { DataFileViewer } from '@/components/workspace/DataFileViewer';
+import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind } from '@/lib/workspace-store';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check } from 'lucide-react';
 
 const runner = new ScriptRunner();
@@ -31,7 +32,8 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
-  const activeFile = activeWorkspace?.nodes.find(n => n.id === activeFileId) || activeWorkspace?.nodes.find(n => n.type === 'file');
+  const activeNodes = activeWorkspace?.nodes || [];
+  const activeFile = activeNodes.find(n => n.id === activeFileId) || activeNodes.find(n => n.type === 'file');
   const activeCode = activeFile?.code || '';
 
   // Persist workspace changes
@@ -65,9 +67,42 @@ export function App() {
     runner.execute({
       code: activeCode,
       args: optionValues,
-      nodes: activeWorkspace.nodes,
+      nodes: activeNodes,
       currentFilePath: activeFile?.path || 'main.js',
       onLog: (msg) => setLogs(prev => [...prev, msg]),
+      onFsMutation: (mutation) => {
+        if (mutation.action === 'write' && mutation.content !== undefined) {
+          const filePath = mutation.path;
+          const fileName = filePath.split('/').pop() || filePath;
+
+          setWorkspaces(prevWorkspaces =>
+            prevWorkspaces.map(ws => {
+              if (ws.id !== activeWorkspaceId) return ws;
+
+              const existingNode = ws.nodes.find(n => n.path === filePath);
+              if (existingNode) {
+                return {
+                  ...ws,
+                  nodes: ws.nodes.map(n => n.id === existingNode.id ? { ...n, code: mutation.content } : n)
+                };
+              } else {
+                const newNode: WorkspaceNode = {
+                  id: `file-fs-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  name: fileName,
+                  type: 'file',
+                  path: filePath,
+                  parentId: null,
+                  code: mutation.content
+                };
+                return {
+                  ...ws,
+                  nodes: [...ws.nodes, newNode]
+                };
+              }
+            })
+          );
+        }
+      },
       onSuccess: (res: ExecutionResult) => {
         setIsRunning(false);
         setOutputResult(res.raw);
@@ -243,7 +278,7 @@ export function App() {
       workspaces={workspaces}
       activeWorkspaceId={activeWorkspaceId}
       activeFileId={activeFileId}
-      nodes={activeWorkspace.nodes}
+      nodes={activeNodes}
       onSelectFile={setActiveFileId}
       onToggleFolder={handleToggleFolder}
       onCreateFile={handleCreateFile}
@@ -304,13 +339,20 @@ export function App() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {activeTab === 'editor' ? (
-            <ScriptEditor
-              code={activeCode}
-              onChangeCode={handleUpdateActiveCode}
-              onRun={handleRunScript}
-              onStop={handleStopScript}
-              isRunning={isRunning}
-            />
+            activeFile && (activeFile.fileKind || getFileKind(activeFile.name)) !== 'code' ? (
+              <DataFileViewer
+                file={activeFile}
+                onChangeContent={handleUpdateActiveCode}
+              />
+            ) : (
+              <ScriptEditor
+                code={activeCode}
+                onChangeCode={handleUpdateActiveCode}
+                onRun={handleRunScript}
+                onStop={handleStopScript}
+                isRunning={isRunning}
+              />
+            )
           ) : (
             <FramePreview frame={frame} />
           )}

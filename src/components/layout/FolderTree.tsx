@@ -11,6 +11,7 @@ interface FolderTreeProps {
   onCreateFolder: (parentId: string | null, name: string) => void;
   onRenameNode: (nodeId: string, newName: string) => void;
   onDeleteNode: (nodeId: string) => void;
+  onRestoreDemo?: () => void;
 }
 
 export const FolderTree: React.FC<FolderTreeProps> = ({
@@ -21,7 +22,8 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   onCreateFile,
   onCreateFolder,
   onRenameNode,
-  onDeleteNode
+  onDeleteNode,
+  onRestoreDemo
 }) => {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -30,7 +32,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
 
   // Group nodes by parentId
   const getChildren = (parentId: string | null) => {
-    return nodes
+    return (nodes || [])
       .filter(n => n.parentId === parentId)
       .sort((a, b) => {
         // Folders first, then files
@@ -209,6 +211,27 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       </div>
     );
   };
+
+  if (!nodes || nodes.length === 0) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <span>Files & Directories</span>
+        </div>
+        <div className="p-3 text-center rounded-xl border border-border/60 bg-muted/20 space-y-2">
+          <p className="text-xs text-muted-foreground">Workspace has no files.</p>
+          {onRestoreDemo && (
+            <button
+              onClick={onRestoreDemo}
+              className="w-full py-1.5 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all"
+            >
+              Restore Demo Workspace
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

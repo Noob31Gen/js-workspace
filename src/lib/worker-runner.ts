@@ -20,6 +20,12 @@ export interface ExecutionResult {
   executionTimeMs: number;
 }
 
+export interface FsMutationPayload {
+  action: 'write' | 'mkdir' | 'delete';
+  path: string;
+  content?: string;
+}
+
 export interface WorkerRunOptions {
   code: string;
   args: Record<string, any>;
@@ -27,6 +33,7 @@ export interface WorkerRunOptions {
   currentFilePath?: string;
   timeoutMs?: number;
   onLog: (msg: ConsoleLogMessage) => void;
+  onFsMutation?: (mutation: FsMutationPayload) => void;
   onSuccess: (result: ExecutionResult) => void;
   onError: (error: string) => void;
 }
@@ -42,6 +49,7 @@ export class ScriptRunner {
     currentFilePath = 'main.js',
     timeoutMs = 30000,
     onLog,
+    onFsMutation,
     onSuccess,
     onError
   }: WorkerRunOptions) {
@@ -81,12 +89,11 @@ export class ScriptRunner {
       self.onmessage = async (event) => {
         const { code, args } = event.data;
         try {
-          // Transform ES export syntax for the main entry file if present
           let transformedCode = code
             .replace(/export\\s+async\\s+function\\s+run/g, 'async function run')
             .replace(/export\\s+function\\s+run/g, 'function run');
 
-          const scriptFunc = new Function('args', 'require', 'workspace', \`
+          const scriptFunc = new Function('args', 'require', 'workspace', 'process', 'Buffer', \`
             \${transformedCode}
             if (typeof run === 'function') {
               return run(args);
@@ -95,7 +102,7 @@ export class ScriptRunner {
             }
           \`);
 
-          const rawResult = await scriptFunc(args, self.require, self.workspace);
+          const rawResult = await scriptFunc(args, self.require, self.workspace, self.process, self.Buffer);
           
           // Frame Payload Detection
           let frame = null;
@@ -145,6 +152,14 @@ export class ScriptRunner {
           data: data.data,
           timestamp: data.timestamp
         });
+      } else if (data.type === 'FS_MUTATION') {
+        if (onFsMutation) {
+          onFsMutation({
+            action: data.action,
+            path: data.path,
+            content: data.content
+          });
+        }
       } else if (data.type === 'COMPLETE') {
         const executionTimeMs = Math.round(performance.now() - startTime);
         this.clearTimer();

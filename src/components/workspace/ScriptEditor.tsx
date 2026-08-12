@@ -39,14 +39,28 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+    if (file.size > MAX_SIZE) {
+      alert(`⚠️ File "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 5 MB browser processing limit.`);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        onChangeCode(content);
-      }
-    };
-    reader.readAsText(file);
+    const isImage = file.type.startsWith('image/') || /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file.name);
+
+    if (isImage) {
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) onChangeCode(content);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) onChangeCode(content);
+      };
+      reader.readAsText(file);
+    }
   };
 
   return (
@@ -65,7 +79,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             type="file"
             ref={fileInputRef}
             onChange={handleFileUpload}
-            accept=".js,.ts,.txt"
+            accept="*"
             className="hidden"
           />
 

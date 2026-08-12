@@ -35,9 +35,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onSelectDoc
 }) => {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+    <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col font-sans">
       <Header onOpenDocs={onSelectDoc} />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
         <Sidebar
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}

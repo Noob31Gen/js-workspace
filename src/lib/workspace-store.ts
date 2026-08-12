@@ -1,10 +1,27 @@
+export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB safe browser limit
+
+export type FileKind = 'code' | 'data-json' | 'data-csv' | 'data-text' | 'data-image' | 'binary';
+
+export function getFileKind(filename: string): FileKind {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  if (['js', 'ts', 'jsx', 'tsx', 'mjs'].includes(ext)) return 'code';
+  if (ext === 'json') return 'data-json';
+  if (ext === 'csv') return 'data-csv';
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'].includes(ext)) return 'data-image';
+  if (['txt', 'md', 'html', 'xml', 'log', 'yaml', 'yml', 'css'].includes(ext)) return 'data-text';
+  return 'binary';
+}
+
 export interface WorkspaceNode {
   id: string;
   name: string;
   type: 'file' | 'folder';
-  path: string; // e.g. "utils/math.js" or "utils"
+  path: string; // e.g. "utils/math.js" or "data/subdomains.csv"
   parentId: string | null;
   code?: string;
+  binaryData?: string; // Base64 Data URL for images/binary files
+  fileKind?: FileKind;
+  sizeBytes?: number;
   category?: string;
   expanded?: boolean;
 }
@@ -20,6 +37,175 @@ export interface Workspace {
 const DEFAULT_WORKSPACE_ID = 'ws-default-demo';
 
 export const INITIAL_DEMO_NODES: WorkspaceNode[] = [
+  // Root level folder: data
+  {
+    id: 'folder-data',
+    name: 'data',
+    type: 'folder',
+    path: 'data',
+    parentId: null,
+    expanded: true
+  },
+  // data/subdomains.csv
+  {
+    id: 'file-data-subdomains-csv',
+    name: 'subdomains.csv',
+    type: 'file',
+    path: 'data/subdomains.csv',
+    parentId: 'folder-data',
+    fileKind: 'data-csv',
+    sizeBytes: 380,
+    category: 'Data',
+    code: `IP,Subdomain,Status,ResponseTime
+104.16.132.22,api.noob31.com,Active,14ms
+104.16.133.22,cdn.noob31.com,Active,11ms
+172.67.180.12,auth.noob31.com,Warning,84ms
+172.67.180.13,staging.noob31.com,Offline,0ms
+104.16.134.22,docs.noob31.com,Active,19ms
+`
+  },
+  // data/config.json
+  {
+    id: 'file-data-config-json',
+    name: 'config.json',
+    type: 'file',
+    path: 'data/config.json',
+    parentId: 'folder-data',
+    fileKind: 'data-json',
+    sizeBytes: 240,
+    category: 'Data',
+    code: `{
+  "projectName": "Noob31 Enterprise Workspace",
+  "version": "1.4.0",
+  "corsProxy": "https://cors.noob31.com/proxy",
+  "maxRetries": 3,
+  "features": {
+    "nodeSupport": true,
+    "frameRendering": true,
+    "csvViewer": true
+  }
+}`
+  },
+  // Root level folder: node-demo
+  {
+    id: 'folder-node-demo',
+    name: 'node-demo',
+    type: 'folder',
+    path: 'node-demo',
+    parentId: null,
+    expanded: true
+  },
+  // node-demo/csv-parser.js
+  {
+    id: 'file-node-csv-parser',
+    name: 'csv-parser.js',
+    type: 'file',
+    path: 'node-demo/csv-parser.js',
+    parentId: 'folder-node-demo',
+    fileKind: 'code',
+    category: 'Node.js',
+    code: `/**
+ * @name CSV Data File Reader & Parser
+ * @description Reads data/subdomains.csv using Node.js fs.readFileSync, parses rows, and outputs to Frame Preview table!
+ * 
+ * @param {string} csvFilePath Target CSV File - default: "data/subdomains.csv"
+ * @param {select:All|Active|Warning|Offline} statusFilter Filter by Status - default: "All"
+ */
+async function run({ csvFilePath, statusFilter }) {
+  const fs = require('fs');
+  const path = require('path');
+
+  console.log(\`📂 Reading CSV data file: "\${csvFilePath}" via fs.readFileSync()...\`);
+
+  if (!fs.existsSync(csvFilePath)) {
+    throw new Error(\`CSV File "\${csvFilePath}" not found in workspace!\`);
+  }
+
+  const rawText = fs.readFileSync(csvFilePath, 'utf8');
+  const lines = rawText.trim().split('\\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+
+  console.log(\`Header Columns (\${headers.length}):\`, headers);
+
+  const records = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(',').map(c => c.trim());
+    if (row.length < headers.length) continue;
+
+    const entry = {};
+    headers.forEach((h, idx) => {
+      entry[h] = row[idx];
+    });
+
+    if (statusFilter === 'All' || entry.Status === statusFilter) {
+      records.push(entry);
+    }
+  }
+
+  console.log(\`✅ Parsed \${records.length} records matching status "\${statusFilter}":\`);
+  console.table(records);
+
+  return records;
+}
+`
+  },
+  // node-demo/fs-and-crypto.js
+  {
+    id: 'file-node-fs-crypto',
+    name: 'fs-and-crypto.js',
+    type: 'file',
+    path: 'node-demo/fs-and-crypto.js',
+    parentId: 'folder-node-demo',
+    fileKind: 'code',
+    category: 'Node.js',
+    code: `/**
+ * @name Node.js Core Modules Demo
+ * @description Demonstrates require('fs'), require('path'), require('crypto'), and Buffer in browser!
+ * 
+ * @param {string} sampleFile Path to Read - default: "utils/math.js"
+ * @param {string} newFilename File to Write - default: "crypto-digest.txt"
+ */
+async function run({ sampleFile, newFilename }) {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const util = require('util');
+
+  console.log(\`📂 Node process.cwd(): "\${process.cwd()}" | version: \${process.version}\`);
+  console.log(\`🔍 Checking file existence for "\${sampleFile}"...\`);
+
+  if (!fs.existsSync(sampleFile)) {
+    throw new Error(\`File \${sampleFile} does not exist in workspace!\`);
+  }
+
+  const content = fs.readFileSync(sampleFile, 'utf8');
+  const buffer = Buffer.from(content);
+  console.log(\`Read \${content.length} characters (\${buffer.length} bytes).\`);
+
+  // Create SHA-256 Digest using Node crypto
+  const sha256 = crypto.createHash('sha256').update(content).digest('hex');
+  const uuid = crypto.randomUUID();
+
+  console.log(\`SHA-256 Digest: \${sha256}\`);
+  console.log(\`Generated UUID: \${uuid}\`);
+
+  const outputPayload = util.format(
+    "Source File: %s\\nByte Size: %d\\nSHA-256: %s\\nGenerated UUID: %s\\nTimestamp: %s",
+    sampleFile,
+    buffer.length,
+    sha256,
+    uuid,
+    new Date().toISOString()
+  );
+
+  // Write file to workspace tree via fs.writeFileSync!
+  fs.writeFileSync(newFilename, outputPayload);
+  console.log(\`✅ Written result to workspace file: "\${newFilename}" via fs.writeFileSync()!\`);
+
+  return { file: newFilename, sha256, uuid, size: buffer.length };
+}
+`
+  },
   // Root level folder: utils
   {
     id: 'folder-utils',
@@ -36,6 +222,7 @@ export const INITIAL_DEMO_NODES: WorkspaceNode[] = [
     type: 'file',
     path: 'utils/math.js',
     parentId: 'folder-utils',
+    fileKind: 'code',
     category: 'Utilities',
     code: `/**
  * @name Math Utilities Module
@@ -67,6 +254,7 @@ export function max(arr) {
     type: 'file',
     path: 'utils/formatters.js',
     parentId: 'folder-utils',
+    fileKind: 'code',
     category: 'Utilities',
     code: `/**
  * @name Text & Table Formatters Module
@@ -74,7 +262,6 @@ export function max(arr) {
  */
 
 export async function formatStatsTable(numbers) {
-  // Import dependency module math.js
   const math = await require('./math.js');
 
   const total = math.sum(numbers);
@@ -90,111 +277,6 @@ export async function formatStatsTable(numbers) {
 }
 `
   },
-  // Root level folder: network
-  {
-    id: 'folder-network',
-    name: 'network',
-    type: 'folder',
-    path: 'network',
-    parentId: null,
-    expanded: true
-  },
-  // network/http-client.js
-  {
-    id: 'file-network-client',
-    name: 'http-client.js',
-    type: 'file',
-    path: 'network/http-client.js',
-    parentId: 'folder-network',
-    category: 'Network',
-    code: `/**
- * @name Reusable HTTP Client Module
- * @description Provides a reusable JSON endpoint fetcher for workspace dependency calls.
- */
-
-export async function fetchJson(url) {
-  console.log(\`🌐 HTTP Client fetching: \${url}\`);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
-  }
-  return await response.json();
-}
-`
-  },
-  // network/domain-scanner.js
-  {
-    id: 'file-network-scanner',
-    name: 'domain-scanner.js',
-    type: 'file',
-    path: 'network/domain-scanner.js',
-    parentId: 'folder-network',
-    category: 'Network',
-    code: `/**
- * @name Domain REST Scanner
- * @description Queries public endpoints using http-client.js and formats metrics using formatters.js
- * 
- * @param {string} endpoint API Endpoint URL - default: "https://jsonplaceholder.typicode.com/posts"
- * @param {range:1:20:1} limit Max Records - default: 5
- */
-async function run({ endpoint, limit }) {
-  // Import cross-folder dependency scripts!
-  const client = await workspace.import('network/http-client.js');
-  const formatters = await workspace.import('utils/formatters.js');
-
-  console.log(\`🔍 Querying endpoint \${endpoint}?_limit=\${limit}...\`);
-  const posts = await client.fetchJson(\`\${endpoint}?_limit=\${limit}\`);
-
-  const idLengths = posts.map(p => p.body ? p.body.length : 0);
-  const stats = await formatters.formatStatsTable(idLengths);
-
-  console.log(\`✅ Processed \${posts.length} posts.\`);
-  console.table(stats);
-
-  return stats;
-}
-`
-  },
-  // Root level folder: visuals
-  {
-    id: 'folder-visuals',
-    name: 'visuals',
-    type: 'folder',
-    path: 'visuals',
-    parentId: null,
-    expanded: true
-  },
-  // visuals/card-builder.js
-  {
-    id: 'file-visuals-card',
-    name: 'card-builder.js',
-    type: 'file',
-    path: 'visuals/card-builder.js',
-    parentId: 'folder-visuals',
-    category: 'Visuals',
-    code: `/**
- * @name HTML Card Frame Builder
- * @description Visual card generator exported for dashboard rendering scripts.
- */
-
-export function buildStatusCard(title, score, badgeText = 'OK') {
-  return \`
-    <div style="font-family: system-ui, sans-serif; padding: 24px; background: #0c0c0e; color: #fafafa; border-radius: 16px; border: 1px solid #27272a; max-width: 480px; margin: 0 auto;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #3b82f6;">\${title}</h3>
-        <span style="background: #10b98122; color: #10b981; border: 1px solid #10b98144; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;">
-          \${badgeText}
-        </span>
-      </div>
-      <div style="background: #18181b; padding: 16px; border-radius: 12px; text-align: center;">
-        <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase;">Composite Score</div>
-        <div style="font-size: 36px; font-weight: 900; color: #3b82f6; margin-top: 4px;">\${score}%</div>
-      </div>
-    </div>
-  \`;
-}
-`
-  },
   // Root level file: main.js
   {
     id: 'file-main-orchestrator',
@@ -202,6 +284,7 @@ export function buildStatusCard(title, score, badgeText = 'OK') {
     type: 'file',
     path: 'main.js',
     parentId: null,
+    fileKind: 'code',
     category: 'Main',
     code: `/**
  * @name Master Workspace Orchestrator
@@ -213,13 +296,9 @@ export function buildStatusCard(title, score, badgeText = 'OK') {
 async function run({ projectTitle, healthIndex }) {
   console.log(\`🚀 Running Master Orchestrator for: "\${projectTitle}"...\`);
 
-  // 1. Import math and formatting utilities from utils/
   const math = await require('./utils/math.js');
   const formatters = await require('./utils/formatters.js');
   
-  // 2. Import visual card builder from visuals/
-  const cardBuilder = await workspace.import('visuals/card-builder.js');
-
   const numbers = [12, 45, 88, 102, 34, healthIndex];
   console.log("Input Array:", numbers);
   console.log("Calculated Average:", math.average(numbers));
@@ -227,10 +306,7 @@ async function run({ projectTitle, healthIndex }) {
   const statsTable = await formatters.formatStatsTable(numbers);
   console.table(statsTable);
 
-  // 3. Build HTML Frame output using visual builder dependency
-  const htmlOutput = cardBuilder.buildStatusCard(projectTitle, healthIndex, 'SYSTEM NOMINAL');
-
-  return { __html: htmlOutput, __title: projectTitle };
+  return statsTable;
 }
 `
   }
@@ -240,13 +316,13 @@ export const INITIAL_WORKSPACES: Workspace[] = [
   {
     id: DEFAULT_WORKSPACE_ID,
     name: 'Main Multi-Folder Workspace',
-    description: 'Nested directory layout with cross-script dependencies (require / workspace.import)',
+    description: 'Nested directory layout with Node.js fs data file processing (.csv, .json, images)',
     nodes: INITIAL_DEMO_NODES,
-    activeFileId: 'file-main-orchestrator'
+    activeFileId: 'file-node-csv-parser'
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_multi_v1';
+const STORAGE_KEY = 'js_workspace_v4_datafiles';
 
 export class WorkspaceStore {
   public static loadWorkspaces(): Workspace[] {
@@ -254,7 +330,13 @@ export class WorkspaceStore {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed[0]?.nodes &&
+          Array.isArray(parsed[0].nodes) &&
+          parsed[0].nodes.length > 0
+        ) {
           return parsed;
         }
       }
