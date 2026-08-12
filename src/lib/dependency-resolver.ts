@@ -173,6 +173,15 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
         if (content === undefined) {
           throw new Error('ENOENT: no such file or directory, open "' + filePath + '"');
         }
+        if (typeof content === 'string' && content.startsWith('data:')) {
+          const base64Data = content.split(',')[1] || '';
+          const binaryStr = atob(base64Data);
+          const len = binaryStr.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
+          const buf = new BufferModule(bytes.buffer);
+          return encoding ? buf.toString(encoding) : buf;
+        }
         return encoding ? content : BufferModule.from(content);
       },
       writeFileSync(filePath, data, encoding = 'utf8') {
@@ -263,6 +272,32 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       if (cleanReq === 'events') return { EventEmitter: EventEmitterModule, default: EventEmitterModule };
       if (cleanReq === 'crypto') return cryptoModule;
       if (cleanReq === 'util') return utilModule;
+
+      // Check if requestedPath is an external NPM package (e.g. 'lodash', 'axios', 'dayjs', 'papaparse')
+      if (!requestedPath.startsWith('.') && !requestedPath.startsWith('/')) {
+        const npmCacheKey = 'npm:' + requestedPath;
+        if (MODULE_CACHE.has(npmCacheKey)) {
+          return MODULE_CACHE.get(npmCacheKey);
+        }
+
+        sendLog('info', ['📦 Loading NPM package "' + requestedPath + '" dynamically via CDN (https://esm.sh/' + requestedPath + ')...']);
+
+        try {
+          const cdnUrl = 'https://esm.sh/' + requestedPath;
+          const npmModule = await import(/* @vite-ignore */ cdnUrl);
+          const resolvedExports = npmModule.default !== undefined ? npmModule.default : npmModule;
+          
+          // Attach default exports if object has properties
+          if (typeof resolvedExports === 'function' || typeof resolvedExports === 'object') {
+            Object.assign(resolvedExports, npmModule);
+          }
+
+          MODULE_CACHE.set(npmCacheKey, resolvedExports);
+          return resolvedExports;
+        } catch (err) {
+          throw new Error('Failed to load NPM package "' + requestedPath + '" from CDN: ' + (err.message || String(err)));
+        }
+      }
 
       const resolvedPath = resolvePath(requestedPath, baseFile);
 

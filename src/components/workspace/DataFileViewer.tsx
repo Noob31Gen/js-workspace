@@ -53,6 +53,44 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
     !searchTerm || JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const generateHexDump = (data: string) => {
+    let rawString = data;
+    if (data.startsWith('data:')) {
+      try {
+        const base64 = data.split(',')[1] || '';
+        rawString = atob(base64);
+      } catch (e) {
+        rawString = data;
+      }
+    }
+    const maxBytes = Math.min(rawString.length, 512);
+    const rows: string[] = [];
+
+    for (let i = 0; i < maxBytes; i += 16) {
+      const offset = i.toString(16).padStart(8, '0');
+      const hexBytes: string[] = [];
+      const asciiBytes: string[] = [];
+
+      for (let j = 0; j < 16; j++) {
+        if (i + j < maxBytes) {
+          const code = rawString.charCodeAt(i + j);
+          hexBytes.push(code.toString(16).padStart(2, '0').toUpperCase());
+          asciiBytes.push(code >= 32 && code <= 126 ? String.fromCharCode(code) : '.');
+        } else {
+          hexBytes.push('  ');
+        }
+      }
+
+      rows.push(`${offset}: ${hexBytes.join(' ')}  |${asciiBytes.join('')}|`);
+    }
+
+    if (rawString.length > 512) {
+      rows.push(`... (${rawString.length - 512} more bytes truncated)`);
+    }
+
+    return rows.join('\n');
+  };
+
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-[480px]">
       {/* Header Toolbar */}
@@ -62,6 +100,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
           {fileKind === 'data-json' && <FileJson className="h-4 w-4 text-amber-400" />}
           {fileKind === 'data-image' && <ImageIcon className="h-4 w-4 text-blue-400" />}
           {fileKind === 'data-text' && <FileText className="h-4 w-4 text-purple-400" />}
+          {fileKind === 'binary' && <FileText className="h-4 w-4 text-primary" />}
 
           <span className="text-xs font-bold font-mono tracking-tight text-foreground">
             {file.name}
@@ -175,6 +214,41 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
               <Download className="h-3.5 w-3.5" />
               Download Image File
             </a>
+          </div>
+        )}
+
+        {/* Universal Binary File Inspector */}
+        {fileKind === 'binary' && (
+          <div className="h-full flex flex-col space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-foreground font-mono">{file.name}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono">
+                    Binary Payload • {file.sizeBytes ? (file.sizeBytes / 1024).toFixed(1) + ' KB' : (content.length / 1024).toFixed(1) + ' KB'}
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href={file.binaryData || `data:application/octet-stream;base64,${btoa(content)}`}
+                download={file.name}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download File
+              </a>
+            </div>
+
+            <div className="flex-1 rounded-lg border border-border/60 bg-black/60 p-3 font-mono text-[11px] text-emerald-400 overflow-y-auto leading-relaxed select-all">
+              <div className="text-[10px] text-muted-foreground uppercase font-bold mb-2 tracking-wider">
+                Hex Offset & ASCII Header Preview (First 512 Bytes)
+              </div>
+              <pre>{generateHexDump(file.binaryData || content)}</pre>
+            </div>
           </div>
         )}
 

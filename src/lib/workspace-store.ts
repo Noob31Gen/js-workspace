@@ -95,6 +95,49 @@ export const INITIAL_DEMO_NODES: WorkspaceNode[] = [
     parentId: null,
     expanded: true
   },
+  // node-demo/npm-packages-demo.js
+  {
+    id: 'file-node-npm-demo',
+    name: 'npm-packages-demo.js',
+    type: 'file',
+    path: 'node-demo/npm-packages-demo.js',
+    parentId: 'folder-node-demo',
+    fileKind: 'code',
+    category: 'NPM Packages',
+    code: `/**
+ * @name Dynamic NPM Package Loader Demo
+ * @description Loads external NPM packages (lodash, dayjs, papaparse) dynamically via require('package-name')
+ * 
+ * @param {string} textInput Sample Text to Format - default: "javascript workspace sandbox"
+ */
+async function run({ textInput }) {
+  console.log("📦 Loading external NPM packages dynamically...");
+
+  // Load lodash from CDN
+  const _ = await require('lodash');
+  console.log("✅ Lodash loaded! Title case:", _.startCase(textInput));
+  console.log("Lodash chunk array:", _.chunk([1, 2, 3, 4, 5, 6], 2));
+
+  // Load dayjs from CDN
+  const dayjs = await require('dayjs');
+  console.log("✅ Day.js loaded! Current time:", dayjs().format('YYYY-MM-DD HH:mm:ss'));
+  console.log("Formatted relative date (+7 days):", dayjs().add(7, 'day').format('MMMM D, YYYY'));
+
+  // Load PapaParse from CDN
+  const Papa = await require('papaparse');
+  const csvData = "Name,Role,Score\\nAlice,Engineer,95\\nBob,Designer,88";
+  const parsedCsv = Papa.parse(csvData, { header: true });
+  console.log("✅ PapaParse loaded! Parsed CSV rows:", parsedCsv.data);
+  console.table(parsedCsv.data);
+
+  return {
+    lodashResult: _.startCase(textInput),
+    formattedDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    csvRows: parsedCsv.data
+  };
+}
+`,
+  },
   // node-demo/csv-parser.js
   {
     id: 'file-node-csv-parser',
@@ -318,11 +361,11 @@ export const INITIAL_WORKSPACES: Workspace[] = [
     name: 'Main Multi-Folder Workspace',
     description: 'Nested directory layout with Node.js fs data file processing (.csv, .json, images)',
     nodes: INITIAL_DEMO_NODES,
-    activeFileId: 'file-node-csv-parser'
+    activeFileId: 'file-node-npm-demo'
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_v4_datafiles';
+const STORAGE_KEY = 'js_workspace_v5_npm';
 
 export class WorkspaceStore {
   public static loadWorkspaces(): Workspace[] {
