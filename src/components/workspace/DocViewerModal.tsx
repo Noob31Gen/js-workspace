@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { marked } from 'marked';
-import { X, BookOpen, ShieldCheck, Terminal, Layers, FileCode, ExternalLink } from 'lucide-react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import { X, BookOpen, FileCode } from 'lucide-react';
 import { DOCS_REGISTRY, DocItem } from '@/lib/docs-data';
 
 interface DocViewerModalProps {
@@ -18,8 +21,42 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
 
   const activeDoc: DocItem = DOCS_REGISTRY[activeDocKey] || DOCS_REGISTRY['ARCHITECTURE.md'];
 
+  // Configure marked renderer for rich IDE-style code blocks
+  const renderer = new marked.Renderer();
+  renderer.code = ({ text, lang }) => {
+    const language = lang || 'javascript';
+    let highlighted = text;
+    try {
+      if (Prism.languages[language]) {
+        highlighted = Prism.highlight(text, Prism.languages[language], language);
+      } else if (Prism.languages.javascript) {
+        highlighted = Prism.highlight(text, Prism.languages.javascript, 'javascript');
+      }
+    } catch (e) {
+      highlighted = text;
+    }
+
+    return `
+      <div class="my-5 rounded-xl border border-zinc-800 bg-[#070b14] overflow-hidden shadow-2xl font-mono text-xs group/code">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80 bg-zinc-950/90 text-[11px]">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80 border border-amber-400/40"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400/40"></span>
+            <span class="ml-2 font-mono text-[10px] text-zinc-400 font-bold uppercase tracking-wider">${language}</span>
+          </div>
+          <div class="text-[10px] text-zinc-500 font-mono">JS Workspace IDE Sandbox</div>
+        </div>
+        <div class="p-4 overflow-x-auto leading-relaxed text-zinc-200 bg-[#070b14]">
+          <pre class="m-0 p-0 bg-transparent border-0"><code class="language-${language} bg-transparent p-0 border-0">${highlighted}</code></pre>
+        </div>
+      </div>
+    `;
+  };
+
   // Parse markdown into sanitized HTML
   const rawHtml = marked.parse(activeDoc.content, {
+    renderer,
     gfm: true,
     breaks: true
   }) as string;
@@ -80,7 +117,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
             [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-foreground [&_h3]:mt-4 [&_h3]:mb-1
             [&_p]:text-muted-foreground [&_p]:leading-relaxed
             [&_code]:bg-zinc-950 [&_code]:text-emerald-400 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:font-mono [&_code]:border [&_code]:border-zinc-800
-            [&_pre]:bg-zinc-950 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-zinc-800/80 [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:border-0 [&_pre_code]:text-zinc-200
+            [&_pre]:bg-transparent [&_pre]:p-0 [&_pre]:border-0
             [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
             [&_th]:bg-muted/60 [&_th]:border [&_th]:border-border/60 [&_th]:p-2.5 [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:text-foreground
             [&_td]:border [&_td]:border-border/40 [&_td]:p-2.5 [&_td]:text-xs [&_td]:text-muted-foreground

@@ -147,3 +147,17 @@
 ::-webkit-scrollbar-thumb:hover {
   background: oklch(1 0 0 / 30%);
 }
+
+/* IDE Syntax Highlighting Tokens for Documentation Code Views */
+.token.keyword { color: #f43f5e; font-weight: 700; }
+.token.string { color: #34d399; }
+.token.function { color: #60a5fa; font-weight: 600; }
+.token.number { color: #fbbf24; }
+.token.boolean { color: #fb923c; font-weight: 700; }
+.token.comment { color: #64748b; font-style: italic; }
+.token.operator { color: #38bdf8; }
+.token.punctuation { color: #94a3b8; }
+.token.property { color: #e879f9; }
+.token.class-name { color: #a78bfa; font-weight: 700; }
+.token.constant { color: #f472b6; }
+

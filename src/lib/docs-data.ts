@@ -10,13 +10,13 @@ export const DOCS_REGISTRY: Record<string, DocItem> = {
     id: 'ARCHITECTURE.md',
     title: 'System Architecture & Web Worker Sandbox',
     category: 'Architecture',
-    content: `# 🏛️ System Architecture & Execution Sandbox
+    content: `# System Architecture & Execution Sandbox
 
 The **JS Workspace** platform is a browser-native script execution environment, IDE, and virtual Node.js filesystem built to execute JavaScript, process local data files, and fetch network APIs completely inside your browser.
 
 ---
 
-## ⚡ Core Subsystems Architecture
+## Core Subsystems Architecture
 
 \`\`\`
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -45,7 +45,7 @@ The **JS Workspace** platform is a browser-native script execution environment, 
 
 ---
 
-## 🛡️ 1. Isolated Web Worker Sandbox
+## 1. Isolated Web Worker Sandbox
 
 User-written JavaScript scripts execute off-the-main-thread inside an isolated **Web Worker**. This architecture guarantees:
 - **UI Responsiveness**: Heavy computational tasks, loops, and data parsing never lock or freeze the browser UI.
@@ -54,7 +54,7 @@ User-written JavaScript scripts execute off-the-main-thread inside an isolated *
 
 ---
 
-## 📁 2. In-Memory Virtual Filesystem & Node Polyfills
+## 2. In-Memory Virtual Filesystem & Node Polyfills
 
 JS Workspace provides a browser-native implementation of standard Node.js APIs:
 - **\`fs\` (File System)**: Implements synchronous and asynchronous methods (\`readFileSync\`, \`writeFileSync\`, \`existsSync\`, \`readdirSync\`, \`mkdirSync\`, \`statSync\`, \`unlinkSync\`).
@@ -73,7 +73,7 @@ console.log("Read virtual file content:", JSON.parse(data));
 
 ---
 
-## 🎨 3. Dynamic JSDoc Parser & UI Control Generator
+## 3. Dynamic JSDoc Parser & UI Control Generator
 
 Before a script is executed, JS Workspace inspects the script AST and comment block:
 1. **Zero-JSDoc Function Signature Detection**: Auto-detects parameter names and default values from function signatures like \`async function run({ targetUrl, maxDepth = 5, verbose = true })\`.
@@ -81,7 +81,7 @@ Before a script is executed, JS Workspace inspects the script AST and comment bl
 
 ---
 
-## 🌐 4. CORS Extension Service Worker Bridge
+## 4. CORS Extension Service Worker Bridge
 
 Browser security restricts cross-origin \`fetch()\` calls made from local web apps (\`localhost\` / \`https\`). JS Workspace solves this cleanly via an optional **Chrome Manifest V3 Extension**:
 - The web app sends a message to the extension background service worker using \`chrome.runtime.sendMessage()\`.
@@ -90,7 +90,7 @@ Browser security restricts cross-origin \`fetch()\` calls made from local web ap
 
 ---
 
-## 📶 5. PWA Offline Cache Engine
+## 5. PWA Offline Cache Engine
 
 JS Workspace is registered as a **Progressive Web App (PWA)**:
 - **App Shell Caching**: All static assets, fonts, icons, editor scripts, and Node polyfills are cached locally via Service Worker.
@@ -102,13 +102,13 @@ JS Workspace is registered as a **Progressive Web App (PWA)**:
     id: 'SCRIPT_SPECIFICATION.md',
     title: 'Script Specification & Dynamic Parameters',
     category: 'Guides',
-    content: `# 📝 Script Specification & Dynamic Parameter Options
+    content: `# Script Specification & Dynamic Parameter Options
 
 JS Workspace scripts are standard JavaScript files (ES2022 / Node.js style). You can write simple top-level scripts or declare an exported \`run()\` function with dynamic input parameters.
 
 ---
 
-## 🚀 1. Writing Your First Script
+## 1. Writing Your First Script
 
 You can structure your script in two ways:
 
@@ -134,7 +134,7 @@ async function run({ threshold = 50, enableLogs = true }) {
 
 ---
 
-## 🎛️ 2. Dynamic UI Parameter Specifications
+## 2. Dynamic UI Parameter Specifications
 
 JS Workspace supports 7 rich interactive UI control types generated directly from JSDoc \`@param\` annotations:
 
@@ -198,7 +198,7 @@ async function run({ customConfig }) {
 
 ---
 
-## 📁 3. Cross-Script Imports & Virtual Files
+## 3. Cross-Script Imports & Virtual Files
 
 You can organize your code into multiple nested files and import them using standard Node.js \`require()\`:
 
@@ -218,13 +218,13 @@ console.log("Result:", add(10, 20));
     id: 'CORS_HELPER.md',
     title: 'CORS Helper Extension & Network Fetching',
     category: 'Extension',
-    content: `# 🌐 CORS Helper Extension & Cross-Origin Network Fetching
+    content: `# CORS Helper Extension & Cross-Origin Network Fetching
 
 Browser security policies enforce **CORS (Cross-Origin Resource Sharing)** restrictions. When a script running in a web application attempts to fetch data from an external website or API that does not explicitly include \`Access-Control-Allow-Origin: *\` headers, the browser blocks the request.
 
 ---
 
-## 🛠️ How JS Workspace Solves CORS
+## How JS Workspace Solves CORS
 
 JS Workspace includes an optional **Chrome Manifest V3 Extension** that acts as an un-restricted background network proxy:
 
@@ -245,7 +245,7 @@ JS Workspace includes an optional **Chrome Manifest V3 Extension** that acts as 
 
 ---
 
-## 📥 Installing the CORS Helper Extension
+## Installing the CORS Helper Extension
 
 ### Step 1: Download Extension Package
 1. Click the **CORS Helper Inactive** status badge in the top right header bar.
@@ -263,7 +263,7 @@ Return to JS Workspace. The status indicator in the top right header will automa
 
 ---
 
-## 💻 Using Network Fetch in Scripts
+## Using Network Fetch in Scripts
 
 With the extension connected, scripts can perform \`fetch()\` requests to any endpoint without CORS errors:
 
@@ -282,13 +282,13 @@ async function run({ targetUrl = "https://api.github.com/zen" }) {
     id: 'NODE_ENVIRONMENT.md',
     title: 'Node.js Polyfills, NPM & PWA Offline Engine',
     category: 'Node & PWA',
-    content: `# 📦 Node.js Polyfills, Dynamic NPM Resolution & PWA Offline Engine
+    content: `# Node.js Polyfills, Dynamic NPM Resolution & PWA Offline Engine
 
 JS Workspace bridges browser execution with Node.js developer workflows by providing built-in polyfills for core Node modules, automatic CDN package resolution, and full offline PWA support.
 
 ---
 
-## 🔌 1. Built-in Node.js Core Modules
+## 1. Built-in Node.js Core Modules
 
 The following Node.js standard library modules are built-in and available via \`require()\`:
 
@@ -304,7 +304,7 @@ The following Node.js standard library modules are built-in and available via \`
 
 ---
 
-## 🌐 2. Dynamic NPM Package Resolution
+## 2. Dynamic NPM Package Resolution
 
 You can import external NPM packages inside your scripts without pre-installing them! JS Workspace resolves packages dynamically over HTTP via fast CDN mirrors (\`unpkg\` / \`esm.sh\`):
 
@@ -319,7 +319,7 @@ console.log("Formatted Date:", dayjs().format('YYYY-MM-DD HH:mm:ss'));
 
 ---
 
-## 📶 3. PWA Offline Package Pre-Caching
+## 3. PWA Offline Package Pre-Caching
 
 To ensure your scripts and NPM packages work 100% offline without internet:
 1. Click the **PWA Ready (Online)** badge in the top right header.
