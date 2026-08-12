@@ -240,8 +240,8 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={() => setIsOfflineModalOpen(true)}
           className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all cursor-pointer shadow-xs ${isOnline
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+            : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
             }`}
           title="Click to manage offline PWA packages"
         >
@@ -262,8 +262,8 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={() => setIsExtensionModalOpen(true)}
           className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2 sm:px-3 text-xs font-semibold transition-all shadow-xs cursor-pointer ${extensionActive
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+            : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
             }`}
           title="Click to download helper extension or check connection"
         >
@@ -291,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <a
-          href="https://github.com/Noob31Gen/noob31-multitool"
+          href="https://github.com/Noob31Gen/js-workspace"
           target="_blank"
           rel="noreferrer"
           className="hidden lg:inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
@@ -338,8 +338,8 @@ export const Header: React.FC<HeaderProps> = ({
                       disabled={cachingPkg === pkg}
                       onClick={() => handlePrecache(pkg)}
                       className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg border text-xs font-mono font-bold transition-all ${precachedPkgs.includes(pkg)
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : 'bg-muted/50 text-foreground border-border hover:bg-primary/20 hover:border-primary'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-muted/50 text-foreground border-border hover:bg-primary/20 hover:border-primary'
                         }`}
                     >
                       {cachingPkg === pkg ? (
