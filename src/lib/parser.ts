@@ -118,46 +118,51 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
   }
 
   // 3. Fallback: Automatic Function Argument Discovery if JSDoc missing or partial
-  // Looks for destructured object parameters in: async function run({ targetUrl, maxLinks = 10, ... })
-  const funcSigMatch = code.match(/(?:async\s+)?function\s+run\s*\(\s*\{([^}]+)\}\s*\)/i);
-  if (funcSigMatch && funcSigMatch[1]) {
-    const rawParams = funcSigMatch[1].split(',');
-    for (const rawParam of rawParams) {
-      const trimmed = rawParam.trim();
-      if (!trimmed) continue;
+  // Matches: function run({ a, b }), const run = async ({ a, b }) =>, export default function({ a, b })
+  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function\s*(?:[a-zA-Z0-9_$]+)?|(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=\s*(?:async\s*)?)\s*\(\s*\{([^}]+)\}\s*\)/gi;
+  let funcMatch;
 
-      const [paramKeyRaw, defaultValRaw] = trimmed.split('=').map(s => s.trim());
-      const paramKey = paramKeyRaw.replace(/^[^a-zA-Z0-9_$]+/, '');
+  while ((funcMatch = funcSigRegex.exec(code)) !== null) {
+    if (funcMatch && funcMatch[1]) {
+      const rawParams = funcMatch[1].split(',');
+      for (const rawParam of rawParams) {
+        const trimmed = rawParam.trim();
+        if (!trimmed) continue;
 
-      if (paramKey && !jsdocKeys.has(paramKey)) {
-        let inferredType: OptionDescriptor['type'] = 'string';
-        let inferredDefault: any = '';
+        const [paramKeyRaw, defaultValRaw] = trimmed.split('=').map(s => s.trim());
+        const paramKey = paramKeyRaw.replace(/^[^a-zA-Z0-9_$]+/, '');
 
-        if (defaultValRaw) {
-          if (defaultValRaw === 'true' || defaultValRaw === 'false') {
-            inferredType = 'boolean';
-            inferredDefault = defaultValRaw === 'true';
-          } else if (!isNaN(Number(defaultValRaw))) {
-            inferredType = 'number';
-            inferredDefault = Number(defaultValRaw);
-          } else {
-            inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+        if (paramKey && !jsdocKeys.has(paramKey)) {
+          let inferredType: OptionDescriptor['type'] = 'string';
+          let inferredDefault: any = '';
+
+          if (defaultValRaw) {
+            if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+              inferredType = 'boolean';
+              inferredDefault = defaultValRaw === 'true';
+            } else if (!isNaN(Number(defaultValRaw))) {
+              inferredType = 'number';
+              inferredDefault = Number(defaultValRaw);
+            } else {
+              inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+            }
           }
+
+          // Format label nicely (camelCase to Title Case)
+          const formattedLabel = paramKey
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase());
+
+          result.options.push({
+            key: paramKey,
+            label: formattedLabel,
+            type: inferredType,
+            default: inferredDefault,
+            source: 'autodetected',
+            description: 'Auto-detected from function signature'
+          });
+          jsdocKeys.add(paramKey);
         }
-
-        // Format label nicely (camelCase to Title Case)
-        const formattedLabel = paramKey
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase());
-
-        result.options.push({
-          key: paramKey,
-          label: formattedLabel,
-          type: inferredType,
-          default: inferredDefault,
-          source: 'autodetected',
-          description: 'Auto-detected from function signature'
-        });
       }
     }
   }

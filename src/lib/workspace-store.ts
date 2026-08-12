@@ -95,6 +95,151 @@ export const INITIAL_DEMO_NODES: WorkspaceNode[] = [
     parentId: null,
     expanded: true
   },
+  // node-demo/full-feature-test.js
+  {
+    id: 'file-node-full-test',
+    name: 'full-feature-test.js',
+    type: 'file',
+    path: 'node-demo/full-feature-test.js',
+    parentId: 'folder-node-demo',
+    fileKind: 'code',
+    category: 'Test Suite',
+    code: `/**
+ * @name Master System Feature & Parameter Test
+ * @description Comprehensive test script exercising all option controls (text, slider, color, json, select, boolean), Node fs/crypto/path/util, cross-script imports, dynamic lodash/dayjs, and visual frame output!
+ * 
+ * @param {string} testName Project Test Name - default: "Omni-Sandbox Test Run"
+ * @param {range:1:100:5} sampleBatchSize Sample Batch Size - default: 25
+ * @param {color} themeAccent Primary Brand Color - default: "#3b82f6"
+ * @param {select:Summary|Detailed|RawLogs|HTMLFrame} outputFormat Target Output Mode - default: "Detailed"
+ * @param {boolean} enableCryptoDigest Compute SHA-256 Hash - default: true
+ * @param {boolean} writeOutputFile Save Results to Workspace FS - default: true
+ * @param {json} metadataConfig Execution Metadata Settings - default: {"environment":"browser-worker","timeoutMs":5000,"retries":3}
+ */
+async function run({
+  testName,
+  sampleBatchSize,
+  themeAccent,
+  outputFormat,
+  enableCryptoDigest,
+  writeOutputFile,
+  metadataConfig
+}) {
+  console.log(\`🚀 [1/6] Initializing Master System Test: "\${testName}"...\`);
+  console.log(\`🎨 Theme Color: \${themeAccent} | Output Format: \${outputFormat} | Batch Size: \${sampleBatchSize}\`);
+  console.log(\`⚙️ Metadata Config:\`, metadataConfig);
+
+  // 1. Test Node.js Core Modules (path, process, util)
+  const path = require('path');
+  const util = require('util');
+
+  console.log(\`📂 [2/6] Node process.cwd(): "\${process.cwd()}" | Platform: \${process.platform} | Version: \${process.version}\`);
+  console.log(\`Path Join Example:\`, path.join('data', 'subdomains.csv'));
+
+  // 2. Test Node.js Virtual fs & File Reading
+  const fs = require('fs');
+  console.log(\`🔍 [3/6] Reading workspace file "data/subdomains.csv" via fs.readFileSync()...\`);
+  const csvText = fs.readFileSync('data/subdomains.csv', 'utf8');
+  const csvLines = csvText.trim().split('\\n');
+  console.log(\`Read \${csvLines.length} lines from subdomains.csv.\`);
+
+  // 3. Test Cross-Script Dependency Import (utils/math.js)
+  console.log(\`🔗 [4/6] Importing local workspace module "../utils/math.js"...\`);
+  const math = await require('../utils/math.js');
+  const sampleNumbers = Array.from({ length: sampleBatchSize }, (_, i) => (i + 1) * 4);
+  const totalSum = math.sum(sampleNumbers);
+  const avgValue = math.average(sampleNumbers);
+  console.log(\`Math Utility -> Sum of \${sampleBatchSize} numbers: \${totalSum} | Average: \${avgValue.toFixed(2)}\`);
+
+  // 4. Test Node.js Crypto & Buffer
+  let sha256Hash = 'N/A';
+  let generatedUuid = 'N/A';
+  if (enableCryptoDigest) {
+    const crypto = require('crypto');
+    sha256Hash = crypto.createHash('sha256').update(csvText).digest('hex');
+    generatedUuid = crypto.randomUUID();
+    console.log(\`🔒 [5/6] SHA-256 Digest of subdomains.csv: \${sha256Hash}\`);
+    console.log(\`Generated UUID: \${generatedUuid}\`);
+  }
+
+  // 5. Test Dynamic NPM Packages (lodash & dayjs)
+  console.log(\`📦 [6/6] Dynamically requiring external NPM packages (lodash & dayjs)...\`);
+  const _ = await require('lodash');
+  const dayjs = await require('dayjs');
+
+  const timestamp = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const formattedTitle = _.startCase(testName);
+  console.log(\`Lodash Title Case: "\${formattedTitle}"\`);
+  console.log(\`Day.js Timestamp: \${timestamp}\`);
+
+  // 6. Test File Writing via fs.writeFileSync (Live UI Sync!)
+  const reportPath = 'full-test-results.txt';
+  if (writeOutputFile) {
+    const reportContent = util.format(
+      "=== MASTER SYSTEM TEST REPORT ===\\nTest Name: %s\\nTimestamp: %s\\nBatch Size: %d\\nSum: %d\\nAvg: %s\\nSHA-256: %s\\nUUID: %s\\nAccent: %s\\nConfig: %j",
+      formattedTitle,
+      timestamp,
+      sampleBatchSize,
+      totalSum,
+      avgValue.toFixed(2),
+      sha256Hash,
+      generatedUuid,
+      themeAccent,
+      metadataConfig
+    );
+    fs.writeFileSync(reportPath, reportContent);
+    console.log(\`✅ Written report to workspace file "\${reportPath}" via fs.writeFileSync()!\`);
+  }
+
+  // 7. Output Payload Generation
+  const records = [
+    { Metric: 'Test Suite Name', Value: formattedTitle },
+    { Metric: 'Execution Time', Value: timestamp },
+    { Metric: 'Batch Size', Value: sampleBatchSize },
+    { Metric: 'Math Sum', Value: totalSum },
+    { Metric: 'Math Average', Value: avgValue.toFixed(2) },
+    { Metric: 'SHA-256 Digest', Value: sha256Hash.slice(0, 16) + '...' },
+    { Metric: 'Generated UUID', Value: generatedUuid },
+    { Metric: 'Report File', Value: reportPath },
+    { Metric: 'Accent Color', Value: themeAccent }
+  ];
+
+  console.table(records);
+
+  if (outputFormat === 'HTMLFrame') {
+    return {
+      __html: \`
+        <div style="font-family: system-ui, sans-serif; padding: 24px; background: #09090b; color: #fafafa; border-radius: 16px; border: 1px solid #27272a; max-width: 520px; margin: 0 auto;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-b: 1px solid #27272a; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: \${themeAccent};">\${formattedTitle}</h2>
+            <span style="background: #10b98122; color: #10b981; border: 1px solid #10b98144; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;">
+              PASSED
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="background: #18181b; padding: 12px; border-radius: 10px;">
+              <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase;">Batch Sum</div>
+              <div style="font-size: 24px; font-weight: 900; color: \${themeAccent};">\${totalSum}</div>
+            </div>
+            <div style="background: #18181b; padding: 12px; border-radius: 10px;">
+              <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase;">Average</div>
+              <div style="font-size: 24px; font-weight: 900; color: #10b981;">\${avgValue.toFixed(1)}</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; font-family: monospace; color: #a1a1aa; background: #121215; padding: 10px; border-radius: 8px;">
+            UUID: \${generatedUuid}<br/>
+            Report: \${reportPath}
+          </div>
+        </div>
+      \`,
+      __title: 'Master Test Summary Frame'
+    };
+  }
+
+  return records;
+}
+`,
+  },
   // node-demo/npm-packages-demo.js
   {
     id: 'file-node-npm-demo',
@@ -361,11 +506,11 @@ export const INITIAL_WORKSPACES: Workspace[] = [
     name: 'Main Multi-Folder Workspace',
     description: 'Nested directory layout with Node.js fs data file processing (.csv, .json, images)',
     nodes: INITIAL_DEMO_NODES,
-    activeFileId: 'file-node-npm-demo'
+    activeFileId: 'file-node-full-test'
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_v5_npm';
+const STORAGE_KEY = 'js_workspace_v6_fulltest';
 
 export class WorkspaceStore {
   public static loadWorkspaces(): Workspace[] {
