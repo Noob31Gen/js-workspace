@@ -127,9 +127,17 @@ export function App() {
     setIsRunning(true);
     currentRunFilesRef.current = [];
 
+    // Ensure all options have their default or user-entered values filled
+    const effectiveArgs: Record<string, any> = {};
+    parsedMeta.options.forEach(opt => {
+      effectiveArgs[opt.key] = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
+    });
+    // Also include any extra optionValues keys
+    Object.assign(effectiveArgs, optionValues);
+
     runner.execute({
       code: activeCode,
-      args: optionValues,
+      args: effectiveArgs,
       nodes: activeNodes,
       currentFilePath: activeFile?.path || 'main.js',
       onLog: (msg) => setLogs(prev => [...prev, msg]),
