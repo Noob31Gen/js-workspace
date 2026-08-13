@@ -129,6 +129,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         onDuplicateActiveFile={onDuplicateNode}
         extensionActive={extensionActive}
         isOnline={isOnline}
+        inputPrompt={inputPrompt}
       />
 
       {/* 2. Mobile Main Canvas Content Area */}
@@ -198,6 +199,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         logCount={logs.length}
         paramCount={parsedOptions.length}
         hasFrame={!!frame}
+        inputPrompt={inputPrompt}
       />
 
       {/* 5. Mobile File Explorer Bottom Sheet Drawer */}

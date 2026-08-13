@@ -9,6 +9,7 @@ Full Disclosure: This was made using AI assistance.
 ### Features
 
 - Automatic parameter and args detection
+- Supports runtime input
 - Console view
 - Supports files and attachments (fs/path)
 - Extension bridge for request fetching 

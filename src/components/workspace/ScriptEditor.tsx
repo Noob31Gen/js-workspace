@@ -11,6 +11,7 @@ interface ScriptEditorProps {
   onStop: () => void;
   isRunning: boolean;
   onSaveScript?: (code: string) => void;
+  inputPrompt?: string | null;
 }
 
 export interface SyntaxErrorDetails {
@@ -25,7 +26,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   onRun,
   onStop,
   isRunning,
-  onSaveScript
+  onSaveScript,
+  inputPrompt
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
@@ -251,10 +253,10 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     >
       {/* Editor Sub-Header Bar */}
       <div className="relative z-30 flex items-center justify-between border-b border-border/60 bg-muted/40 px-2.5 sm:px-3 py-1.5 shrink-0 select-none gap-2 min-w-0 max-w-full overflow-visible">
-        {/* Left Side: Title & Syntax Indicator */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 truncate">
+        {/* Left Side: Title & Syntax / Alert Indicators */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Code2 className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="text-xs font-bold font-mono tracking-tight text-foreground truncate shrink-0">
+          <span className="text-xs font-bold font-mono tracking-tight text-foreground whitespace-nowrap shrink-0">
             Script Editor
           </span>
 
@@ -272,115 +274,139 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
               <span className="hidden sm:inline">Syntax Valid</span>
             </span>
           )}
+
+          {inputPrompt && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] sm:text-xs font-mono font-bold text-amber-300 border border-amber-500/40 animate-pulse whitespace-nowrap shrink-0"
+              title={`Script requires console input: "${inputPrompt.trim()}"`}
+            >
+              <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
+              <span className="hidden md:inline">Console Input Needed</span>
+              <span className="md:hidden">Input</span>
+            </span>
+          )}
         </div>
 
-        {/* Right Side: Desktop Large Screen Actions */}
-        <div className="hidden xl:flex items-center gap-1.5 shrink-0">
-          {/* Enlarge / Minimize Toggle Button */}
-          <button
-            onClick={() => setIsMaximized(!isMaximized)}
-            className="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer whitespace-nowrap shadow-xs"
-            title={isMaximized ? 'Minimize Editor (Esc)' : 'Enlarge Editor Window'}
-          >
-            {isMaximized ? (
-              <>
-                <Minimize2 className="h-3.5 w-3.5 shrink-0" />
-                <span>Minimize</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-                <span>Enlarge</span>
-              </>
-            )}
-          </button>
-
-          {/* Manual Save Button */}
-          <button
-            onClick={handleManualSave}
-            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
-              justSaved
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-muted'
-            }`}
-            title="Manual Save Script (Ctrl+S)"
-          >
-            {justSaved ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span>Saved!</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-3.5 w-3.5 shrink-0" />
-                <span>Save</span>
-              </>
-            )}
-          </button>
-
-          {/* Undo / Redo Buttons */}
-          <div className="inline-flex items-center border border-border/60 rounded-md overflow-hidden bg-background">
+        {/* Right Side: Desktop Large Screen Actions (Collapsed when alert appears or screen < 1280px) */}
+        {!inputPrompt && (
+          <div className="hidden xl:flex items-center gap-1.5 shrink-0">
+            {/* Enlarge / Minimize Toggle Button */}
             <button
-              onClick={handleUndo}
-              disabled={historyIndex <= 0}
-              className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
-              title="Undo (Ctrl+Z)"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+              title={isMaximized ? 'Minimize Editor (Esc)' : 'Enlarge Editor Window'}
             >
-              <Undo2 className="h-3.5 w-3.5" />
+              {isMaximized ? (
+                <>
+                  <Minimize2 className="h-3.5 w-3.5 shrink-0" />
+                  <span>Minimize</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-3.5 w-3.5 shrink-0" />
+                  <span>Enlarge</span>
+                </>
+              )}
             </button>
-            <div className="w-[1px] h-3.5 bg-border/60" />
+
+            {/* Manual Save Button */}
             <button
-              onClick={handleRedo}
-              disabled={historyIndex >= history.length - 1}
-              className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
-              title="Redo (Ctrl+Y)"
+              onClick={handleManualSave}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all cursor-pointer border whitespace-nowrap ${
+                justSaved
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-muted'
+              }`}
+              title="Manual Save Script (Ctrl+S)"
             >
-              <Redo2 className="h-3.5 w-3.5" />
+              {justSaved ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <span>Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-3.5 w-3.5 shrink-0" />
+                  <span>Save</span>
+                </>
+              )}
             </button>
+
+            {/* Undo / Redo Buttons */}
+            <div className="inline-flex items-center border border-border/60 rounded-md overflow-hidden bg-background">
+              <button
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+              </button>
+              <div className="w-[1px] h-3.5 bg-border/60" />
+              <button
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                className="p-1 px-2 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-all cursor-pointer"
+                title="Redo (Ctrl+Y)"
+              >
+                <Redo2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Export Button */}
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+              title="Export script to file"
+            >
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              <span>Export</span>
+            </button>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+              title="Copy script to clipboard"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+
+            {/* Run / Stop Button */}
+            {!isRunning ? (
+              <button
+                onClick={onRun}
+                className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Play className="h-3.5 w-3.5 fill-current shrink-0" />
+                <span>Run</span>
+              </button>
+            ) : (
+              <button
+                onClick={onStop}
+                className="inline-flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
+              >
+                <Square className="h-3.5 w-3.5 fill-current shrink-0" />
+                <span>Stop</span>
+              </button>
+            )}
           </div>
+        )}
 
-          {/* Export Button */}
-          <button
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
-            title="Export script to file"
-          >
-            <Download className="h-3.5 w-3.5 shrink-0" />
-            <span>Export</span>
-          </button>
-
-          {/* Copy Button */}
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
-            title="Copy script to clipboard"
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
-
-          {/* Run / Stop Button */}
-          {!isRunning ? (
-            <button
-              onClick={onRun}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <Play className="h-3.5 w-3.5 fill-current shrink-0" />
-              <span>Run</span>
-            </button>
-          ) : (
+        {/* Right Side: Compact 3-Dot Dropdown Menu (Always visible when input alert appears, or < 1280px) */}
+        <div className={`items-center gap-1.5 shrink-0 ml-auto ${inputPrompt ? 'flex' : 'flex xl:hidden'}`}>
+          {inputPrompt && isRunning && (
             <button
               onClick={onStop}
-              className="inline-flex items-center gap-1 rounded-md bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all animate-pulse cursor-pointer whitespace-nowrap"
+              title="Stop running script execution"
             >
               <Square className="h-3.5 w-3.5 fill-current shrink-0" />
               <span>Stop</span>
             </button>
           )}
-        </div>
 
-        {/* Right Side: Compact 3-Dot Dropdown Menu (< 1280px) */}
-        <div className="flex xl:hidden items-center gap-1 shrink-0 ml-auto">
           <div className="relative">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}

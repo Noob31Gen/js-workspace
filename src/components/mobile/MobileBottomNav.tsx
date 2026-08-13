@@ -9,6 +9,7 @@ interface MobileBottomNavProps {
   logCount: number;
   paramCount: number;
   hasFrame: boolean;
+  inputPrompt?: string | null;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -16,13 +17,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onChangeTab,
   logCount,
   paramCount,
-  hasFrame
+  hasFrame,
+  inputPrompt
 }) => {
   const tabs = [
-    { id: 'editor' as MobileTab, label: 'Editor', icon: Code2, badge: null },
-    { id: 'params' as MobileTab, label: 'Params', icon: Sliders, badge: paramCount > 0 ? paramCount : null },
-    { id: 'console' as MobileTab, label: 'Console', icon: Terminal, badge: logCount > 0 ? logCount : null },
-    { id: 'preview' as MobileTab, label: 'Preview', icon: Layout, isPing: hasFrame },
+    { id: 'editor' as MobileTab, label: 'Editor', icon: Code2, badge: null, isWarning: false },
+    { id: 'params' as MobileTab, label: 'Params', icon: Sliders, badge: paramCount > 0 ? paramCount : null, isWarning: false },
+    { id: 'console' as MobileTab, label: 'Console', icon: Terminal, badge: logCount > 0 ? logCount : null, isWarning: !!inputPrompt },
+    { id: 'preview' as MobileTab, label: 'Preview', icon: Layout, isPing: hasFrame, isWarning: false },
   ];
 
   return (
@@ -49,7 +51,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 </span>
               )}
 
-              {tab.isPing && (
+              {tab.isWarning && (
+                <span className="absolute -top-1 -right-2.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 border border-amber-300" />
+                </span>
+              )}
+
+              {tab.isPing && !tab.isWarning && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />

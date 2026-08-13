@@ -722,6 +722,7 @@ export function App() {
                     onStop={handleStopScript}
                     isRunning={isRunning}
                     onSaveScript={handleUpdateActiveCode}
+                    inputPrompt={inputPrompt}
                   />
                 )
               ) : (

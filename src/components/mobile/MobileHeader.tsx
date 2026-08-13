@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2 } from 'lucide-react';
+import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2, AlertTriangle } from 'lucide-react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 
 interface MobileHeaderProps {
@@ -19,6 +19,7 @@ interface MobileHeaderProps {
   onDuplicateActiveFile?: (fileId: string) => void;
   extensionActive: boolean;
   isOnline: boolean;
+  inputPrompt?: string | null;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -37,31 +38,41 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onDeleteActiveFile,
   onDuplicateActiveFile,
   extensionActive,
-  isOnline
+  isOnline,
+  inputPrompt
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
     <header className="h-14 shrink-0 border-b border-border/60 bg-background/90 backdrop-blur-xl px-3 flex items-center justify-between z-30 select-none">
       {/* Left: Active File Picker Trigger Pill */}
-      <button
-        type="button"
-        onClick={onOpenDrawer}
-        className="flex items-center gap-2 max-w-[48%] flex-1 text-left p-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted transition-all cursor-pointer shadow-xs min-w-0"
-        aria-label="Open File Explorer Drawer"
-      >
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-          <FileCode className="h-4 w-4" />
-        </div>
-        <div className="truncate min-w-0 flex-1">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-            {workspaceName}
+      <div className="flex items-center gap-1.5 max-w-[55%] min-w-0">
+        <button
+          type="button"
+          onClick={onOpenDrawer}
+          className="flex items-center gap-2 flex-1 text-left p-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted transition-all cursor-pointer shadow-xs min-w-0"
+          aria-label="Open File Explorer Drawer"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+            <FileCode className="h-4 w-4" />
           </div>
-          <div className="text-xs font-bold text-foreground truncate">
-            {activeFile?.name || 'Select File...'}
+          <div className="truncate min-w-0 flex-1">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+              {workspaceName}
+            </div>
+            <div className="text-xs font-bold text-foreground truncate">
+              {activeFile?.name || 'Select File...'}
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+
+        {inputPrompt && (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 border border-amber-500/40 px-1.5 py-1 text-[10px] font-mono font-bold text-amber-300 animate-pulse shrink-0">
+            <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
+            <span className="hidden xs:inline">Input</span>
+          </span>
+        )}
+      </div>
 
       {/* Right: Quick Action Buttons & Menu */}
       <div className="flex items-center gap-1.5 shrink-0">

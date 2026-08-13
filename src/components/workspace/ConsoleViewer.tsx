@@ -27,6 +27,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'logs' | 'result' | 'raw'>('logs');
   const [copied, setCopied] = useState(false);
+  const [copiedLogs, setCopiedLogs] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
@@ -35,6 +36,19 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyConsoleLogs = () => {
+    const formatted = logs.map(l => {
+      const timestamp = l.timestamp ? `[${l.timestamp}] ` : '';
+      const typeStr = `[${(l.type || 'log').toUpperCase()}] `;
+      const content = (l.data || []).map(d => typeof d === 'object' ? JSON.stringify(d, null, 2) : String(d)).join(' ');
+      return `${timestamp}${typeStr}${content}`;
+    }).join('\n');
+
+    navigator.clipboard.writeText(formatted || 'Console is empty.');
+    setCopiedLogs(true);
+    setTimeout(() => setCopiedLogs(false), 2000);
   };
 
   const handleInputSubmit = (e?: React.FormEvent) => {
@@ -97,6 +111,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             </span>
           )}
 
+          <button
+            onClick={handleCopyConsoleLogs}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap cursor-pointer"
+            title="Copy entire console log history to clipboard"
+          >
+            {copiedLogs ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
+            <span>{copiedLogs ? 'Copied Console' : 'Copy Logs'}</span>
+          </button>
+
           {outputResult !== null && (
             <button
               onClick={handleCopyResult}
@@ -130,7 +153,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             </button>
 
             {showMobileMenu && (
-              <div className="absolute right-0 top-8 z-50 w-48 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 top-8 z-50 w-52 rounded-xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 text-xs font-sans animate-in fade-in zoom-in duration-150">
                 {onOpenResultWindow && (
                   <button
                     onClick={() => { onOpenResultWindow(); setShowMobileMenu(false); }}
@@ -141,6 +164,15 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                     <span>Open Full Window</span>
                   </button>
                 )}
+
+                <button
+                  onClick={() => { handleCopyConsoleLogs(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2 text-foreground font-medium cursor-pointer"
+                  title="Copy entire console log history to clipboard"
+                >
+                  {copiedLogs ? <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0 text-emerald-400" />}
+                  <span>{copiedLogs ? 'Copied Console' : 'Copy All Console Logs'}</span>
+                </button>
 
                 {outputResult !== null && (
                   <button
@@ -237,35 +269,40 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
         )}
       </div>
 
-      {/* CLI Runtime Input Bar */}
+      {/* CLI Runtime Input Bar (Mobile Compatible & Small Alert Dot) */}
       {(onSendInput || isRunning || inputPrompt) && (
-        <form onSubmit={handleInputSubmit} className={`border-t border-border/60 p-2 flex items-center gap-2 shrink-0 select-none transition-all ${
-          inputPrompt ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30' : 'bg-muted/30'
+        <form onSubmit={handleInputSubmit} className={`border-t border-border/60 p-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 select-none transition-all ${
+          inputPrompt ? 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/30' : 'bg-muted/30'
         }`}>
-          <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0">
-            <span className={`h-2 w-2 rounded-full ${inputPrompt ? 'bg-emerald-400 animate-ping' : 'bg-muted-foreground/40'}`} />
-            <span className={inputPrompt ? 'text-primary font-bold' : 'text-muted-foreground'}>
+          <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0 min-w-0">
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${inputPrompt ? 'bg-amber-400 opacity-75' : 'hidden'}`} />
+              <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${inputPrompt ? 'bg-amber-400' : 'bg-muted-foreground/40'}`} />
+            </span>
+            <span className={`truncate text-[11px] sm:text-xs ${inputPrompt ? 'text-amber-400 font-bold' : 'text-muted-foreground'}`}>
               {inputPrompt ? inputPrompt : '>'}
             </span>
           </div>
 
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={inputPrompt ? `Script paused expecting input for: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
-            className="flex-1 bg-background border border-border/80 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50 min-w-0"
-            autoFocus={!!inputPrompt}
-          />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={inputPrompt ? `Script paused: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
+              className="flex-1 bg-background border border-border/80 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50 min-w-0 h-8"
+              autoFocus={!!inputPrompt}
+            />
 
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0"
-            title="Submit user input and resume script execution"
-          >
-            <span>Continue</span>
-            <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
-          </button>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0 h-8 active:scale-95"
+              title="Submit user input and resume script execution"
+            >
+              <span>Continue</span>
+              <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
+            </button>
+          </div>
         </form>
       )}
     </div>

@@ -155,6 +155,19 @@ export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProp
                 <Terminal className="h-4 w-4 text-emerald-400" />
                 <span>Live Console Stream ({logs.length} messages)</span>
               </div>
+
+              {logs.length > 0 && (
+                <button
+                  onClick={() => {
+                    const formatted = logs.map(l => `[${l.timestamp || ''}] [${(l.type || 'log').toUpperCase()}] ${(l.data || []).map(d => typeof d === 'object' ? JSON.stringify(d) : String(d)).join(' ')}`).join('\n');
+                    navigator.clipboard.writeText(formatted);
+                  }}
+                  className="px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-[11px] font-mono text-zinc-300 hover:text-white transition-all cursor-pointer"
+                  title="Copy console logs to clipboard"
+                >
+                  Copy Logs
+                </button>
+              )}
             </div>
 
             {logs.length > 0 ? (
@@ -185,35 +198,40 @@ export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProp
               </div>
             )}
 
-            {/* CLI Runtime Input Bar */}
+            {/* CLI Runtime Input Bar (Mobile Compatible & Small Alert Dot) */}
             {(onSendInput || isRunning || inputPrompt) && (
-              <form onSubmit={handleInputSubmit} className={`mt-auto border border-border/60 rounded-xl p-2 flex items-center gap-2 shrink-0 transition-all ${
-                inputPrompt ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30' : 'bg-zinc-900/90'
+              <form onSubmit={handleInputSubmit} className={`mt-auto border border-border/60 rounded-xl p-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 transition-all ${
+                inputPrompt ? 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/30' : 'bg-zinc-900/90'
               }`}>
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0 pl-1">
-                  <span className={`h-2 w-2 rounded-full ${inputPrompt ? 'bg-emerald-400 animate-ping' : 'bg-muted-foreground/40'}`} />
-                  <span className={inputPrompt ? 'text-primary font-bold' : 'text-zinc-400'}>
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0 min-w-0 pl-1">
+                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${inputPrompt ? 'bg-amber-400 opacity-75' : 'hidden'}`} />
+                    <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${inputPrompt ? 'bg-amber-400' : 'bg-zinc-500'}`} />
+                  </span>
+                  <span className={`truncate text-[11px] sm:text-xs ${inputPrompt ? 'text-amber-400 font-bold' : 'text-zinc-400'}`}>
                     {inputPrompt ? inputPrompt : '>'}
                   </span>
                 </div>
 
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={inputPrompt ? `Script paused expecting input for: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-zinc-200 placeholder:text-zinc-600 min-w-0"
-                  autoFocus={!!inputPrompt}
-                />
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={inputPrompt ? `Script paused: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-zinc-200 placeholder:text-zinc-600 min-w-0 h-8"
+                    autoFocus={!!inputPrompt}
+                  />
 
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0"
-                  title="Submit user input and resume script execution"
-                >
-                  <span>Continue</span>
-                  <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
-                </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0 h-8 active:scale-95"
+                    title="Submit user input and resume script execution"
+                  >
+                    <span>Continue</span>
+                    <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
+                  </button>
+                </div>
               </form>
             )}
           </div>
