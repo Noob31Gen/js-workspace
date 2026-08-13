@@ -157,13 +157,25 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
+  // Blacklist standard JavaScript Array/Object/String prototype properties
+  const JS_BUILTIN_PROPERTIES = new Set([
+    'slice', 'length', 'includes', 'indexOf', 'lastIndexOf', 'forEach', 'map',
+    'filter', 'reduce', 'reduceRight', 'find', 'findIndex', 'findLast', 'findLastIndex',
+    'push', 'pop', 'shift', 'unshift', 'join', 'concat', 'toString', 'toLocaleString',
+    'split', 'trim', 'trimStart', 'trimEnd', 'substring', 'substr', 'match', 'matchAll',
+    'replace', 'replaceAll', 'at', 'charAt', 'charCodeAt', 'codePointAt',
+    'values', 'keys', 'entries', 'hasOwnProperty', 'constructor', 'prototype',
+    'name', 'caller', 'callee', 'arguments', 'apply', 'call', 'bind', 'flat', 'flatMap',
+    'sort', 'reverse', 'fill', 'copyWithin', 'some', 'every', 'exit'
+  ]);
+
   // 5. Extract Direct Property Usage in Code Body: e.g. options.file, options.dryRun, options['batch-size']
   const propAccessRegex = /(?:options|opts|args|argv|params|config|input)\.([a-zA-Z0-9_$]+)|(?:options|opts|args|argv|params|config|input)\[['"]([a-zA-Z0-9_$-]+)['"]\]/gi;
   let propMatch;
 
   while ((propMatch = propAccessRegex.exec(code)) !== null) {
     const rawProp = propMatch[1] || propMatch[2];
-    if (!rawProp) continue;
+    if (!rawProp || JS_BUILTIN_PROPERTIES.has(rawProp)) continue;
 
     const camelKey = rawProp.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
 
@@ -196,17 +208,19 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 6. Extract CLI process.argv Indexing: e.g. const targetUrl = process.argv[2] || 'https://example.com'
-  const processArgvIndexRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:Number\()?\s*process\.argv\[\s*(\d+)\s*\]\s*\)?(?:\s*\|\|\s*([^;\n]+))?/gi;
+  // 6. Extract Positional CLI Arguments: e.g. const num1 = Number(args[0]), const target = process.argv[2] || 'val'
+  const processArgvIndexRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(Number\()?\s*(?:process\.argv|args|argv)\[\s*(\d+)\s*\]\s*\)?(?:\s*\|\|\s*([^;\n]+))?/gi;
   let argvIndexMatch;
 
   while ((argvIndexMatch = processArgvIndexRegex.exec(code)) !== null) {
     const key = argvIndexMatch[1].trim();
-    const defaultValRaw = argvIndexMatch[3] ? argvIndexMatch[3].trim() : undefined;
+    const isNumberWrapper = Boolean(argvIndexMatch[2]);
+    const index = argvIndexMatch[3];
+    const defaultValRaw = argvIndexMatch[4] ? argvIndexMatch[4].trim() : undefined;
 
     if (key && !jsdocKeys.has(key)) {
-      let inferredType: OptionDescriptor['type'] = 'string';
-      let inferredDefault: any = '';
+      let inferredType: OptionDescriptor['type'] = isNumberWrapper ? 'number' : 'string';
+      let inferredDefault: any = isNumberWrapper ? 0 : '';
 
       if (defaultValRaw) {
         if (defaultValRaw === 'true' || defaultValRaw === 'false') {
@@ -218,6 +232,9 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
         } else {
           inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
         }
+      } else if (/(num|count|number|amount|sum|total|price|age|year|month|day|id|index|limit|offset)$/i.test(key)) {
+        inferredType = 'number';
+        inferredDefault = 0;
       }
 
       const formattedLabel = key
@@ -230,7 +247,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
         type: inferredType,
         default: inferredDefault,
         source: 'autodetected',
-        description: `Auto-detected CLI arg from process.argv[${argvIndexMatch[2]}]`
+        description: `Auto-detected CLI argument from positional index [${index}]`
       });
       jsdocKeys.add(key);
     }
