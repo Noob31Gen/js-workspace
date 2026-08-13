@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { WorkspaceNode } from '@/lib/workspace-store';
+import { identifyCoreFiles } from '@/lib/entrypoint-analyzer';
 import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, FilePlus, FolderPlus, Trash2, Edit3, Copy, FolderInput, MoreVertical, Eye } from 'lucide-react';
 
 interface FolderTreeProps {
@@ -37,6 +38,9 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   const [newItemName, setNewItemName] = useState('');
   const [movingNodeId, setMovingNodeId] = useState<string | null>(null);
   const [activeMenuNodeId, setActiveMenuNodeId] = useState<string | null>(null);
+
+  // Analyze workspace nodes to identify core parent entrypoint JS/TS files
+  const coreAnalysis = useMemo(() => identifyCoreFiles(nodes), [nodes]);
 
   const getChildren = (parentId: string | null) => {
     return (nodes || [])
@@ -118,6 +122,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
           const isEditing = editingNodeId === node.id;
           const isMoving = movingNodeId === node.id;
           const isExpanded = node.expanded ?? true;
+          const isCore = !isFolder && coreAnalysis.coreNodeIds.has(node.id);
 
           const availableFolders = (nodes || []).filter(n => n.type === 'folder' && n.id !== node.id);
 
@@ -131,11 +136,13 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                     onSelectFile(node.id);
                   }
                 }}
-                title={node.path || node.name}
+                title={isCore ? `Identified Core Entrypoint Script (Main Runner): ${node.path || node.name}` : (node.path || node.name)}
                 aria-label={`${isFolder ? 'Folder' : 'File'}: ${node.name}`}
                 className={`group/row flex items-center justify-between gap-1.5 px-2 py-1 rounded-md text-xs font-mono transition-all cursor-pointer select-none relative ${
                   isSelected
                     ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    : isCore
+                    ? 'text-emerald-400 font-semibold hover:bg-emerald-500/10'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
@@ -154,7 +161,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                       )}
                     </>
                   ) : (
-                    <FileCode className={`h-3.5 w-3.5 shrink-0 ${isSelected ? 'text-primary-foreground' : 'text-primary'}`} aria-hidden="true" />
+                    <FileCode className={`h-3.5 w-3.5 shrink-0 ${isSelected ? 'text-primary-foreground' : isCore ? 'text-emerald-400' : 'text-primary'}`} aria-hidden="true" />
                   )}
 
                   {isEditing ? (
@@ -174,7 +181,23 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                       aria-label="Rename item"
                     />
                   ) : (
-                    <span className="truncate min-w-0" title={node.name}>{node.name}</span>
+                    <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                      <span className={`truncate min-w-0 ${isCore && !isSelected ? 'text-emerald-400 font-bold' : ''}`} title={node.name}>
+                        {node.name}
+                      </span>
+                      {isCore && (
+                        <span
+                          className={`px-1 py-0.2 text-[8px] font-mono font-extrabold rounded border uppercase shrink-0 ${
+                            isSelected
+                              ? 'bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          }`}
+                          title="Identified Core Entrypoint Script (Main Runner)"
+                        >
+                          CORE
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 
