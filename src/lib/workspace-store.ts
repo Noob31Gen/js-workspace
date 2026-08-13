@@ -692,7 +692,103 @@ async function run({ frameType }) {
 `
   },
 
-  // 7. Folder: data
+  // 7. Folder: 07-interactive-cli-inputs
+  {
+    id: 'folder-07-cli-inputs',
+    name: '07-interactive-cli-inputs',
+    type: 'folder',
+    path: '07-interactive-cli-inputs',
+    parentId: null,
+    expanded: true
+  },
+  // 07-interactive-cli-inputs/cli-readline-interactive-demo.js
+  {
+    id: 'file-07-readline-demo',
+    name: 'cli-readline-interactive-demo.js',
+    type: 'file',
+    path: '07-interactive-cli-inputs/cli-readline-interactive-demo.js',
+    parentId: 'folder-07-cli-inputs',
+    fileKind: 'code',
+    category: 'Interactive CLI',
+    code: `/**
+ * @name Interactive CLI Readline Prompt Demo
+ * @description Uses Node.js require('readline') to ask interactive questions at runtime! The script pauses and displays a glowing prompt in the Console until you type input and click Continue.
+ * 
+ * @param {string} defaultName Default User Name - default: "Commander"
+ */
+async function run({ defaultName }) {
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+  console.log("🎮 Starting Interactive CLI Readline Flow...");
+  console.log("-----------------------------------------------");
+
+  // Question 1
+  const name = await rl.question(\`Enter your name [default: \${defaultName}]: \`);
+  const userName = name.trim() || defaultName;
+  console.log(\`✅ Hello, \${userName}!\`);
+
+  // Question 2
+  const role = await rl.question("Enter your primary role (e.g. Developer, Analyst, Admin): ");
+  const userRole = role.trim() || 'Developer';
+  console.log(\`📋 Role set to: "\${userRole}"\`);
+
+  // Question 3
+  const targetHost = await rl.question("Enter target server hostname to audit: ");
+  const host = targetHost.trim() || 'api.cloud.local';
+  console.log(\`🌐 Auditing target server: \${host}...\`);
+
+  rl.close();
+
+  const summary = [
+    { Step: 1, Field: 'User Name', Input: userName },
+    { Step: 2, Field: 'Role', Input: userRole },
+    { Step: 3, Field: 'Target Host', Input: host }
+  ];
+
+  console.table(summary);
+  console.log("🎉 Interactive CLI session completed successfully!");
+
+  return { userName, role: userRole, targetHost: host };
+}
+`
+  },
+  // 07-interactive-cli-inputs/cli-prompt-interactive-demo.js
+  {
+    id: 'file-07-prompt-demo',
+    name: 'cli-prompt-interactive-demo.js',
+    type: 'file',
+    path: '07-interactive-cli-inputs/cli-prompt-interactive-demo.js',
+    parentId: 'folder-07-cli-inputs',
+    fileKind: 'code',
+    category: 'Interactive CLI',
+    code: `/**
+ * @name Quick Prompt() Runtime Input Demo
+ * @description Demonstrates standard prompt() runtime input inside worker scripts! Pauses execution, prompts for values via the Console CLI Input Bar, and resumes execution.
+ */
+async function run() {
+  console.log("💬 Quick prompt() Runtime Input Test");
+  console.log("-----------------------------------------");
+
+  const favoriteSong = await prompt("What is your favorite song title? ");
+  console.log(\`🎵 Favorite Song: "\${favoriteSong}"\`);
+
+  const artist = await prompt("Who is the artist? ");
+  console.log(\`🎤 Artist: "\${artist}"\`);
+
+  const output = {
+    favoriteSong: favoriteSong || "Blinding Lights",
+    artist: artist || "The Weeknd",
+    timestamp: new Date().toISOString()
+  };
+
+  console.log("Result Object:", output);
+  return output;
+}
+`
+  },
+
+  // 8. Folder: data
   {
     id: 'folder-data',
     name: 'data',
@@ -758,13 +854,13 @@ export const INITIAL_WORKSPACES: Workspace[] = [
   {
     id: DEFAULT_WORKSPACE_ID,
     name: 'Master Feature & Parameter Test Suite',
-    description: 'Comprehensive workspace testing all JSDoc & auto parameters, Node.js modules, Virtual FS, dynamic NPM packages, cross-script imports, and visual frames',
+    description: 'Comprehensive workspace testing all JSDoc & auto parameters, Node.js modules, Virtual FS, dynamic NPM packages, cross-script imports, visual frames, and interactive CLI input',
     nodes: INITIAL_DEMO_NODES,
     activeFileId: 'file-01-jsdoc-all'
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_v8_master_suite';
+const STORAGE_KEY = 'js_workspace_v9_master_suite';
 const ACTIVE_STATE_KEY = 'js_workspace_active_state_v2';
 
 export interface ActiveWorkspaceState {
