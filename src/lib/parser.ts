@@ -51,71 +51,14 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
   const jsdocKeys = new Set<string>();
 
-  // 2. Extract @param JSDoc annotations
-  // Format: @param {type} key Label - default: "val"
-  const paramRegex = /@param\s+\{([^}]+)\}\s+([a-zA-Z0-9_$]+)\s+([^-]+)(?:\s*-\s*default:\s*(.+))?/gi;
-  let match;
-
-  while ((match = paramRegex.exec(code)) !== null) {
-    const rawType = match[1].trim().toLowerCase();
-    const key = match[2].trim();
-    const label = match[3].trim();
-    const rawDefault = match[4] ? match[4].trim() : undefined;
-
-    jsdocKeys.add(key);
-
-    let type: OptionDescriptor['type'] = 'string';
-    let optionsList: string[] | undefined = undefined;
-    let minVal: number | undefined;
-    let maxVal: number | undefined;
-    let stepVal: number | undefined;
-
-    if (rawType.startsWith('select:')) {
-      type = 'select';
-      optionsList = rawType.replace('select:', '').split('|').map(s => s.trim());
-    } else if (rawType.startsWith('range:')) {
-      type = 'range';
-      const parts = rawType.replace('range:', '').split(':').map(Number);
-      minVal = parts[0] ?? 0;
-      maxVal = parts[1] ?? 100;
-      stepVal = parts[2] ?? 1;
-    } else if (rawType === 'number') {
-      type = 'number';
-    } else if (rawType === 'boolean') {
-      type = 'boolean';
-    } else if (rawType === 'text') {
-      type = 'text';
-    } else if (rawType === 'json') {
-      type = 'json';
-    } else if (rawType === 'color') {
-      type = 'color';
+  // 2. Extract @param JSDoc annotations safely line-by-line
+  const jsdocLines = code.match(/@param\s+[^\r\n]+/gi) || [];
+  for (const rawLine of jsdocLines) {
+    const parsed = parseParamLine(rawLine);
+    if (parsed && !jsdocKeys.has(parsed.key)) {
+      jsdocKeys.add(parsed.key);
+      result.options.push(parsed);
     }
-
-    let defaultValue: any = '';
-    if (type === 'number' || type === 'range') {
-      defaultValue = rawDefault !== undefined ? Number(rawDefault) : (minVal ?? 0);
-    } else if (type === 'boolean') {
-      defaultValue = rawDefault === 'true';
-    } else if (type === 'select') {
-      const cleanedDefault = rawDefault ? rawDefault.replace(/^["']|["']$/g, '') : '';
-      defaultValue = cleanedDefault || (optionsList && optionsList[0]) || '';
-    } else if (type === 'json') {
-      defaultValue = rawDefault ? rawDefault : '{}';
-    } else {
-      defaultValue = rawDefault ? rawDefault.replace(/^["']|["']$/g, '') : '';
-    }
-
-    result.options.push({
-      key,
-      label,
-      type,
-      default: defaultValue,
-      options: optionsList,
-      min: minVal,
-      max: maxVal,
-      step: stepVal,
-      source: 'jsdoc'
-    });
   }
 
   // 3. Extract Destructured Function Parameters: e.g. function main({ file, dryRun = false })
@@ -253,5 +196,225 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
+  // 6. Extract CLI process.argv Indexing: e.g. const targetUrl = process.argv[2] || 'https://example.com'
+  const processArgvIndexRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:Number\()?\s*process\.argv\[\s*(\d+)\s*\]\s*\)?(?:\s*\|\|\s*([^;\n]+))?/gi;
+  let argvIndexMatch;
+
+  while ((argvIndexMatch = processArgvIndexRegex.exec(code)) !== null) {
+    const key = argvIndexMatch[1].trim();
+    const defaultValRaw = argvIndexMatch[3] ? argvIndexMatch[3].trim() : undefined;
+
+    if (key && !jsdocKeys.has(key)) {
+      let inferredType: OptionDescriptor['type'] = 'string';
+      let inferredDefault: any = '';
+
+      if (defaultValRaw) {
+        if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+          inferredType = 'boolean';
+          inferredDefault = defaultValRaw === 'true';
+        } else if (!isNaN(Number(defaultValRaw))) {
+          inferredType = 'number';
+          inferredDefault = Number(defaultValRaw);
+        } else {
+          inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+        }
+      }
+
+      const formattedLabel = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key,
+        label: formattedLabel,
+        type: inferredType,
+        default: inferredDefault,
+        source: 'autodetected',
+        description: `Auto-detected CLI arg from process.argv[${argvIndexMatch[2]}]`
+      });
+      jsdocKeys.add(key);
+    }
+  }
+
+  // 7. Extract CLI process.argv.includes Flags: e.g. const isVerbose = process.argv.includes('--verbose')
+  const processArgvIncludesRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*process\.argv\.includes\(['"]--?([a-zA-Z0-9_$-]+)['"]\)/gi;
+  let argvIncMatch;
+
+  while ((argvIncMatch = processArgvIncludesRegex.exec(code)) !== null) {
+    const varName = argvIncMatch[1].trim();
+    const flagName = argvIncMatch[2].trim();
+    const camelKey = flagName.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+
+    const key = varName || camelKey;
+    if (key && !jsdocKeys.has(key)) {
+      const formattedLabel = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key,
+        label: formattedLabel,
+        type: 'boolean',
+        default: false,
+        source: 'autodetected',
+        description: `Auto-detected CLI boolean flag from process.argv.includes('--${flagName}')`
+      });
+      jsdocKeys.add(key);
+    }
+  }
+
+  // 8. Extract CLI process.env Variables: e.g. const apiKey = process.env.API_KEY || 'default'
+  const processEnvRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*process\.env\.([a-zA-Z0-9_$]+)(?:\s*\|\|\s*([^;\n]+))?/gi;
+  let envMatch;
+
+  while ((envMatch = processEnvRegex.exec(code)) !== null) {
+    const key = envMatch[1].trim();
+    const envVarName = envMatch[2].trim();
+    const defaultValRaw = envMatch[3] ? envMatch[3].trim() : undefined;
+
+    if (key && !jsdocKeys.has(key)) {
+      let inferredType: OptionDescriptor['type'] = 'string';
+      let inferredDefault: any = '';
+
+      if (defaultValRaw) {
+        if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+          inferredType = 'boolean';
+          inferredDefault = defaultValRaw === 'true';
+        } else if (!isNaN(Number(defaultValRaw))) {
+          inferredType = 'number';
+          inferredDefault = Number(defaultValRaw);
+        } else {
+          inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+        }
+      }
+
+      const formattedLabel = key
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key,
+        label: formattedLabel,
+        type: inferredType,
+        default: inferredDefault,
+        source: 'autodetected',
+        description: `Auto-detected from process.env.${envVarName}`
+      });
+      jsdocKeys.add(key);
+    }
+  }
+
   return result;
+}
+
+/**
+ * Cleanly parses a single @param JSDoc annotation line.
+ */
+function parseParamLine(line: string): OptionDescriptor | null {
+  const paramBody = line.replace(/^@param\s+/i, '').trim();
+  if (!paramBody) return null;
+
+  let rawType = 'string';
+  let rest = paramBody;
+
+  // Extract type in curly braces {type}
+  const typeMatch = rest.match(/^\{([^}]+)\}\s*(.*)/);
+  if (typeMatch) {
+    rawType = typeMatch[1].trim().toLowerCase();
+    rest = typeMatch[2].trim();
+  }
+
+  if (!rest) return null;
+
+  let key = '';
+  let bracketDefault: string | undefined = undefined;
+
+  // Check if key is in brackets [key=default] or [key]
+  const bracketMatch = rest.match(/^\[([a-zA-Z0-9_$]+)(?:=([^\]]+))?\]\s*(.*)/);
+  if (bracketMatch) {
+    key = bracketMatch[1].trim();
+    bracketDefault = bracketMatch[2] ? bracketMatch[2].trim().replace(/^["']|["']$/g, '') : undefined;
+    rest = bracketMatch[3].trim();
+  } else {
+    // Standard key
+    const keyMatch = rest.match(/^([a-zA-Z0-9_$]+)\s*(.*)/);
+    if (keyMatch) {
+      key = keyMatch[1].trim();
+      rest = keyMatch[2].trim();
+    }
+  }
+
+  if (!key) return null;
+
+  // Extract explicit default from description if present
+  let explicitDefault: string | undefined = bracketDefault;
+  const defaultDashMatch = rest.match(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/i);
+  if (defaultDashMatch) {
+    explicitDefault = defaultDashMatch[1].trim();
+    rest = rest.replace(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/gi, '').trim();
+  }
+
+  // Clean trailing JSDoc artifacts from description (e.g. */ or trailing * or subsequent @tags)
+  let label = rest
+    .replace(/\*\/.*$/, '') // Strip */
+    .replace(/\s*\*.*$/, '') // Strip *
+    .replace(/@.*$/, '') // Strip any subsequent @tag
+    .trim();
+
+  // If label is empty, format camelCase key into title words
+  if (!label) {
+    label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  }
+
+  let type: OptionDescriptor['type'] = 'string';
+  let optionsList: string[] | undefined = undefined;
+  let minVal: number | undefined;
+  let maxVal: number | undefined;
+  let stepVal: number | undefined;
+
+  if (rawType.startsWith('select:')) {
+    type = 'select';
+    optionsList = rawType.replace('select:', '').split('|').map(s => s.trim());
+  } else if (rawType.startsWith('range:')) {
+    type = 'range';
+    const parts = rawType.replace('range:', '').split(':').map(Number);
+    minVal = parts[0] ?? 0;
+    maxVal = parts[1] ?? 100;
+    stepVal = parts[2] ?? 1;
+  } else if (['number', 'int', 'float'].includes(rawType)) {
+    type = 'number';
+  } else if (['boolean', 'bool'].includes(rawType)) {
+    type = 'boolean';
+  } else if (rawType === 'text') {
+    type = 'text';
+  } else if (rawType === 'json') {
+    type = 'json';
+  } else if (rawType === 'color') {
+    type = 'color';
+  }
+
+  let defaultValue: any = '';
+  if (type === 'number' || type === 'range') {
+    defaultValue = explicitDefault !== undefined ? Number(explicitDefault) : (minVal ?? 0);
+  } else if (type === 'boolean') {
+    defaultValue = explicitDefault === 'true';
+  } else if (type === 'select') {
+    defaultValue = explicitDefault || (optionsList && optionsList[0]) || '';
+  } else if (type === 'json') {
+    defaultValue = explicitDefault ? explicitDefault : '{}';
+  } else {
+    defaultValue = explicitDefault !== undefined ? explicitDefault : '';
+  }
+
+  return {
+    key,
+    label,
+    type,
+    default: defaultValue,
+    options: optionsList,
+    min: minVal,
+    max: maxVal,
+    step: stepVal,
+    source: 'jsdoc'
+  };
 }

@@ -3,9 +3,7 @@
   "name": "JS Workspace CORS Fetch Helper",
   "version": "1.0.0",
   "description": "Helper extension allowing local JS Workspace applications to perform cross-origin data fetching.",
-  "permissions": [
-    "host_permissions"
-  ],
+  "permissions": [],
   "host_permissions": [
     "<all_urls>"
   ],
