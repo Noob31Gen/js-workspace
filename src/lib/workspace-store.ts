@@ -691,6 +691,88 @@ async function run({ frameType }) {
 }
 `
   },
+  // 06-frame-renderers/browser-document-dom-demo.js
+  {
+    id: 'file-06-browser-dom-demo',
+    name: 'browser-document-dom-demo.js',
+    type: 'file',
+    path: '06-frame-renderers/browser-document-dom-demo.js',
+    parentId: 'folder-06-frames',
+    fileKind: 'code',
+    category: 'Frame Rendering',
+    code: `/**
+ * @name Standard Browser Web Page DOM Demo
+ * @description Demonstrates standard browser web page DOM manipulation (document.body.innerHTML, document.write, document.createElement) rendering live in the Frame Preview tab!
+ * 
+ * @param {string} pageTitle Page Heading Title - default: "My Dynamic Web Application"
+ * @param {color} themeColor Primary Accent Color - default: "#6366f1"
+ */
+async function run({ pageTitle, themeColor }) {
+  console.log("🌐 Initializing Browser Web Page DOM Execution...");
+
+  // 1. Direct document.body.innerHTML assignment
+  document.body.innerHTML = \`
+    <div style="font-family: system-ui, sans-serif; padding: 20px; background: #09090b; color: #fafafa; border-radius: 12px; border: 1px solid #27272a; max-width: 500px; margin: 0 auto;">
+      <h1 style="color: \${themeColor}; margin-top: 0;">\${pageTitle}</h1>
+      <p style="color: #a1a1aa; font-size: 13px;">Rendered via standard browser web page DOM manipulation: <code>document.body.innerHTML</code>!</p>
+      <div id="card-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
+    </div>
+  \`;
+
+  // 2. document.write / writeln
+  document.write(\`<div style="text-align:center; font-family:monospace; font-size:11px; color:#71717a; margin-top:12px;">Generated via document.write() at \${new Date().toLocaleTimeString()}</div>\`);
+
+  // 3. document.createElement & appendChild
+  const card = document.createElement('div');
+  card.innerHTML = \`<div style="background:#18181b; padding:12px; border-radius:8px; border:1px solid #27272a; font-size:12px; margin-top:10px;"><strong style="color:#10b981;">DOM Node Created:</strong> Appended via <code>document.body.appendChild()</code></div>\`;
+  document.body.appendChild(card);
+
+  console.log("✅ Web page DOM rendered successfully!");
+  return { status: "Success", pageTitle, themeColor };
+}
+`
+  },
+  // 06-frame-renderers/multi-frame-stream-demo.js
+  {
+    id: 'file-06-multi-frame-demo',
+    name: 'multi-frame-stream-demo.js',
+    type: 'file',
+    path: '06-frame-renderers/multi-frame-stream-demo.js',
+    parentId: 'folder-06-frames',
+    fileKind: 'code',
+    category: 'Frame Rendering',
+    code: `/**
+ * @name Multi-Frame Vertical Stream Demo
+ * @description Demonstrates returning an array of multiple HTML frames rendered one below another in the Frame Preview tab!
+ */
+async function run() {
+  console.log("🖼️ Generating multi-frame widget array...");
+
+  const frame1 = {
+    __html: \`
+      <div style="font-family: system-ui, sans-serif; padding: 16px; background: #09090b; color: #3b82f6; border-radius: 12px; border: 1px solid #1e3a8a;">
+        <h3 style="margin:0; font-size: 16px;">📊 Frame 1: Network Metrics</h3>
+        <p style="color: #93c5fd; font-size: 12px; margin: 6px 0 0 0;">Latency: 14ms | Throughput: 1.2 Gbps | Active Connections: 1,420</p>
+      </div>
+    \`,
+    __title: "Network Metrics"
+  };
+
+  const frame2 = {
+    __html: \`
+      <div style="font-family: system-ui, sans-serif; padding: 16px; background: #09090b; color: #10b981; border-radius: 12px; border: 1px solid #065f46;">
+        <h3 style="margin:0; font-size: 16px;">⚡ Frame 2: Security & Firewall Status</h3>
+        <p style="color: #6ee7b7; font-size: 12px; margin: 6px 0 0 0;">Rules Active: 48 | Threats Blocked: 0 | Status: Operational</p>
+      </div>
+    \`,
+    __title: "Security Status"
+  };
+
+  console.log("✅ Multi-frame array returned! Check the Frame Preview tab.");
+  return [frame1, frame2];
+}
+`
+  },
 
   // 7. Folder: 07-interactive-cli-inputs
   {
@@ -860,7 +942,7 @@ export const INITIAL_WORKSPACES: Workspace[] = [
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_v9_master_suite';
+const STORAGE_KEY = 'js_workspace_v10_master_suite';
 const ACTIVE_STATE_KEY = 'js_workspace_active_state_v2';
 
 export interface ActiveWorkspaceState {

@@ -48,16 +48,23 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
               </span>
             </div>
 
-            <div className="space-y-2 text-[11px] text-muted-foreground">
+            <div className="space-y-2.5 text-[11px] text-muted-foreground">
               <div>
-                <span className="text-emerald-400 font-bold">1. Return HTML Widget Object:</span>
+                <span className="text-amber-400 font-bold">1. Standard Browser Web Page DOM:</span>
+                <pre className="mt-1 bg-background p-2 rounded-lg border border-border/60 text-foreground overflow-x-auto text-[11px]">
+                  {`document.body.innerHTML = '<h1>Hello Web Page!</h1>';\n// or document.write('<h2>Hello Web Page</h2>');`}
+                </pre>
+              </div>
+
+              <div>
+                <span className="text-emerald-400 font-bold">2. Return HTML Component Object:</span>
                 <pre className="mt-1 bg-background p-2 rounded-lg border border-border/60 text-foreground overflow-x-auto text-[11px]">
                   {`return { __html: '<div style="color:#10b981">Hello UI Frame!</div>' };`}
                 </pre>
               </div>
 
               <div>
-                <span className="text-blue-400 font-bold">2. Return Tabular Data Array:</span>
+                <span className="text-blue-400 font-bold">3. Return Tabular Data Array:</span>
                 <pre className="mt-1 bg-background p-2 rounded-lg border border-border/60 text-foreground overflow-x-auto text-[11px]">
                   {`return [{ ID: 1, Host: 'api.cloud.net', Status: 'Online' }];`}
                 </pre>

@@ -418,12 +418,70 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('utilModule.default = utilModule;');
   parts.push('');
 
-  // Global Bindings
+  // Global Bindings & Polyfills
   parts.push('self.process = processModule;');
   parts.push('self.Buffer = BufferModule;');
   parts.push('self.fs = fsModule;');
   parts.push('self.path = pathModule;');
   parts.push('self.global = self;');
+  parts.push('');
+
+  // Polyfill Browser Web Page DOM (document.body.innerHTML, document.write, document.createElement)
+  parts.push('var __doc_elements__ = {};');
+  parts.push('function VirtualDOMElement(tagName, id) {');
+  parts.push("  this.tagName = (tagName || 'DIV').toUpperCase();");
+  parts.push("  this.id = id || '';");
+  parts.push("  this.children = [];");
+  parts.push("  this._innerHTML = '';");
+  parts.push('}');
+  parts.push('Object.defineProperty(VirtualDOMElement.prototype, "innerHTML", {');
+  parts.push('  get: function() { return this._innerHTML; },');
+  parts.push('  set: function(val) {');
+  parts.push('    this._innerHTML = String(val || "");');
+  parts.push('    if (this.tagName === "BODY" || this.id === "app" || this.id === "root") {');
+  parts.push("      postMessage({ type: 'FRAME', payload: { type: 'html', content: this._innerHTML, title: 'Web Page Document Frame' } });");
+  parts.push('    }');
+  parts.push('  }');
+  parts.push('});');
+  parts.push('VirtualDOMElement.prototype.appendChild = function(child) {');
+  parts.push('  this.children.push(child);');
+  parts.push('  var childHtml = typeof child === "string" ? child : (child.outerHTML || child.innerHTML || String(child || ""));');
+  parts.push('  this._innerHTML += childHtml;');
+  parts.push('  if (this.tagName === "BODY" || this.id === "app" || this.id === "root") {');
+  parts.push("    postMessage({ type: 'FRAME', payload: { type: 'html', content: this._innerHTML, title: 'Web Page Document Frame' } });");
+  parts.push('  }');
+  parts.push('  return child;');
+  parts.push('};');
+  parts.push('var documentBody = new VirtualDOMElement("BODY", "body");');
+  parts.push('var documentPolyfill = {');
+  parts.push('  body: documentBody,');
+  parts.push('  write: function() {');
+  parts.push("    var text = Array.prototype.slice.call(arguments).join('');");
+  parts.push('    documentBody.innerHTML += text;');
+  parts.push('  },');
+  parts.push('  writeln: function() {');
+  parts.push("    var text = Array.prototype.slice.call(arguments).join('') + '\\n';");
+  parts.push('    documentBody.innerHTML += text;');
+  parts.push('  },');
+  parts.push('  getElementById: function(id) {');
+  parts.push('    if (id === "body") return documentBody;');
+  parts.push('    if (!__doc_elements__[id]) {');
+  parts.push('      __doc_elements__[id] = new VirtualDOMElement("DIV", id);');
+  parts.push('    }');
+  parts.push('    return __doc_elements__[id];');
+  parts.push('  },');
+  parts.push('  createElement: function(tagName) {');
+  parts.push('    return new VirtualDOMElement(tagName);');
+  parts.push('  },');
+  parts.push('  querySelector: function(sel) {');
+  parts.push('    return documentBody;');
+  parts.push('  },');
+  parts.push('  querySelectorAll: function(sel) {');
+  parts.push('    return [documentBody];');
+  parts.push('  }');
+  parts.push('};');
+  parts.push('self.document = documentPolyfill;');
+  parts.push('self.window = self;');
   parts.push('');
 
   // resolvePath
