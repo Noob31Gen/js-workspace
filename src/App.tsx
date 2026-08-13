@@ -48,11 +48,26 @@ export function App() {
   const [logs, setLogs] = useState<ConsoleLogMessage[]>([]);
   const [frame, setFrame] = useState<FramePayload | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [inputPrompt, setInputPrompt] = useState<string | null>(null);
   const [outputResult, setOutputResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
   const [executionTimeMs, setExecutionTimeMs] = useState<number | undefined>(undefined);
   const [outputFilesPrompt, setOutputFilesPrompt] = useState<ScriptOutputFile[]>([]);
   const currentRunFilesRef = React.useRef<ScriptOutputFile[]>([]);
+
+  const handleSendInput = (value: string) => {
+    runner.sendInput(value);
+    setLogs(prev => [
+      ...prev,
+      {
+        id: Math.random().toString(36).substring(2, 9),
+        type: 'log',
+        data: [`> ${value}`],
+        timestamp: new Date().toLocaleTimeString()
+      }
+    ]);
+    setInputPrompt(null);
+  };
 
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [isWsManagerOpen, setIsWsManagerOpen] = useState(false);
@@ -124,6 +139,7 @@ export function App() {
     setFrame(null);
     setOutputResult(null);
     setErrorResult(null);
+    setInputPrompt(null);
     setIsRunning(true);
     currentRunFilesRef.current = [];
 
@@ -141,6 +157,18 @@ export function App() {
       nodes: activeNodes,
       currentFilePath: activeFile?.path || 'main.js',
       onLog: (msg) => setLogs(prev => [...prev, msg]),
+      onInputRequest: (promptText) => {
+        setInputPrompt(promptText);
+        setLogs(prev => [
+          ...prev,
+          {
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'info',
+            data: [`💬 Input Requested: ${promptText}`],
+            timestamp: new Date().toLocaleTimeString()
+          }
+        ]);
+      },
       onFsMutation: (mutation) => {
         if (mutation.action === 'write' && mutation.content !== undefined) {
           const filePath = mutation.path;
@@ -183,6 +211,7 @@ export function App() {
       },
       onSuccess: (res: ExecutionResult) => {
         setIsRunning(false);
+        setInputPrompt(null);
         setOutputResult(res.raw);
         if (res.frame) {
           setFrame(res.frame);
@@ -203,6 +232,7 @@ export function App() {
       },
       onError: (err) => {
         setIsRunning(false);
+        setInputPrompt(null);
         setErrorResult(err);
       }
     });
@@ -251,6 +281,7 @@ export function App() {
   const handleStopScript = () => {
     runner.stop();
     setIsRunning(false);
+    setInputPrompt(null);
     setErrorResult('Execution terminated by user.');
   };
 
@@ -589,6 +620,8 @@ export function App() {
           outputResult={outputResult}
           errorResult={errorResult}
           executionTimeMs={executionTimeMs}
+          inputPrompt={inputPrompt}
+          onSendInput={handleSendInput}
           parsedOptions={parsedMeta.options}
           optionValues={optionValues}
           onChangeOptionValue={(key: string, val: any) => setOptionValues(prev => ({ ...prev, [key]: val }))}
@@ -714,6 +747,9 @@ export function App() {
               errorResult={errorResult}
               executionTimeMs={executionTimeMs}
               onOpenResultWindow={() => setIsResultWindowOpen(true)}
+              inputPrompt={inputPrompt}
+              onSendInput={handleSendInput}
+              isRunning={isRunning}
             />
           </div>
         </AppLayout>
@@ -729,6 +765,9 @@ export function App() {
         logs={logs}
         frame={frame}
         activeFileName={activeFile?.name || 'Script'}
+        inputPrompt={inputPrompt}
+        onSendInput={handleSendInput}
+        isRunning={isRunning}
       />
 
       {/* Workspace Manager Modal */}

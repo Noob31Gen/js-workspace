@@ -33,6 +33,7 @@ export interface WorkerRunOptions {
   currentFilePath?: string;
   timeoutMs?: number;
   onLog: (msg: ConsoleLogMessage) => void;
+  onInputRequest?: (prompt: string) => void;
   onFsMutation?: (mutation: FsMutationPayload) => void;
   onSuccess: (result: ExecutionResult) => void;
   onError: (error: string) => void;
@@ -152,6 +153,7 @@ export class ScriptRunner {
     currentFilePath = 'main.js',
     timeoutMs = 30000,
     onLog,
+    onInputRequest,
     onFsMutation,
     onSuccess,
     onError
@@ -215,6 +217,10 @@ export class ScriptRunner {
           data: data.data,
           timestamp: data.timestamp
         });
+      } else if (data.type === 'INPUT_REQUEST') {
+        if (onInputRequest) {
+          onInputRequest(data.prompt || '> ');
+        }
       } else if (data.type === 'FS_MUTATION') {
         if (onFsMutation) {
           onFsMutation({
@@ -254,6 +260,12 @@ export class ScriptRunner {
     });
 
     this.currentWorker.postMessage({ code, args, files: fileMap, currentFilePath });
+  }
+
+  public sendInput(value: string) {
+    if (this.currentWorker) {
+      this.currentWorker.postMessage({ type: 'INPUT_RESPONSE', value });
+    }
   }
 
   public stop() {

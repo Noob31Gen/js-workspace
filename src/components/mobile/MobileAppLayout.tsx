@@ -39,6 +39,8 @@ interface MobileAppLayoutProps {
   outputResult: any;
   errorResult: string | null;
   executionTimeMs?: number;
+  inputPrompt?: string | null;
+  onSendInput?: (value: string) => void;
   parsedOptions: OptionDescriptor[];
   optionValues: Record<string, any>;
   onChangeOptionValue: (key: string, val: any) => void;
@@ -78,6 +80,8 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   outputResult,
   errorResult,
   executionTimeMs,
+  inputPrompt,
+  onSendInput,
   parsedOptions,
   optionValues,
   onChangeOptionValue,
@@ -168,6 +172,9 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
               errorResult={errorResult}
               executionTimeMs={executionTimeMs}
               onOpenResultWindow={onOpenResultWindow}
+              inputPrompt={inputPrompt}
+              onSendInput={onSendInput}
+              isRunning={isRunning}
             />
           </div>
         )}

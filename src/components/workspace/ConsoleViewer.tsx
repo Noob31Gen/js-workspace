@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConsoleLogMessage } from '@/lib/worker-runner';
-import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2, MoreVertical } from 'lucide-react';
+import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2, MoreVertical, Send, Play } from 'lucide-react';
 
 interface ConsoleViewerProps {
   logs: ConsoleLogMessage[];
@@ -9,6 +9,9 @@ interface ConsoleViewerProps {
   errorResult: string | null;
   executionTimeMs?: number;
   onOpenResultWindow?: () => void;
+  inputPrompt?: string | null;
+  onSendInput?: (value: string) => void;
+  isRunning?: boolean;
 }
 
 export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
@@ -17,17 +20,29 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
   outputResult,
   errorResult,
   executionTimeMs,
-  onOpenResultWindow
+  onOpenResultWindow,
+  inputPrompt,
+  onSendInput,
+  isRunning
 }) => {
   const [activeTab, setActiveTab] = useState<'logs' | 'result' | 'raw'>('logs');
   const [copied, setCopied] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
   const handleCopyResult = () => {
     const text = typeof outputResult === 'object' ? JSON.stringify(outputResult, null, 2) : String(outputResult);
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleInputSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (onSendInput) {
+      onSendInput(inputValue);
+      setInputValue('');
+    }
   };
 
   return (
@@ -221,6 +236,38 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
           </div>
         )}
       </div>
+
+      {/* CLI Runtime Input Bar */}
+      {(onSendInput || isRunning || inputPrompt) && (
+        <form onSubmit={handleInputSubmit} className={`border-t border-border/60 p-2 flex items-center gap-2 shrink-0 select-none transition-all ${
+          inputPrompt ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30' : 'bg-muted/30'
+        }`}>
+          <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0">
+            <span className={`h-2 w-2 rounded-full ${inputPrompt ? 'bg-emerald-400 animate-ping' : 'bg-muted-foreground/40'}`} />
+            <span className={inputPrompt ? 'text-primary font-bold' : 'text-muted-foreground'}>
+              {inputPrompt ? inputPrompt : '>'}
+            </span>
+          </div>
+
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={inputPrompt ? `Script paused expecting input for: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
+            className="flex-1 bg-background border border-border/80 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50 min-w-0"
+            autoFocus={!!inputPrompt}
+          />
+
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0"
+            title="Submit user input and resume script execution"
+          >
+            <span>Continue</span>
+            <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
+          </button>
+        </form>
+      )}
     </div>
   );
 };

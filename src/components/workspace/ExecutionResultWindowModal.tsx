@@ -12,6 +12,9 @@ interface ExecutionResultWindowModalProps {
   logs: ConsoleLogMessage[];
   frame: FramePayload | null;
   activeFileName: string;
+  inputPrompt?: string | null;
+  onSendInput?: (value: string) => void;
+  isRunning?: boolean;
 }
 
 export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProps> = ({
@@ -22,8 +25,20 @@ export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProp
   executionTimeMs,
   logs,
   frame,
-  activeFileName
+  activeFileName,
+  inputPrompt,
+  onSendInput,
+  isRunning
 }) => {
+  const [inputValue, setInputValue] = React.useState('');
+
+  const handleInputSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (onSendInput) {
+      onSendInput(inputValue);
+      setInputValue('');
+    }
+  };
   if (!isOpen) return null;
 
   return createPortal(
@@ -168,6 +183,38 @@ export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProp
                 <Terminal className="h-8 w-8 text-muted-foreground/40 mb-2" />
                 <p className="text-xs font-mono">Console is empty.</p>
               </div>
+            )}
+
+            {/* CLI Runtime Input Bar */}
+            {(onSendInput || isRunning || inputPrompt) && (
+              <form onSubmit={handleInputSubmit} className={`mt-auto border border-border/60 rounded-xl p-2 flex items-center gap-2 shrink-0 transition-all ${
+                inputPrompt ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30' : 'bg-zinc-900/90'
+              }`}>
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold shrink-0 pl-1">
+                  <span className={`h-2 w-2 rounded-full ${inputPrompt ? 'bg-emerald-400 animate-ping' : 'bg-muted-foreground/40'}`} />
+                  <span className={inputPrompt ? 'text-primary font-bold' : 'text-zinc-400'}>
+                    {inputPrompt ? inputPrompt : '>'}
+                  </span>
+                </div>
+
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={inputPrompt ? `Script paused expecting input for: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-zinc-200 placeholder:text-zinc-600 min-w-0"
+                  autoFocus={!!inputPrompt}
+                />
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0"
+                  title="Submit user input and resume script execution"
+                >
+                  <span>Continue</span>
+                  <Play className="h-3 w-3 fill-primary-foreground shrink-0" />
+                </button>
+              </form>
             )}
           </div>
         </div>

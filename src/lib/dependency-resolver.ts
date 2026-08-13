@@ -236,6 +236,60 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('};');
   parts.push('');
 
+  // 4.1 Process Stdin & User Input Engine
+  parts.push('processModule.stdin = new EventEmitterModule();');
+  parts.push('processModule.stdin.setEncoding = function() { return processModule.stdin; };');
+  parts.push('processModule.stdin.resume = function() { return processModule.stdin; };');
+  parts.push('processModule.stdin.pause = function() { return processModule.stdin; };');
+  parts.push('');
+  parts.push('var _pendingInputResolvers = [];');
+  parts.push('function requestUserInput(promptMsg) {');
+  parts.push("  if (!promptMsg) promptMsg = '> ';");
+  parts.push("  postMessage({ type: 'INPUT_REQUEST', prompt: promptMsg });");
+  parts.push('  return new Promise(function(resolve) {');
+  parts.push('    _pendingInputResolvers.push(resolve);');
+  parts.push('  });');
+  parts.push('}');
+  parts.push('');
+  parts.push("self.addEventListener('message', function(ev) {");
+  parts.push("  if (ev.data && ev.data.type === 'INPUT_RESPONSE') {");
+  parts.push("    var val = String(ev.data.value != null ? ev.data.value : '');");
+  parts.push('    if (processModule && processModule.stdin) {');
+  parts.push("      processModule.stdin.emit('data', BufferModule.from(val + String.fromCharCode(10)));");
+  parts.push("      processModule.stdin.emit('line', val);");
+  parts.push('    }');
+  parts.push('    if (_pendingInputResolvers.length > 0) {');
+  parts.push('      var resolver = _pendingInputResolvers.shift();');
+  parts.push('      if (resolver) resolver(val);');
+  parts.push('    }');
+  parts.push('  }');
+  parts.push('});');
+  parts.push('');
+  parts.push('self.prompt = function(msg) { return requestUserInput(msg); };');
+  parts.push('');
+  parts.push('var readlineModule = {');
+  parts.push('  createInterface: function(opts) {');
+  parts.push('    var rl = new EventEmitterModule();');
+  parts.push('    rl.question = function(query, cb) {');
+  parts.push('      var p = requestUserInput(query).then(function(answer) {');
+  parts.push("        if (typeof cb === 'function') cb(answer);");
+  parts.push('        return answer;');
+  parts.push('      });');
+  parts.push('      return p;');
+  parts.push('    };');
+  parts.push('    rl.close = function() {};');
+  parts.push('    if (processModule && processModule.stdin) {');
+  parts.push("      processModule.stdin.on('line', function(line) {");
+  parts.push("        rl.emit('line', line);");
+  parts.push('      });');
+  parts.push('    }');
+  parts.push('    return rl;');
+  parts.push('  }');
+  parts.push('};');
+  parts.push('readlineModule.promises = { createInterface: readlineModule.createInterface };');
+  parts.push('readlineModule.default = readlineModule;');
+  parts.push('');
+
   // 5. Crypto Module
   parts.push('var cryptoModule = {');
   parts.push("  randomUUID: function() { return self.crypto && self.crypto.randomUUID ? self.crypto.randomUUID() : Math.random().toString(36).substring(2); },");
@@ -399,6 +453,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push("  if (cleanReq === 'events') return { EventEmitter: EventEmitterModule, default: EventEmitterModule };");
   parts.push("  if (cleanReq === 'crypto') return cryptoModule;");
   parts.push("  if (cleanReq === 'util') return utilModule;");
+  parts.push("  if (cleanReq === 'readline' || cleanReq === 'readline/promises') return readlineModule;");
   parts.push('  return null;');
   parts.push('}');
   parts.push('');
