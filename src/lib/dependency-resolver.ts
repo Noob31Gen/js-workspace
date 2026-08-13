@@ -249,9 +249,18 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       }
     };
 
+    // Attach default exports for ES module interop
+    fsModule.default = fsModule;
+    pathModule.default = pathModule;
+    processModule.default = processModule;
+    cryptoModule.default = cryptoModule;
+    utilModule.default = utilModule;
+
     // Global Bindings
     self.process = processModule;
     self.Buffer = BufferModule;
+    self.fs = fsModule;
+    self.path = pathModule;
     self.global = self;
 
     function resolvePath(targetPath, baseFile) {

@@ -177,7 +177,7 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
             {logs.map((log) => (
               <div
                 key={log.id}
-                className={`p-2 rounded border flex items-start gap-2 ${
+                className={`p-2 rounded-lg border text-xs flex items-center gap-2.5 ${
                   log.type === 'error'
                     ? 'border-destructive/40 bg-destructive/10 text-destructive'
                     : log.type === 'warn'
@@ -187,11 +187,11 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
                     : 'border-border/40 bg-card/40 text-foreground'
                 }`}
               >
-                <span className="text-[10px] text-muted-foreground/60 shrink-0 mt-0.5">{log.timestamp}</span>
-                <span className="text-[10px] font-bold uppercase shrink-0 px-1 py-0.2 rounded bg-muted/40">
+                <span className="text-[10px] text-muted-foreground/60 shrink-0 font-mono tracking-tight">{log.timestamp}</span>
+                <span className="text-[10px] font-mono font-bold uppercase shrink-0 px-2 py-0.5 rounded-md bg-muted/70 text-foreground border border-border/50 inline-flex items-center justify-center leading-none">
                   {log.type}
                 </span>
-                <div className="flex-1 overflow-x-auto whitespace-pre-wrap break-all">
+                <div className="flex-1 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
                   {log.data.map((item, idx) => (
                     <span key={idx} className="mr-2">
                       {typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item)}
@@ -205,12 +205,16 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
 
         {activeTab === 'result' && (
           <div className="p-2">
-            {outputResult === null ? (
-              <div className="text-muted-foreground/60 italic text-xs">
-                No value returned by function run(args).
+            {outputResult === null || outputResult === undefined ? (
+              <div className="p-6 rounded-xl border border-dashed border-border/60 bg-card/20 text-center flex flex-col items-center justify-center gap-1.5 text-muted-foreground/60">
+                <FileJson className="h-6 w-6 text-muted-foreground/40 mb-1" />
+                <span className="text-xs font-mono font-medium text-foreground">No return value produced by script</span>
+                <span className="text-[11px] text-muted-foreground/60">
+                  Use <code className="text-primary font-mono bg-primary/10 px-1 py-0.5 rounded">return val;</code> in your code or view output in the <strong className="text-foreground">Logs</strong> tab.
+                </span>
               </div>
             ) : (
-              <pre className="p-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs whitespace-pre-wrap break-all overflow-x-auto">
+              <pre className="p-3 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs whitespace-pre-wrap break-all overflow-x-auto font-mono">
                 {typeof outputResult === 'object' ? JSON.stringify(outputResult, null, 2) : String(outputResult)}
               </pre>
             )}
