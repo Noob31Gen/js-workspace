@@ -17,6 +17,8 @@ import { FileOutputModal } from '@/components/output/FileOutputModal';
 import { ConfirmDeleteModal, DeleteTarget } from '@/components/modals/ConfirmDeleteModal';
 import { FileNameDetailModal } from '@/components/modals/FileNameDetailModal';
 import { ScriptOutputFile, extractFileObjectsFromReturn } from '@/lib/output-file-handler';
+import { checkExtensionConnected } from '@/lib/extension-client';
+import { ExtensionModal } from '@/components/extension/ExtensionModal';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
 
 const runner = new ScriptRunner();
@@ -71,7 +73,20 @@ export function App() {
 
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [isWsManagerOpen, setIsWsManagerOpen] = useState(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [extensionActive, setExtensionActive] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+
+  useEffect(() => {
+    const verifyExtension = async () => {
+      const active = await checkExtensionConnected();
+      setExtensionActive(active);
+    };
+
+    verifyExtension();
+    const interval = setInterval(verifyExtension, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const activeNodes = activeWorkspace?.nodes || [];
@@ -628,8 +643,8 @@ export function App() {
           frame={frame}
           onOpenResultWindow={() => setIsResultWindowOpen(true)}
           onImportClick={() => setIsWsManagerOpen(true)}
-          onOpenExtensionModal={() => setSelectedDoc('ARCHITECTURE.md')}
-          extensionActive={true}
+          onOpenExtensionModal={() => setIsExtensionModalOpen(true)}
+          extensionActive={extensionActive}
           isOnline={navigator.onLine}
           getFileKind={getFileKind}
         />
@@ -812,6 +827,16 @@ export function App() {
         isOpen={inspectTargetNode !== null}
         node={inspectTargetNode}
         onClose={() => setInspectTargetNode(null)}
+      />
+      {/* Extension Modal */}
+      <ExtensionModal
+        isOpen={isExtensionModalOpen}
+        extensionActive={extensionActive}
+        onClose={() => setIsExtensionModalOpen(false)}
+        onRefreshStatus={async () => {
+          const active = await checkExtensionConnected();
+          setExtensionActive(active);
+        }}
       />
     </>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2, AlertTriangle } from 'lucide-react';
+import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 
 interface MobileHeaderProps {
@@ -175,6 +175,17 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                 <BookOpen className="h-4 w-4 text-amber-400 shrink-0" />
                 <span>Documentation</span>
               </button>
+
+              <a
+                href="https://github.com/Noob31Gen/js-workspace"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setShowMenu(false)}
+                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
+              >
+                <ExternalLink className="h-4 w-4 text-primary shrink-0" />
+                <span>GitHub Repository</span>
+              </a>
 
               <button
                 type="button"

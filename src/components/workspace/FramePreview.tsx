@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FramePayload } from '@/lib/worker-runner';
-import { Monitor, Smartphone, Tablet, ExternalLink, Copy, Download, Check, Sparkles, Code, Table as TableIcon } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, ExternalLink, Copy, Download, Check, Sparkles, Code, Table as TableIcon, Layout } from 'lucide-react';
 
 interface FramePreviewProps {
   frame: FramePayload | null;
@@ -13,7 +13,61 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!frame) return null;
+  if (!frame) {
+    return (
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px]">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-3.5 py-2 shrink-0 select-none">
+          <div className="flex items-center gap-2">
+            <Layout className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-bold font-mono text-foreground">Frame Preview</span>
+          </div>
+          <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border/40">
+            No Active Frame
+          </span>
+        </div>
+
+        {/* Empty State Banner Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 text-primary shadow-lg shadow-primary/5">
+            <Layout className="h-7 w-7" />
+          </div>
+
+          <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight mb-1">
+            No Visual Frame Rendered Yet
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-md leading-relaxed mb-5">
+            Visual Frame Previews render interactive HTML widgets, structured tabular data, or images generated directly by your JavaScript scripts.
+          </p>
+
+          <div className="bg-muted/40 border border-border/60 rounded-xl p-3.5 max-w-lg w-full text-left font-mono text-xs space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
+              <span className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" />
+                How to render a Visual Frame
+              </span>
+            </div>
+
+            <div className="space-y-2 text-[11px] text-muted-foreground">
+              <div>
+                <span className="text-emerald-400 font-bold">1. Return HTML Widget Object:</span>
+                <pre className="mt-1 bg-background p-2 rounded-lg border border-border/60 text-foreground overflow-x-auto text-[11px]">
+                  {`return { __html: '<div style="color:#10b981">Hello UI Frame!</div>' };`}
+                </pre>
+              </div>
+
+              <div>
+                <span className="text-blue-400 font-bold">2. Return Tabular Data Array:</span>
+                <pre className="mt-1 bg-background p-2 rounded-lg border border-border/60 text-foreground overflow-x-auto text-[11px]">
+                  {`return [{ ID: 1, Host: 'api.cloud.net', Status: 'Online' }];`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
