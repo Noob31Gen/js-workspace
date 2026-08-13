@@ -16,6 +16,7 @@ interface SidebarProps {
   onDeleteNode: (nodeId: string) => void;
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
+  onInspectNode?: (node: WorkspaceNode) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (doc: string) => void;
 }
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onMoveNode,
+  onInspectNode,
   onOpenWorkspaceManager
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
@@ -49,23 +51,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           onClick={onOpenWorkspaceManager}
           className="p-2.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/15 transition-all cursor-pointer flex items-center justify-between gap-2"
+          title={`Active Workspace: ${activeWorkspace?.name || 'Workspace'}. Click to manage workspaces.`}
+          aria-label={`Active Workspace: ${activeWorkspace?.name || 'Workspace'}. Click to manage workspaces.`}
+          role="button"
+          tabIndex={0}
         >
           <div className="flex items-center gap-2 overflow-hidden">
-            <Layers className="h-4 w-4 text-primary shrink-0" />
+            <Layers className="h-4 w-4 text-primary shrink-0" aria-label="Workspace Icon" />
             <div className="overflow-hidden">
               <div className="text-[10px] font-bold uppercase tracking-wider text-primary">Active Workspace</div>
               <div className="text-xs font-bold text-foreground truncate">{activeWorkspace?.name || 'Workspace'}</div>
             </div>
           </div>
-          <ChevronDown className="h-3.5 w-3.5 text-primary shrink-0" />
+          <ChevronDown className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Open Workspace Manager Dropdown" />
         </div>
 
         {/* Filter Input */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" aria-label="Search Icon" />
           <input
             type="text"
             placeholder="Search workspace files..."
+            aria-label="Search workspace files and directories"
+            title="Search workspace files and directories"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border/60 bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
@@ -85,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onDeleteNode={onDeleteNode}
             onDuplicateNode={onDuplicateNode}
             onMoveNode={onMoveNode}
+            onInspectNode={onInspectNode}
             onRestoreDemo={onOpenWorkspaceManager}
           />
         </div>

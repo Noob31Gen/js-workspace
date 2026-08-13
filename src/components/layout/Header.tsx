@@ -115,6 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
         {...({ webkitdirectory: '', directory: '' } as any)}
         multiple
         className="hidden"
+        aria-label="Import PC Folder Input"
       />
       <input
         type="file"
@@ -122,6 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
         onChange={handleZipChange}
         accept=".zip"
         className="hidden"
+        aria-label="Import ZIP Archive Input"
       />
       <input
         type="file"
@@ -129,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
         onChange={handleBundleChange}
         accept=".json"
         className="hidden"
+        aria-label="Import Workspace Bundle Input"
       />
       <input
         type="file"
@@ -136,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
         onChange={handleFileChange}
         accept="*"
         className="hidden"
+        aria-label="Import Single Data File Input"
       />
 
       <div className="flex items-center gap-2.5 shrink-0 min-w-0">
@@ -145,6 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onToggleSidebar || onToggleMobileSidebar}
           className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-card text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs shrink-0"
           title={isSidebarOpen ? 'Collapse Sidebar (Ctrl+B)' : 'Expand Sidebar (Ctrl+B)'}
+          aria-label={isSidebarOpen ? 'Collapse Navigation Sidebar' : 'Expand Navigation Sidebar'}
         >
           <PanelLeft className={`h-4 w-4 text-primary transition-transform duration-200 ${isSidebarOpen ? '' : 'rotate-180'}`} />
         </button>
@@ -154,12 +159,17 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onToggleMobileSidebar}
           className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-muted/40 text-foreground hover:bg-muted transition-all shrink-0"
-          title="Toggle Navigation Menu"
+          title={isMobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+          aria-label={isMobileSidebarOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
         >
           {isMobileSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow shrink-0">
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 animate-rainbow-glow shrink-0"
+          title="JS Workspace Platform Logo"
+          aria-label="JS Workspace Platform Logo"
+        >
           <Terminal className="h-5 w-5" />
         </div>
         <div className="shrink-0 min-w-0">
@@ -181,6 +191,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setShowImportMenu(!showImportMenu)}
             className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-xs"
+            title="Import PC Folders, ZIP Archives, or Workspace Files"
+            aria-label="Import PC Folders, ZIP Archives, or Workspace Files"
           >
             <Upload className="h-3.5 w-3.5" />
             <span>Import</span>
@@ -192,6 +204,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => { folderInputRef.current?.click(); setShowImportMenu(false); }}
                 className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+                title="Import local PC folder to create new workspace"
+                aria-label="Import PC Folder to create new workspace"
               >
                 <Folder className="h-4 w-4 text-amber-400 shrink-0" />
                 <div>
@@ -203,6 +217,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => { zipInputRef.current?.click(); setShowImportMenu(false); }}
                 className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+                title="Import ZIP archive (.zip) to create new workspace"
+                aria-label="Import ZIP Archive (.zip) to create new workspace"
               >
                 <Archive className="h-4 w-4 text-blue-400 shrink-0" />
                 <div>
@@ -214,6 +230,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => { bundleInputRef.current?.click(); setShowImportMenu(false); }}
                 className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors"
+                title="Import JSON workspace bundle file"
+                aria-label="Import Workspace Bundle (.json)"
               >
                 <Layers className="h-4 w-4 text-purple-400 shrink-0" />
                 <div>
@@ -225,6 +243,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => { fileInputRef.current?.click(); setShowImportMenu(false); }}
                 className="w-full text-left px-3 py-2 rounded-lg text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors border-t border-border/40 pt-2"
+                title="Import single file into current active workspace"
+                aria-label="Import Single Data File into current active workspace"
               >
                 <FileText className="h-4 w-4 text-emerald-400 shrink-0" />
                 <div>
@@ -244,6 +264,7 @@ export const Header: React.FC<HeaderProps> = ({
             : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
             }`}
           title="Click to manage offline PWA packages"
+          aria-label={isOnline ? 'PWA Ready (Online) - Manage offline PWA package cache' : 'Offline Mode - Manage offline PWA package cache'}
         >
           {isOnline ? (
             <>
@@ -266,6 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
             : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
             }`}
           title="Click to download helper extension or check connection"
+          aria-label={extensionActive ? 'CORS Helper Extension Connected' : 'CORS Helper Extension Inactive - Click to install helper'}
         >
           {extensionActive ? (
             <>
@@ -285,6 +307,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onOpenDocs('ARCHITECTURE.md')}
           className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-2 sm:px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
           title="In-page Documentation"
+          aria-label="Open In-page Documentation"
         >
           <BookOpen className="h-3.5 w-3.5 shrink-0" />
           <span className="hidden md:inline">Docs</span>
@@ -295,6 +318,8 @@ export const Header: React.FC<HeaderProps> = ({
           target="_blank"
           rel="noreferrer"
           className="hidden lg:inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all cursor-pointer shadow-xs"
+          title="View JS Workspace repository on GitHub"
+          aria-label="Open JS Workspace repository on GitHub"
         >
           <Code2 className="h-3.5 w-3.5" />
           <span>GitHub</span>

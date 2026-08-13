@@ -34,387 +34,456 @@ export interface Workspace {
   activeFileId: string;
 }
 
-const DEFAULT_WORKSPACE_ID = 'ws-default-demo';
+const DEFAULT_WORKSPACE_ID = 'ws-master-suite';
 
 export const INITIAL_DEMO_NODES: WorkspaceNode[] = [
-  // Root level folder: data
+  // 1. Folder: 01-parameter-types
   {
-    id: 'folder-data',
-    name: 'data',
+    id: 'folder-01-params',
+    name: '01-parameter-types',
     type: 'folder',
-    path: 'data',
+    path: '01-parameter-types',
     parentId: null,
     expanded: true
   },
-  // data/subdomains.csv
+  // 01-parameter-types/jsdoc-all-types-demo.js
   {
-    id: 'file-data-subdomains-csv',
-    name: 'subdomains.csv',
+    id: 'file-01-jsdoc-all',
+    name: 'jsdoc-all-types-demo.js',
     type: 'file',
-    path: 'data/subdomains.csv',
-    parentId: 'folder-data',
-    fileKind: 'data-csv',
-    sizeBytes: 380,
-    category: 'Data',
-    code: `IP,Subdomain,Status,ResponseTime
-104.16.132.22,api.noob31.com,Active,14ms
-104.16.133.22,cdn.noob31.com,Active,11ms
-172.67.180.12,auth.noob31.com,Warning,84ms
-172.67.180.13,staging.noob31.com,Offline,0ms
-104.16.134.22,docs.noob31.com,Active,19ms
-`
-  },
-  // data/config.json
-  {
-    id: 'file-data-config-json',
-    name: 'config.json',
-    type: 'file',
-    path: 'data/config.json',
-    parentId: 'folder-data',
-    fileKind: 'data-json',
-    sizeBytes: 240,
-    category: 'Data',
-    code: `{
-  "projectName": "Noob31 Enterprise Workspace",
-  "version": "1.4.0",
-  "corsProxy": "https://cors.noob31.com/proxy",
-  "maxRetries": 3,
-  "features": {
-    "nodeSupport": true,
-    "frameRendering": true,
-    "csvViewer": true
-  }
-}`
-  },
-  // Root level folder: node-demo
-  {
-    id: 'folder-node-demo',
-    name: 'node-demo',
-    type: 'folder',
-    path: 'node-demo',
-    parentId: null,
-    expanded: true
-  },
-  // node-demo/full-feature-test.js
-  {
-    id: 'file-node-full-test',
-    name: 'full-feature-test.js',
-    type: 'file',
-    path: 'node-demo/full-feature-test.js',
-    parentId: 'folder-node-demo',
+    path: '01-parameter-types/jsdoc-all-types-demo.js',
+    parentId: 'folder-01-params',
     fileKind: 'code',
-    category: 'Test Suite',
+    category: 'Parameters',
     code: `/**
- * @name Master System Feature & Parameter Test
- * @description Comprehensive test script exercising all option controls (text, slider, color, json, select, boolean), Node fs/crypto/path/util, cross-script imports, dynamic lodash/dayjs, and visual frame output!
+ * @name JSDoc Parameter Controls Showcase
+ * @description Tests all JSDoc parameter types: string, number, boolean, select dropdown, range slider, color picker, JSON config object, and multiline text!
  * 
- * @param {string} testName Project Test Name - default: "Omni-Sandbox Test Run"
- * @param {range:1:100:5} sampleBatchSize Sample Batch Size - default: 25
- * @param {color} themeAccent Primary Brand Color - default: "#3b82f6"
- * @param {select:Summary|Detailed|RawLogs|HTMLFrame} outputFormat Target Output Mode - default: "Detailed"
- * @param {boolean} enableCryptoDigest Compute SHA-256 Hash - default: true
- * @param {boolean} writeOutputFile Save Results to Workspace FS - default: true
- * @param {json} metadataConfig Execution Metadata Settings - default: {"environment":"browser-worker","timeoutMs":5000,"retries":3}
+ * @param {string} userName User Display Name - default: "Alex Mercer"
+ * @param {number} maxRetries Maximum Retry Limit - default: 5
+ * @param {boolean} enableNotifications Enable Push Notifications - default: true
+ * @param {select:Production|Staging|Development|LocalSandbox} environment Environment Mode - default: "Staging"
+ * @param {range:10:100:5} cpuThreshold CPU Threshold Percentage - default: 75
+ * @param {color} primaryColor Brand Accent Color - default: "#6366f1"
+ * @param {json} appSettings Application JSON Settings - default: {"timeoutMs":3000,"debug":true,"tags":["v2","beta"]}
+ * @param {text} logHeader Custom Text Banner - default: "=== SYSTEM MONITORING INITIALIZED ===\\nReady for live execution."
  */
 async function run({
-  testName,
-  sampleBatchSize,
-  themeAccent,
-  outputFormat,
-  enableCryptoDigest,
-  writeOutputFile,
-  metadataConfig
+  userName,
+  maxRetries,
+  enableNotifications,
+  environment,
+  cpuThreshold,
+  primaryColor,
+  appSettings,
+  logHeader
 }) {
-  console.log(\`🚀 [1/6] Initializing Master System Test: "\${testName}"...\`);
-  console.log(\`🎨 Theme Color: \${themeAccent} | Output Format: \${outputFormat} | Batch Size: \${sampleBatchSize}\`);
-  console.log(\`⚙️ Metadata Config:\`, metadataConfig);
+  console.log("🎨 JSDoc Parameter Controls Showcase");
+  console.log("-----------------------------------------");
+  console.log("Banner:\\n" + logHeader);
+  console.log(\`👤 User: \${userName} (Max Retries: \${maxRetries})\`);
+  console.log(\`🔔 Notifications Enabled: \${enableNotifications}\`);
+  console.log(\`🌍 Environment Mode: \${environment}\`);
+  console.log(\`⚡ CPU Threshold: \${cpuThreshold}%\`);
+  console.log(\`🎨 Primary Color: \${primaryColor}\`);
+  console.log("⚙️ App Settings Object:", appSettings);
 
-  // 1. Test Node.js Core Modules (path, process, util)
-  const path = require('path');
-  const util = require('util');
-
-  console.log(\`📂 [2/6] Node process.cwd(): "\${process.cwd()}" | Platform: \${process.platform} | Version: \${process.version}\`);
-  console.log(\`Path Join Example:\`, path.join('data', 'subdomains.csv'));
-
-  // 2. Test Node.js Virtual fs & File Reading
-  const fs = require('fs');
-  console.log(\`🔍 [3/6] Reading workspace file "data/subdomains.csv" via fs.readFileSync()...\`);
-  const csvText = fs.readFileSync('data/subdomains.csv', 'utf8');
-  const csvLines = csvText.trim().split('\\n');
-  console.log(\`Read \${csvLines.length} lines from subdomains.csv.\`);
-
-  // 3. Test Cross-Script Dependency Import (utils/math.js)
-  console.log(\`🔗 [4/6] Importing local workspace module "../utils/math.js"...\`);
-  const math = await require('../utils/math.js');
-  const sampleNumbers = Array.from({ length: sampleBatchSize }, (_, i) => (i + 1) * 4);
-  const totalSum = math.sum(sampleNumbers);
-  const avgValue = math.average(sampleNumbers);
-  console.log(\`Math Utility -> Sum of \${sampleBatchSize} numbers: \${totalSum} | Average: \${avgValue.toFixed(2)}\`);
-
-  // 4. Test Node.js Crypto & Buffer
-  let sha256Hash = 'N/A';
-  let generatedUuid = 'N/A';
-  if (enableCryptoDigest) {
-    const crypto = require('crypto');
-    sha256Hash = crypto.createHash('sha256').update(csvText).digest('hex');
-    generatedUuid = crypto.randomUUID();
-    console.log(\`🔒 [5/6] SHA-256 Digest of subdomains.csv: \${sha256Hash}\`);
-    console.log(\`Generated UUID: \${generatedUuid}\`);
-  }
-
-  // 5. Test Dynamic NPM Packages (lodash & dayjs)
-  console.log(\`📦 [6/6] Dynamically requiring external NPM packages (lodash & dayjs)...\`);
-  const _ = await require('lodash');
-  const dayjs = await require('dayjs');
-
-  const timestamp = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const formattedTitle = _.startCase(testName);
-  console.log(\`Lodash Title Case: "\${formattedTitle}"\`);
-  console.log(\`Day.js Timestamp: \${timestamp}\`);
-
-  // 6. Test File Writing via fs.writeFileSync (Live UI Sync!)
-  const reportPath = 'full-test-results.txt';
-  if (writeOutputFile) {
-    const reportContent = util.format(
-      "=== MASTER SYSTEM TEST REPORT ===\\nTest Name: %s\\nTimestamp: %s\\nBatch Size: %d\\nSum: %d\\nAvg: %s\\nSHA-256: %s\\nUUID: %s\\nAccent: %s\\nConfig: %j",
-      formattedTitle,
-      timestamp,
-      sampleBatchSize,
-      totalSum,
-      avgValue.toFixed(2),
-      sha256Hash,
-      generatedUuid,
-      themeAccent,
-      metadataConfig
-    );
-    fs.writeFileSync(reportPath, reportContent);
-    console.log(\`✅ Written report to workspace file "\${reportPath}" via fs.writeFileSync()!\`);
-  }
-
-  // 7. Output Payload Generation
-  const records = [
-    { Metric: 'Test Suite Name', Value: formattedTitle },
-    { Metric: 'Execution Time', Value: timestamp },
-    { Metric: 'Batch Size', Value: sampleBatchSize },
-    { Metric: 'Math Sum', Value: totalSum },
-    { Metric: 'Math Average', Value: avgValue.toFixed(2) },
-    { Metric: 'SHA-256 Digest', Value: sha256Hash.slice(0, 16) + '...' },
-    { Metric: 'Generated UUID', Value: generatedUuid },
-    { Metric: 'Report File', Value: reportPath },
-    { Metric: 'Accent Color', Value: themeAccent }
+  const summary = [
+    { Parameter: 'User Display Name', Type: 'string', Value: userName },
+    { Parameter: 'Max Retries', Type: 'number', Value: maxRetries },
+    { Parameter: 'Notifications Enabled', Type: 'boolean', Value: enableNotifications },
+    { Parameter: 'Environment', Type: 'select', Value: environment },
+    { Parameter: 'CPU Threshold', Type: 'range', Value: \`\${cpuThreshold}%\` },
+    { Parameter: 'Primary Color', Type: 'color', Value: primaryColor },
+    { Parameter: 'Settings Timeout', Type: 'json', Value: \`\${appSettings?.timeoutMs || 0} ms\` }
   ];
 
-  console.table(records);
+  console.table(summary);
+  return summary;
+}
+`
+  },
+  // 01-parameter-types/autodetect-params-demo.js
+  {
+    id: 'file-01-autodetect',
+    name: 'autodetect-params-demo.js',
+    type: 'file',
+    path: '01-parameter-types/autodetect-params-demo.js',
+    parentId: 'folder-01-params',
+    fileKind: 'code',
+    category: 'Parameters',
+    code: `/**
+ * @name Auto-Detected Parameters Test
+ * @description Demonstrates automatic UI parameter form creation from function signatures, destructuring, and property usage without explicit @param tags!
+ */
+async function run({ query = "Security Scan", maxResults = 10, isVerbose = true, outputFormat = "JSON" }) {
+  console.log("🔍 Auto-Detected Parameter Execution");
+  console.log(\`Search Query: "\${query}" | Max Results: \${maxResults} | Verbose: \${isVerbose} | Format: \${outputFormat}\`);
 
-  if (outputFormat === 'HTMLFrame') {
-    return {
-      __html: \`
-        <div style="font-family: system-ui, sans-serif; padding: 24px; background: #09090b; color: #fafafa; border-radius: 16px; border: 1px solid #27272a; max-width: 520px; margin: 0 auto;">
-          <div style="display: flex; align-items: center; justify-content: space-between; border-b: 1px solid #27272a; padding-bottom: 12px; margin-bottom: 16px;">
-            <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: \${themeAccent};">\${formattedTitle}</h2>
-            <span style="background: #10b98122; color: #10b981; border: 1px solid #10b98144; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;">
-              PASSED
-            </span>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-            <div style="background: #18181b; padding: 12px; border-radius: 10px;">
-              <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase;">Batch Sum</div>
-              <div style="font-size: 24px; font-weight: 900; color: \${themeAccent};">\${totalSum}</div>
-            </div>
-            <div style="background: #18181b; padding: 12px; border-radius: 10px;">
-              <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase;">Average</div>
-              <div style="font-size: 24px; font-weight: 900; color: #10b981;">\${avgValue.toFixed(1)}</div>
-            </div>
-          </div>
-          <div style="font-size: 11px; font-family: monospace; color: #a1a1aa; background: #121215; padding: 10px; border-radius: 8px;">
-            UUID: \${generatedUuid}<br/>
-            Report: \${reportPath}
-          </div>
-        </div>
-      \`,
-      __title: 'Master Test Summary Frame'
-    };
+  // Extra destructuring inside body (also auto-detected by parser!)
+  const { batchSize = 5, retryCount = 2 } = arguments[0] || {};
+  console.log(\`Batch Size: \${batchSize} | Retry Count: \${retryCount}\`);
+
+  const results = Array.from({ length: Math.min(maxResults, 20) }, (_, i) => ({
+    Index: i + 1,
+    Target: \`node-\${i + 1}.network.local\`,
+    Query: query,
+    Status: i % 4 === 0 ? "Warning" : "Healthy"
+  }));
+
+  if (isVerbose) {
+    console.table(results);
   }
 
-  return records;
+  return { query, totalFound: results.length, sample: results.slice(0, 3) };
 }
-`,
+`
   },
-  // node-demo/npm-packages-demo.js
+
+  // 2. Folder: 02-file-processing
   {
-    id: 'file-node-npm-demo',
-    name: 'npm-packages-demo.js',
-    type: 'file',
-    path: 'node-demo/npm-packages-demo.js',
-    parentId: 'folder-node-demo',
-    fileKind: 'code',
-    category: 'NPM Packages',
-    code: `/**
- * @name Dynamic NPM Package Loader Demo
- * @description Loads external NPM packages (lodash, dayjs, papaparse) dynamically via require('package-name')
- * 
- * @param {string} textInput Sample Text to Format - default: "javascript workspace sandbox"
- */
-async function run({ textInput }) {
-  console.log("📦 Loading external NPM packages dynamically...");
-
-  // Load lodash from CDN
-  const _ = await require('lodash');
-  console.log("✅ Lodash loaded! Title case:", _.startCase(textInput));
-  console.log("Lodash chunk array:", _.chunk([1, 2, 3, 4, 5, 6], 2));
-
-  // Load dayjs from CDN
-  const dayjs = await require('dayjs');
-  console.log("✅ Day.js loaded! Current time:", dayjs().format('YYYY-MM-DD HH:mm:ss'));
-  console.log("Formatted relative date (+7 days):", dayjs().add(7, 'day').format('MMMM D, YYYY'));
-
-  // Load PapaParse from CDN
-  const Papa = await require('papaparse');
-  const csvData = "Name,Role,Score\\nAlice,Engineer,95\\nBob,Designer,88";
-  const parsedCsv = Papa.parse(csvData, { header: true });
-  console.log("✅ PapaParse loaded! Parsed CSV rows:", parsedCsv.data);
-  console.table(parsedCsv.data);
-
-  return {
-    lodashResult: _.startCase(textInput),
-    formattedDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    csvRows: parsedCsv.data
-  };
-}
-`,
+    id: 'folder-02-files',
+    name: '02-file-processing',
+    type: 'folder',
+    path: '02-file-processing',
+    parentId: null,
+    expanded: true
   },
-  // node-demo/csv-parser.js
+  // 02-file-processing/csv-filter-and-write.js
   {
-    id: 'file-node-csv-parser',
-    name: 'csv-parser.js',
+    id: 'file-02-csv-filter',
+    name: 'csv-filter-and-write.js',
     type: 'file',
-    path: 'node-demo/csv-parser.js',
-    parentId: 'folder-node-demo',
+    path: '02-file-processing/csv-filter-and-write.js',
+    parentId: 'folder-02-files',
     fileKind: 'code',
-    category: 'Node.js',
+    category: 'File Processing',
     code: `/**
- * @name CSV Data File Reader & Parser
- * @description Reads data/subdomains.csv using Node.js fs.readFileSync, parses rows, and outputs to Frame Preview table!
+ * @name Virtual FS CSV Processor & Report Writer
+ * @description Reads data/servers.csv, filters servers by status and latency, calculates statistics, and writes a report file to the workspace virtual FS via fs.writeFileSync()!
  * 
- * @param {string} csvFilePath Target CSV File - default: "data/subdomains.csv"
- * @param {select:All|Active|Warning|Offline} statusFilter Filter by Status - default: "All"
+ * @param {string} csvPath Source CSV Workspace Path - default: "data/servers.csv"
+ * @param {select:All|Online|Warning|Maintenance} statusFilter Server Status Filter - default: "All"
+ * @param {range:10:500:10} maxLatencyMs Latency Threshold (ms) - default: 200
+ * @param {string} outputReportFile Output Summary Report Filename - default: "server-audit-report.txt"
  */
-async function run({ csvFilePath, statusFilter }) {
+async function run({ csvPath, statusFilter, maxLatencyMs, outputReportFile }) {
   const fs = require('fs');
-  const path = require('path');
+  const util = require('util');
 
-  console.log(\`📂 Reading CSV data file: "\${csvFilePath}" via fs.readFileSync()...\`);
+  console.log(\`📂 Reading CSV workspace file: "\${csvPath}" via fs.readFileSync()...\`);
 
-  if (!fs.existsSync(csvFilePath)) {
-    throw new Error(\`CSV File "\${csvFilePath}" not found in workspace!\`);
+  if (!fs.existsSync(csvPath)) {
+    throw new Error(\`CSV File "\${csvPath}" not found in workspace!\`);
   }
 
-  const rawText = fs.readFileSync(csvFilePath, 'utf8');
+  const rawText = fs.readFileSync(csvPath, 'utf8');
   const lines = rawText.trim().split('\\n');
   const headers = lines[0].split(',').map(h => h.trim());
 
-  console.log(\`Header Columns (\${headers.length}):\`, headers);
-
   const records = [];
+  let totalLatency = 0;
+
   for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(',').map(c => c.trim());
-    if (row.length < headers.length) continue;
+    const cols = lines[i].split(',').map(c => c.trim());
+    if (cols.length < headers.length) continue;
 
-    const entry = {};
-    headers.forEach((h, idx) => {
-      entry[h] = row[idx];
-    });
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = cols[idx]; });
 
-    if (statusFilter === 'All' || entry.Status === statusFilter) {
-      records.push(entry);
+    const latency = Number(row.LatencyMs) || 0;
+
+    const matchStatus = statusFilter === 'All' || row.Status === statusFilter;
+    const matchLatency = latency <= maxLatencyMs;
+
+    if (matchStatus && matchLatency) {
+      records.push(row);
+      totalLatency += latency;
     }
   }
 
-  console.log(\`✅ Parsed \${records.length} records matching status "\${statusFilter}":\`);
+  const avgLatency = records.length > 0 ? (totalLatency / records.length).toFixed(1) : 0;
+  console.log(\`✅ Filtered \${records.length} servers matching Status="\${statusFilter}" & Latency <= \${maxLatencyMs}ms\`);
+  console.log(\`Average Latency: \${avgLatency} ms\`);
   console.table(records);
+
+  // Write new report file into workspace virtual FS!
+  const reportContent = util.format(
+    "=== SERVER AUDIT REPORT ===\\nTimestamp: %s\\nStatus Filter: %s\\nMax Latency: %d ms\\nTotal Matching Servers: %d\\nAverage Latency: %s ms\\n\\nMatched Servers:\\n%j",
+    new Date().toISOString(),
+    statusFilter,
+    maxLatencyMs,
+    records.length,
+    avgLatency,
+    records
+  );
+
+  fs.writeFileSync(outputReportFile, reportContent);
+  console.log(\`📝 Written summary report to workspace file "\${outputReportFile}" via fs.writeFileSync()!\`);
 
   return records;
 }
 `
   },
-  // node-demo/fs-and-crypto.js
+  // 02-file-processing/json-transformer.js
   {
-    id: 'file-node-fs-crypto',
-    name: 'fs-and-crypto.js',
+    id: 'file-02-json-transform',
+    name: 'json-transformer.js',
     type: 'file',
-    path: 'node-demo/fs-and-crypto.js',
-    parentId: 'folder-node-demo',
+    path: '02-file-processing/json-transformer.js',
+    parentId: 'folder-02-files',
+    fileKind: 'code',
+    category: 'File Processing',
+    code: `/**
+ * @name Virtual FS JSON Data Transformer
+ * @description Reads data/users.json, transforms fields, filters active users, and saves data/active-users-report.json to the workspace tree!
+ * 
+ * @param {string} jsonPath Source JSON File - default: "data/users.json"
+ * @param {select:All|Admin|Developer|Analyst} roleFilter Target Role Filter - default: "All"
+ * @param {boolean} activeOnly Filter Active Status Only - default: true
+ * @param {string} outputJsonPath Output Transformed JSON - default: "data/active-users-report.json"
+ */
+async function run({ jsonPath, roleFilter, activeOnly, outputJsonPath }) {
+  const fs = require('fs');
+
+  console.log(\`📂 Reading JSON file "\${jsonPath}"...\`);
+  if (!fs.existsSync(jsonPath)) {
+    throw new Error(\`File \${jsonPath} does not exist in workspace!\`);
+  }
+
+  const rawJson = fs.readFileSync(jsonPath, 'utf8');
+  const users = JSON.parse(rawJson);
+
+  const filtered = users.filter(user => {
+    const matchRole = roleFilter === 'All' || user.role === roleFilter;
+    const matchActive = !activeOnly || user.status === 'active';
+    return matchRole && matchActive;
+  }).map(u => ({
+    ...u,
+    processedAt: new Date().toISOString(),
+    accountTier: u.loginCount > 30 ? 'Power User' : 'Standard User'
+  }));
+
+  console.log(\`Processed \${filtered.length} user records.\`);
+  console.table(filtered);
+
+  // Write file to workspace
+  fs.writeFileSync(outputJsonPath, JSON.stringify(filtered, null, 2));
+  console.log(\`✅ Saved transformed data to workspace file "\${outputJsonPath}"!\`);
+
+  return filtered;
+}
+`
+  },
+
+  // 3. Folder: 03-node-core-modules
+  {
+    id: 'folder-03-node',
+    name: '03-node-core-modules',
+    type: 'folder',
+    path: '03-node-core-modules',
+    parentId: null,
+    expanded: true
+  },
+  // 03-node-core-modules/node-fs-crypto-path.js
+  {
+    id: 'file-03-node-core',
+    name: 'node-fs-crypto-path.js',
+    type: 'file',
+    path: '03-node-core-modules/node-fs-crypto-path.js',
+    parentId: 'folder-03-node',
     fileKind: 'code',
     category: 'Node.js',
     code: `/**
- * @name Node.js Core Modules Demo
- * @description Demonstrates require('fs'), require('path'), require('crypto'), and Buffer in browser!
+ * @name Node.js Core Polyfills Test Suite
+ * @description Exercises require('fs'), require('path'), require('crypto'), Buffer, process, and util in browser sandbox!
  * 
- * @param {string} sampleFile Path to Read - default: "utils/math.js"
- * @param {string} newFilename File to Write - default: "crypto-digest.txt"
+ * @param {string} sampleFile File to Read - default: "data/servers.csv"
+ * @param {boolean} generateHashes Compute SHA-256 and UUID - default: true
  */
-async function run({ sampleFile, newFilename }) {
+async function run({ sampleFile, generateHashes }) {
   const fs = require('fs');
   const path = require('path');
   const crypto = require('crypto');
   const util = require('util');
 
-  console.log(\`📂 Node process.cwd(): "\${process.cwd()}" | version: \${process.version}\`);
-  console.log(\`🔍 Checking file existence for "\${sampleFile}"...\`);
+  console.log("⚡ Node.js Core Modules Environment Test");
+  console.log(\`Node process.cwd(): "\${process.cwd()}" | platform: \${process.platform} | version: \${process.version}\`);
+  console.log(\`Path Dirname: "\${path.dirname(sampleFile)}" | Basename: "\${path.basename(sampleFile)}" | Ext: "\${path.extname(sampleFile)}"\`);
 
   if (!fs.existsSync(sampleFile)) {
-    throw new Error(\`File \${sampleFile} does not exist in workspace!\`);
+    throw new Error(\`File \${sampleFile} not found!\`);
   }
 
   const content = fs.readFileSync(sampleFile, 'utf8');
   const buffer = Buffer.from(content);
-  console.log(\`Read \${content.length} characters (\${buffer.length} bytes).\`);
+  console.log(\`Read file content: \${content.length} characters (\${buffer.length} bytes).\`);
 
-  // Create SHA-256 Digest using Node crypto
-  const sha256 = crypto.createHash('sha256').update(content).digest('hex');
-  const uuid = crypto.randomUUID();
+  let sha256 = 'N/A';
+  let uuid = 'N/A';
+  let randomHex = 'N/A';
 
-  console.log(\`SHA-256 Digest: \${sha256}\`);
-  console.log(\`Generated UUID: \${uuid}\`);
+  if (generateHashes) {
+    sha256 = crypto.createHash('sha256').update(content).digest('hex');
+    uuid = crypto.randomUUID();
+    randomHex = crypto.randomBytes(16).toString('hex');
 
-  const outputPayload = util.format(
-    "Source File: %s\\nByte Size: %d\\nSHA-256: %s\\nGenerated UUID: %s\\nTimestamp: %s",
+    console.log(\`🔒 SHA-256 Digest: \${sha256}\`);
+    console.log(\`🆔 Generated UUID: \${uuid}\`);
+    console.log(\`🎲 Random 16 Bytes: \${randomHex}\`);
+  }
+
+  const formattedLog = util.format(
+    "File: %s | Size: %d bytes | SHA-256: %s",
     sampleFile,
     buffer.length,
+    sha256.slice(0, 16) + '...'
+  );
+  console.log("Util Format Output:", formattedLog);
+
+  return {
+    sampleFile,
+    byteSize: buffer.length,
     sha256,
     uuid,
-    new Date().toISOString()
-  );
-
-  // Write file to workspace tree via fs.writeFileSync!
-  fs.writeFileSync(newFilename, outputPayload);
-  console.log(\`✅ Written result to workspace file: "\${newFilename}" via fs.writeFileSync()!\`);
-
-  return { file: newFilename, sha256, uuid, size: buffer.length };
+    randomHex
+  };
 }
 `
   },
-  // Root level folder: utils
+  // 03-node-core-modules/node-events-buffer.js
   {
-    id: 'folder-utils',
-    name: 'utils',
+    id: 'file-03-node-events',
+    name: 'node-events-buffer.js',
+    type: 'file',
+    path: '03-node-core-modules/node-events-buffer.js',
+    parentId: 'folder-03-node',
+    fileKind: 'code',
+    category: 'Node.js',
+    code: `/**
+ * @name Node.js EventEmitter & Buffer Deep-Dive
+ * @description Demonstrates require('events') EventEmitter, Buffer.concat, Buffer.alloc, and util.inspect!
+ */
+async function run() {
+  const { EventEmitter } = require('events');
+  const util = require('util');
+
+  console.log("📢 Initializing EventEmitter instance...");
+  const bus = new EventEmitter();
+
+  const logs = [];
+  bus.on('data', (msg) => {
+    console.log(\`[Event bus] Received data event: "\${msg}"\`);
+    logs.push(msg);
+  });
+
+  bus.emit('data', 'Initialization ping');
+  bus.emit('data', 'Processing step 1');
+  bus.emit('data', 'Task completed');
+
+  // Buffer Concatenation
+  const buf1 = Buffer.from('Hello ');
+  const buf2 = Buffer.from('World ');
+  const buf3 = Buffer.from('from Node.js Polyfills!');
+  const mergedBuf = Buffer.concat([buf1, buf2, buf3]);
+
+  console.log("Merged Buffer text:", mergedBuf.toString());
+  console.log("Util Inspect:", util.inspect({ busEvents: logs.length, bufferSize: mergedBuf.length }));
+
+  return {
+    eventCount: logs.length,
+    eventsReceived: logs,
+    mergedBufferText: mergedBuf.toString()
+  };
+}
+`
+  },
+
+  // 4. Folder: 04-npm-packages
+  {
+    id: 'folder-04-npm',
+    name: '04-npm-packages',
     type: 'folder',
-    path: 'utils',
+    path: '04-npm-packages',
     parentId: null,
     expanded: true
   },
-  // utils/math.js
+  // 04-npm-packages/npm-dynamic-loader.js
   {
-    id: 'file-utils-math',
+    id: 'file-04-npm-demo',
+    name: 'npm-dynamic-loader.js',
+    type: 'file',
+    path: '04-npm-packages/npm-dynamic-loader.js',
+    parentId: 'folder-04-npm',
+    fileKind: 'code',
+    category: 'NPM Packages',
+    code: `/**
+ * @name Dynamic CDN NPM Package Importer
+ * @description Dynamically requires lodash, dayjs, and papaparse from CDN (esm.sh) at runtime via require('package')!
+ * 
+ * @param {string} rawString Sample Text for Lodash - default: "javascript browser worker sandbox execution"
+ */
+async function run({ rawString }) {
+  console.log("📦 Dynamically loading NPM packages via require()...");
+
+  // 1. Load lodash from CDN
+  const _ = await require('lodash');
+  console.log("✅ Lodash loaded!");
+  console.log("  -> startCase:", _.startCase(rawString));
+  console.log("  -> chunk array:", _.chunk([10, 20, 30, 40, 50, 60, 70, 80], 3));
+
+  // 2. Load dayjs from CDN
+  const dayjs = await require('dayjs');
+  console.log("✅ Day.js loaded!");
+  console.log("  -> Current Time:", dayjs().format('YYYY-MM-DD HH:mm:ss'));
+  console.log("  -> In 30 Days:", dayjs().add(30, 'day').format('MMMM D, YYYY'));
+
+  // 3. Load PapaParse from CDN
+  const Papa = await require('papaparse');
+  console.log("✅ PapaParse loaded!");
+  const csvData = "Service,Region,Uptime\\nAuthService,us-east,99.9%\\nPaymentGateway,eu-central,99.5%";
+  const parsed = Papa.parse(csvData, { header: true });
+  console.table(parsed.data);
+
+  return {
+    lodashTitleCase: _.startCase(rawString),
+    formattedDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    parsedCsvRows: parsed.data
+  };
+}
+`
+  },
+
+  // 5. Folder: 05-cross-script-imports
+  {
+    id: 'folder-05-imports',
+    name: '05-cross-script-imports',
+    type: 'folder',
+    path: '05-cross-script-imports',
+    parentId: null,
+    expanded: true
+  },
+  // 05-cross-script-imports/helpers (subfolder)
+  {
+    id: 'folder-05-helpers',
+    name: 'helpers',
+    type: 'folder',
+    path: '05-cross-script-imports/helpers',
+    parentId: 'folder-05-imports',
+    expanded: true
+  },
+  // 05-cross-script-imports/helpers/math.js
+  {
+    id: 'file-05-math',
     name: 'math.js',
     type: 'file',
-    path: 'utils/math.js',
-    parentId: 'folder-utils',
+    path: '05-cross-script-imports/helpers/math.js',
+    parentId: 'folder-05-helpers',
     fileKind: 'code',
     category: 'Utilities',
     code: `/**
- * @name Math Utilities Module
- * @description Provides helper statistical calculation functions exported for other scripts.
+ * @name Math Helper Module
+ * @description Provides statistical calculation utilities exported for other scripts in the workspace.
  */
 
 export function sum(arr) {
@@ -426,91 +495,282 @@ export function average(arr) {
   return sum(arr) / arr.length;
 }
 
-export function square(n) {
-  return n * n;
-}
-
 export function max(arr) {
   return Math.max(...arr);
 }
+
+export function min(arr) {
+  return Math.min(...arr);
+}
 `
   },
-  // utils/formatters.js
+  // 05-cross-script-imports/helpers/formatters.js
   {
-    id: 'file-utils-formatters',
+    id: 'file-05-formatters',
     name: 'formatters.js',
     type: 'file',
-    path: 'utils/formatters.js',
-    parentId: 'folder-utils',
+    path: '05-cross-script-imports/helpers/formatters.js',
+    parentId: 'folder-05-helpers',
     fileKind: 'code',
     category: 'Utilities',
     code: `/**
- * @name Text & Table Formatters Module
- * @description Formats summary statistics tables by importing math helpers from math.js
+ * @name Formatters Helper Module
+ * @description Imports math.js via relative require and formats summary table records.
  */
 
-export async function formatStatsTable(numbers) {
+export async function buildSummaryTable(numbers) {
   const math = await require('./math.js');
 
-  const total = math.sum(numbers);
-  const avg = math.average(numbers);
-  const highest = math.max(numbers);
+  const totalSum = math.sum(numbers);
+  const avgVal = math.average(numbers);
+  const maxVal = math.max(numbers);
+  const minVal = math.min(numbers);
 
   return [
-    { Metric: 'Total Sum', Value: total },
-    { Metric: 'Average Value', Value: avg.toFixed(2) },
-    { Metric: 'Peak Value', Value: highest },
-    { Metric: 'Sample Size', Value: numbers.length }
+    { Metric: 'Total Sum', Value: totalSum },
+    { Metric: 'Average', Value: avgVal.toFixed(2) },
+    { Metric: 'Maximum', Value: maxVal },
+    { Metric: 'Minimum', Value: minVal },
+    { Metric: 'Sample Count', Value: numbers.length }
   ];
 }
 `
   },
-  // Root level file: main.js
+  // 05-cross-script-imports/main-orchestrator.js
   {
-    id: 'file-main-orchestrator',
-    name: 'main.js',
+    id: 'file-05-orchestrator',
+    name: 'main-orchestrator.js',
     type: 'file',
-    path: 'main.js',
-    parentId: null,
+    path: '05-cross-script-imports/main-orchestrator.js',
+    parentId: 'folder-05-imports',
     fileKind: 'code',
-    category: 'Main',
+    category: 'Imports & Execution',
     code: `/**
- * @name Master Workspace Orchestrator
- * @description Main orchestrator script importing modules across utils/, network/, and visuals/
+ * @name Cross-Script Module & Orchestration Demo
+ * @description Imports local workspace helper modules (./helpers/math.js and ./helpers/formatters.js) via require() and executes other scripts via workspace.runScript()!
  * 
- * @param {string} projectTitle Project Monitor Title - default: "Enterprise Network Hub"
- * @param {range:1:100:1} healthIndex Overall System Health - default: 98
+ * @param {string} taskTitle Task Diagnostics Name - default: "Omni-Channel Diagnostics"
+ * @param {range:5:50:5} sampleSize Dataset Element Count - default: 15
  */
-async function run({ projectTitle, healthIndex }) {
-  console.log(\`🚀 Running Master Orchestrator for: "\${projectTitle}"...\`);
+async function run({ taskTitle, sampleSize }) {
+  console.log(\`🚀 [1/3] Starting Orchestrator for: "\${taskTitle}"...\`);
 
-  const math = await require('./utils/math.js');
-  const formatters = await require('./utils/formatters.js');
-  
-  const numbers = [12, 45, 88, 102, 34, healthIndex];
-  console.log("Input Array:", numbers);
-  console.log("Calculated Average:", math.average(numbers));
+  // 1. Import relative module math.js
+  const math = await require('./helpers/math.js');
+  const numbers = Array.from({ length: sampleSize }, (_, i) => (i + 1) * 3);
 
-  const statsTable = await formatters.formatStatsTable(numbers);
-  console.table(statsTable);
+  console.log("Input dataset (" + sampleSize + " items):", numbers);
+  console.log(\`Sum via math.js: \${math.sum(numbers)} | Average: \${math.average(numbers).toFixed(2)}\`);
 
-  return statsTable;
+  // 2. Import relative module formatters.js
+  console.log("🔗 [2/3] Importing ./helpers/formatters.js...");
+  const formatters = await require('./helpers/formatters.js');
+  const summaryTable = await formatters.buildSummaryTable(numbers);
+  console.table(summaryTable);
+
+  // 3. Execute another script using workspace.runScript()
+  console.log("⚡ [3/3] Invoking child script via workspace.runScript('01-parameter-types/autodetect-params-demo.js')...");
+  const childResult = await workspace.runScript('01-parameter-types/autodetect-params-demo.js', {
+    query: taskTitle,
+    maxResults: 5
+  });
+
+  console.log("Child Script Executed Successfully! Result:", childResult);
+
+  return summaryTable;
 }
 `
+  },
+
+  // 6. Folder: 06-frame-renderers
+  {
+    id: 'folder-06-frames',
+    name: '06-frame-renderers',
+    type: 'folder',
+    path: '06-frame-renderers',
+    parentId: null,
+    expanded: true
+  },
+  // 06-frame-renderers/html-dashboard-frame.js
+  {
+    id: 'file-06-html-frame',
+    name: 'html-dashboard-frame.js',
+    type: 'file',
+    path: '06-frame-renderers/html-dashboard-frame.js',
+    parentId: 'folder-06-frames',
+    fileKind: 'code',
+    category: 'Frame Rendering',
+    code: `/**
+ * @name HTML Frame UI Dashboard Renderer
+ * @description Renders an interactive, styled dark-mode HTML dashboard widget directly inside the Frame Preview tab!
+ * 
+ * @param {string} systemName Application System Name - default: "Antigravity Cloud Hub"
+ * @param {range:50:100:1} healthPercent System Health Score % - default: 96
+ * @param {color} accentColor Primary Brand Color - default: "#10b981"
+ * @param {select:Operational|Degraded|Maintenance} systemStatus Current System Status - default: "Operational"
+ */
+async function run({ systemName, healthPercent, accentColor, systemStatus }) {
+  console.log(\`🎨 Rendering HTML UI Frame for "\${systemName}"...\`);
+
+  const statusBg = systemStatus === 'Operational' ? '#10b98122' : systemStatus === 'Degraded' ? '#f59e0b22' : '#ef444422';
+  const statusColor = systemStatus === 'Operational' ? '#10b981' : systemStatus === 'Degraded' ? '#f59e0b' : '#ef4444';
+
+  return {
+    __html: \`
+      <div style="font-family: system-ui, -apple-system, sans-serif; padding: 24px; background: #09090b; color: #fafafa; border-radius: 16px; border: 1px solid #27272a; max-width: 540px; margin: 0 auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #27272a; padding-bottom: 14px; margin-bottom: 20px;">
+          <div>
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: \${accentColor};">\${systemName}</h2>
+            <div style="font-size: 12px; color: #a1a1aa; margin-top: 2px;">Live Workspace Execution Frame</div>
+          </div>
+          <span style="background: \${statusBg}; color: \${statusColor}; border: 1px solid \${statusColor}44; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 800;">
+            \${systemStatus}
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+          <div style="background: #18181b; padding: 16px; border-radius: 12px; border: 1px solid #27272a;">
+            <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 700;">Health Score</div>
+            <div style="font-size: 32px; font-weight: 900; color: \${accentColor}; margin-top: 4px;">\${healthPercent}%</div>
+          </div>
+          <div style="background: #18181b; padding: 16px; border-radius: 12px; border: 1px solid #27272a;">
+            <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 700;">Response Time</div>
+            <div style="font-size: 32px; font-weight: 900; color: #3b82f6; margin-top: 4px;">12ms</div>
+          </div>
+        </div>
+
+        <div style="background: #18181b; padding: 14px; border-radius: 12px; border: 1px solid #27272a; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+            <span>Capacity Allocation</span>
+            <span style="font-weight: 700;">\${healthPercent}%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: #27272a; border-radius: 9999px; overflow: hidden;">
+            <div style="width: \${healthPercent}%; height: 100%; background: \${accentColor}; transition: width 0.5s ease;"></div>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; font-family: monospace; color: #71717a; text-align: center;">
+          Frame Generated: \${new Date().toLocaleTimeString()}
+        </div>
+      </div>
+    \`,
+    __title: \`\${systemName} Summary Frame\`
+  };
+}
+`
+  },
+  // 06-frame-renderers/table-and-image-frame.js
+  {
+    id: 'file-06-table-frame',
+    name: 'table-and-image-frame.js',
+    type: 'file',
+    path: '06-frame-renderers/table-and-image-frame.js',
+    parentId: 'folder-06-frames',
+    fileKind: 'code',
+    category: 'Frame Rendering',
+    code: `/**
+ * @name Table Record Set Frame Renderer
+ * @description Returns a structured array of records for automatic tabular visual rendering in the Frame Preview tab!
+ * 
+ * @param {select:TableData|SampleImage} frameType Target Output Format - default: "TableData"
+ */
+async function run({ frameType }) {
+  if (frameType === 'SampleImage') {
+    // Return SVG Data URL string (automatically detected as Image Frame!)
+    const svgContent = \`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"><rect width="100%" height="100%" fill="#09090b"/><circle cx="200" cy="100" r="60" fill="#6366f1"/><text x="200" y="105" fill="#ffffff" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">Frame Image Test</text></svg>\`;
+    return "data:image/svg+xml;base64," + btoa(svgContent);
+  }
+
+  // Return structured array (automatically detected as Table Frame!)
+  return [
+    { Component: 'Authentication Engine', Status: 'Active', Load: '24%', Health: '100%' },
+    { Component: 'Database Cluster', Status: 'Active', Load: '68%', Health: '98%' },
+    { Component: 'Cache Layer (Redis)', Status: 'Active', Load: '12%', Health: '100%' },
+    { Component: 'Worker Runner', Status: 'Active', Load: '45%', Health: '99%' }
+  ];
+}
+`
+  },
+
+  // 7. Folder: data
+  {
+    id: 'folder-data',
+    name: 'data',
+    type: 'folder',
+    path: 'data',
+    parentId: null,
+    expanded: true
+  },
+  // data/servers.csv
+  {
+    id: 'file-data-servers-csv',
+    name: 'servers.csv',
+    type: 'file',
+    path: 'data/servers.csv',
+    parentId: 'folder-data',
+    fileKind: 'data-csv',
+    sizeBytes: 380,
+    category: 'Data',
+    code: `IP,Hostname,Region,LatencyMs,Status
+104.16.132.22,api.cloud.net,us-east,14,Online
+104.16.133.45,cdn.cloud.net,us-west,28,Online
+172.67.180.12,auth.cloud.net,eu-central,84,Warning
+172.67.180.13,staging.cloud.net,eu-central,190,Warning
+104.16.134.99,db-primary.cloud.net,us-east,8,Online
+198.51.100.42,backup.cloud.net,ap-southeast,310,Maintenance
+`
+  },
+  // data/users.json
+  {
+    id: 'file-data-users-json',
+    name: 'users.json',
+    type: 'file',
+    path: 'data/users.json',
+    parentId: 'folder-data',
+    fileKind: 'data-json',
+    sizeBytes: 320,
+    category: 'Data',
+    code: `[
+  { "id": "usr-101", "name": "Sarah Connor", "role": "Admin", "status": "active", "loginCount": 42 },
+  { "id": "usr-102", "name": "John Doe", "role": "Developer", "status": "active", "loginCount": 18 },
+  { "id": "usr-103", "name": "Alice Smith", "role": "Analyst", "status": "inactive", "loginCount": 7 },
+  { "id": "usr-104", "name": "Bob Vance", "role": "Developer", "status": "active", "loginCount": 29 }
+]`
+  },
+  // data/sample-log.txt
+  {
+    id: 'file-data-sample-log',
+    name: 'sample-log.txt',
+    type: 'file',
+    path: 'data/sample-log.txt',
+    parentId: 'folder-data',
+    fileKind: 'data-text',
+    sizeBytes: 210,
+    category: 'Data',
+    code: `[2026-08-13 08:00:00] [INFO] System kernel initialized.
+[2026-08-13 08:00:05] [INFO] Loaded virtual filesystem module.
+[2026-08-13 08:00:12] [WARN] High latency detected on eu-central region.
+[2026-08-13 08:00:20] [INFO] Worker sandbox runner ready.`
   }
 ];
 
 export const INITIAL_WORKSPACES: Workspace[] = [
   {
     id: DEFAULT_WORKSPACE_ID,
-    name: 'Main Multi-Folder Workspace',
-    description: 'Nested directory layout with Node.js fs data file processing (.csv, .json, images)',
+    name: 'Master Feature & Parameter Test Suite',
+    description: 'Comprehensive workspace testing all JSDoc & auto parameters, Node.js modules, Virtual FS, dynamic NPM packages, cross-script imports, and visual frames',
     nodes: INITIAL_DEMO_NODES,
-    activeFileId: 'file-node-full-test'
+    activeFileId: 'file-01-jsdoc-all'
   }
 ];
 
-const STORAGE_KEY = 'js_workspace_v6_fulltest';
+const STORAGE_KEY = 'js_workspace_v8_master_suite';
+const ACTIVE_STATE_KEY = 'js_workspace_active_state_v2';
+
+export interface ActiveWorkspaceState {
+  activeWorkspaceId?: string;
+  activeFileId?: string;
+}
 
 export class WorkspaceStore {
   public static loadWorkspaces(): Workspace[] {
@@ -539,6 +799,26 @@ export class WorkspaceStore {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
     } catch (e) {
       console.warn('Failed to save workspaces to localStorage:', e);
+    }
+  }
+
+  public static loadActiveState(): ActiveWorkspaceState {
+    try {
+      const stored = localStorage.getItem(ACTIVE_STATE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to load active state from localStorage:', e);
+    }
+    return {};
+  }
+
+  public static saveActiveState(activeWorkspaceId: string, activeFileId: string) {
+    try {
+      localStorage.setItem(ACTIVE_STATE_KEY, JSON.stringify({ activeWorkspaceId, activeFileId }));
+    } catch (e) {
+      console.warn('Failed to save active state to localStorage:', e);
     }
   }
 }

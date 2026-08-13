@@ -14,6 +14,8 @@ import { parseLocalFolder, parseZipArchive, parseSingleFile } from '@/lib/import
 import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind, duplicateNodeInWorkspace, moveNodeInWorkspace } from '@/lib/workspace-store';
 import { ExecutionResultWindowModal } from '@/components/workspace/ExecutionResultWindowModal';
 import { FileOutputModal } from '@/components/output/FileOutputModal';
+import { ConfirmDeleteModal, DeleteTarget } from '@/components/modals/ConfirmDeleteModal';
+import { FileNameDetailModal } from '@/components/modals/FileNameDetailModal';
 import { ScriptOutputFile, extractFileObjectsFromReturn } from '@/lib/output-file-handler';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
 
@@ -21,8 +23,26 @@ const runner = new ScriptRunner();
 
 export function App() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>(() => WorkspaceStore.loadWorkspaces());
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(() => workspaces[0]?.id || 'ws-default-demo');
-  const [activeFileId, setActiveFileId] = useState<string>(() => workspaces[0]?.activeFileId || 'file-main-orchestrator');
+
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(() => {
+    const saved = WorkspaceStore.loadActiveState();
+    if (saved.activeWorkspaceId && workspaces.some(w => w.id === saved.activeWorkspaceId)) {
+      return saved.activeWorkspaceId;
+    }
+    return workspaces[0]?.id || 'ws-master-suite';
+  });
+
+  const [activeFileId, setActiveFileId] = useState<string>(() => {
+    const saved = WorkspaceStore.loadActiveState();
+    const currentWs = workspaces.find(w => w.id === (saved.activeWorkspaceId || workspaces[0]?.id)) || workspaces[0];
+    if (currentWs) {
+      if (saved.activeFileId && currentWs.nodes.some(n => n.id === saved.activeFileId)) {
+        return saved.activeFileId;
+      }
+      return currentWs.activeFileId || currentWs.nodes.find(n => n.type === 'file')?.id || '';
+    }
+    return '';
+  });
 
   const [optionValues, setOptionValues] = useState<Record<string, any>>({});
   const [logs, setLogs] = useState<ConsoleLogMessage[]>([]);
@@ -47,6 +67,35 @@ export function App() {
   useEffect(() => {
     WorkspaceStore.saveWorkspaces(workspaces);
   }, [workspaces]);
+
+  // Persist active workspace & active file selection across page refresh
+  useEffect(() => {
+    if (activeWorkspaceId && activeFileId) {
+      WorkspaceStore.saveActiveState(activeWorkspaceId, activeFileId);
+    }
+  }, [activeWorkspaceId, activeFileId]);
+
+  const handleSelectFile = (fileId: string) => {
+    setActiveFileId(fileId);
+    setWorkspaces(prevWorkspaces =>
+      prevWorkspaces.map(ws => {
+        if (ws.id !== activeWorkspaceId) return ws;
+        return {
+          ...ws,
+          activeFileId: fileId
+        };
+      })
+    );
+  };
+
+  const handleSelectWorkspace = (wsId: string) => {
+    setActiveWorkspaceId(wsId);
+    const targetWs = workspaces.find(w => w.id === wsId);
+    if (targetWs) {
+      const fileId = targetWs.activeFileId || targetWs.nodes.find(n => n.type === 'file')?.id || '';
+      setActiveFileId(fileId);
+    }
+  };
 
   // Parse JSDoc parameters whenever active code changes
   const parsedMeta = parseScriptOptions(activeCode);
@@ -219,9 +268,12 @@ export function App() {
 
     setWorkspaces(prev => prev.map(ws => {
       if (ws.id !== activeWorkspaceId) return ws;
+      const updatedNodes = parentId
+        ? ws.nodes.map(n => n.id === parentId ? { ...n, expanded: true } : n)
+        : ws.nodes;
       return {
         ...ws,
-        nodes: [...ws.nodes, newNode],
+        nodes: [...updatedNodes, newNode],
         activeFileId: newId
       };
     }));
@@ -245,9 +297,12 @@ export function App() {
 
     setWorkspaces(prev => prev.map(ws => {
       if (ws.id !== activeWorkspaceId) return ws;
+      const updatedNodes = parentId
+        ? ws.nodes.map(n => n.id === parentId ? { ...n, expanded: true } : n)
+        : ws.nodes;
       return {
         ...ws,
-        nodes: [...ws.nodes, newNode]
+        nodes: [...updatedNodes, newNode]
       };
     }));
   };
@@ -269,6 +324,9 @@ export function App() {
     }));
   };
 
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [inspectTargetNode, setInspectTargetNode] = useState<WorkspaceNode | null>(null);
+
   const handleDeleteNode = (nodeId: string) => {
     setWorkspaces(prev => prev.map(ws => {
       if (ws.id !== activeWorkspaceId) return ws;
@@ -280,6 +338,23 @@ export function App() {
         activeFileId: remainingFile ? remainingFile.id : ''
       };
     }));
+  };
+
+  const handleDeleteNodePrompt = (nodeId: string) => {
+    const target = activeNodes.find(n => n.id === nodeId);
+    if (!target) return;
+
+    let childCount = 0;
+    if (target.type === 'folder') {
+      childCount = activeNodes.filter(n => n.parentId === target.id).length;
+    }
+
+    setDeleteTarget({
+      type: target.type,
+      id: target.id,
+      name: target.name,
+      itemCount: childCount
+    });
   };
 
   // Workspace CRUD handlers
@@ -314,6 +389,34 @@ export function App() {
     setWorkspaces(remaining);
     setActiveWorkspaceId(remaining[0].id);
     setActiveFileId(remaining[0].activeFileId || '');
+  };
+
+  const handleDeleteWorkspacePrompt = (wsId: string) => {
+    if (workspaces.length <= 1) {
+      alert('Cannot delete the only remaining workspace.');
+      return;
+    }
+    const ws = workspaces.find(w => w.id === wsId);
+    if (!ws) return;
+
+    setDeleteTarget({
+      type: 'workspace',
+      id: ws.id,
+      name: ws.name,
+      itemCount: ws.nodes.length
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.type === 'workspace') {
+      handleDeleteWorkspace(deleteTarget.id);
+    } else {
+      handleDeleteNode(deleteTarget.id);
+    }
+
+    setDeleteTarget(null);
   };
 
   const handleExportWorkspace = (id: string) => {
@@ -453,14 +556,15 @@ export function App() {
           nodes={activeNodes}
           activeCode={activeCode}
           onUpdateActiveCode={handleUpdateActiveCode}
-          onSelectFile={setActiveFileId}
+          onSelectFile={handleSelectFile}
           onToggleFolder={handleToggleFolder}
           onCreateFile={handleCreateFile}
           onCreateFolder={handleCreateFolder}
           onRenameNode={handleRenameNode}
-          onDeleteNode={handleDeleteNode}
+          onDeleteNode={handleDeleteNodePrompt}
           onDuplicateNode={handleDuplicateNode}
           onMoveNode={handleMoveNode}
+          onInspectNode={(node) => setInspectTargetNode(node)}
           onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
           onOpenDocs={setSelectedDoc}
           onRunScript={handleRunScript}
@@ -491,14 +595,15 @@ export function App() {
           activeWorkspaceId={activeWorkspaceId}
           activeFileId={activeFileId}
           nodes={activeNodes}
-          onSelectFile={setActiveFileId}
+          onSelectFile={handleSelectFile}
           onToggleFolder={handleToggleFolder}
           onCreateFile={handleCreateFile}
           onCreateFolder={handleCreateFolder}
           onRenameNode={handleRenameNode}
-          onDeleteNode={handleDeleteNode}
+          onDeleteNode={handleDeleteNodePrompt}
           onDuplicateNode={handleDuplicateNode}
           onMoveNode={handleMoveNode}
+          onInspectNode={(node) => setInspectTargetNode(node)}
           onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
           onSelectDoc={setSelectedDoc}
           onImportFolder={handleImportFolder}
@@ -618,9 +723,9 @@ export function App() {
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
           onClose={() => setIsWsManagerOpen(false)}
-          onSelectWorkspace={setActiveWorkspaceId}
+          onSelectWorkspace={handleSelectWorkspace}
           onCreateWorkspace={handleCreateWorkspace}
-          onDeleteWorkspace={handleDeleteWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspacePrompt}
           onImportWorkspace={handleImportWorkspace}
           onExportWorkspace={handleExportWorkspace}
         />
@@ -638,6 +743,21 @@ export function App() {
         isOpen={outputFilesPrompt.length > 0}
         onClose={() => setOutputFilesPrompt([])}
         onAddToWorkspaceRoot={handleAddToWorkspaceRoot}
+      />
+
+      {/* Premium Confirm Delete Modal for Files, Folders, & Workspaces */}
+      <ConfirmDeleteModal
+        isOpen={deleteTarget !== null}
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Mobile File Name & Path Inspector Modal */}
+      <FileNameDetailModal
+        isOpen={inspectTargetNode !== null}
+        node={inspectTargetNode}
+        onClose={() => setInspectTargetNode(null)}
       />
     </>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2 } from 'lucide-react';
+import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2 } from 'lucide-react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 
 interface MobileHeaderProps {
@@ -15,6 +15,8 @@ interface MobileHeaderProps {
   onImportClick: () => void;
   onOpenExtensionModal: () => void;
   onOpenResultWindow?: () => void;
+  onDeleteActiveFile?: (fileId: string) => void;
+  onDuplicateActiveFile?: (fileId: string) => void;
   extensionActive: boolean;
   isOnline: boolean;
 }
@@ -32,6 +34,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onImportClick,
   onOpenExtensionModal,
   onOpenResultWindow,
+  onDeleteActiveFile,
+  onDuplicateActiveFile,
   extensionActive,
   isOnline
 }) => {
@@ -44,6 +48,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         type="button"
         onClick={onOpenDrawer}
         className="flex items-center gap-2 max-w-[48%] flex-1 text-left p-1.5 rounded-xl border border-border/60 bg-card hover:bg-muted transition-all cursor-pointer shadow-xs min-w-0"
+        aria-label="Open File Explorer Drawer"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
           <FileCode className="h-4 w-4" />
@@ -66,6 +71,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             type="button"
             onClick={onRun}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all cursor-pointer"
+            aria-label="Run Script"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             <span>Run</span>
@@ -75,6 +81,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             type="button"
             onClick={onStop}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive text-destructive-foreground text-xs font-bold shadow-md hover:bg-destructive/90 animate-pulse transition-all cursor-pointer"
+            aria-label="Stop Script Execution"
           >
             <Square className="h-3.5 w-3.5 fill-current" />
             <span>Stop</span>
@@ -88,6 +95,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             onClick={() => setShowMenu(!showMenu)}
             className="p-2 rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs"
             title="More Options"
+            aria-label="More Options Menu"
           >
             <MoreVertical className="h-4 w-4" />
           </button>
@@ -106,11 +114,33 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                 <span className="text-[10px] text-muted-foreground font-mono">Ctrl+S</span>
               </button>
 
+              {activeFile && onDuplicateActiveFile && (
+                <button
+                  type="button"
+                  onClick={() => { onDuplicateActiveFile(activeFile.id); setShowMenu(false); }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
+                >
+                  <Copy className="h-4 w-4 text-blue-400 shrink-0" />
+                  <span>Duplicate Active File</span>
+                </button>
+              )}
+
+              {activeFile && onDeleteActiveFile && (
+                <button
+                  type="button"
+                  onClick={() => { onDeleteActiveFile(activeFile.id); setShowMenu(false); }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-destructive hover:bg-destructive/10 flex items-center gap-2.5 transition-colors font-bold"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive shrink-0" />
+                  <span>Delete Active File</span>
+                </button>
+              )}
+
               {onOpenResultWindow && (
                 <button
                   type="button"
                   onClick={() => { onOpenResultWindow(); setShowMenu(false); }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-primary font-bold hover:bg-muted flex items-center gap-2.5 transition-colors"
+                  className="w-full text-left px-3 py-2 rounded-xl text-primary font-bold hover:bg-muted flex items-center gap-2.5 transition-colors border-t border-border/40 pt-2"
                 >
                   <Maximize2 className="h-4 w-4 shrink-0" />
                   <span>Open Full Result Window</span>

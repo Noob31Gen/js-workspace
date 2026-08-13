@@ -18,6 +18,7 @@ interface MobileFileDrawerProps {
   onDeleteNode: (nodeId: string) => void;
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
+  onInspectNode?: (node: WorkspaceNode) => void;
   onOpenWorkspaceManager: () => void;
 }
 
@@ -36,6 +37,7 @@ export const MobileFileDrawer: React.FC<MobileFileDrawerProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onMoveNode,
+  onInspectNode,
   onOpenWorkspaceManager
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
@@ -118,6 +120,10 @@ export const MobileFileDrawer: React.FC<MobileFileDrawerProps> = ({
             onDeleteNode={onDeleteNode}
             onDuplicateNode={onDuplicateNode}
             onMoveNode={onMoveNode}
+            onInspectNode={(node) => {
+              onInspectNode?.(node);
+              onClose();
+            }}
             onRestoreDemo={() => { onOpenWorkspaceManager(); onClose(); }}
           />
         </div>

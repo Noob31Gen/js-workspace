@@ -17,6 +17,7 @@ interface AppLayoutProps {
   onDeleteNode: (nodeId: string) => void;
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
+  onInspectNode?: (node: WorkspaceNode) => void;
   onOpenWorkspaceManager: () => void;
   onSelectDoc: (doc: string) => void;
   onImportFolder?: (fileList: FileList) => void;
@@ -39,6 +40,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onDeleteNode,
   onDuplicateNode,
   onMoveNode,
+  onInspectNode,
   onOpenWorkspaceManager,
   onSelectDoc,
   onImportFolder,
@@ -115,6 +117,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               onDeleteNode={onDeleteNode}
               onDuplicateNode={onDuplicateNode}
               onMoveNode={onMoveNode}
+              onInspectNode={onInspectNode}
               onOpenWorkspaceManager={onOpenWorkspaceManager}
               onOpenDocs={onSelectDoc}
             />
@@ -145,6 +148,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 onDeleteNode={onDeleteNode}
                 onDuplicateNode={onDuplicateNode}
                 onMoveNode={onMoveNode}
+                onInspectNode={(node) => {
+                  onInspectNode?.(node);
+                  setIsMobileSidebarOpen(false);
+                }}
                 onOpenWorkspaceManager={() => {
                   onOpenWorkspaceManager();
                   setIsMobileSidebarOpen(false);
