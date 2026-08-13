@@ -93,8 +93,14 @@ export class ScriptRunner {
             .replace(/import\\s+\\*\\s+as\\s+([a-zA-Z0-9_$]+)\\s+from\\s+['"]([^'"]+)['"]/g, 'const $1 = require("$2");')
             .replace(/import\\s+([a-zA-Z0-9_$]+)\\s+from\\s+['"]([^'"]+)['"]/g, 'const $1 = (require("$2").default || require("$2"));')
             .replace(/import\\s*\\{([^}]+)\\}\\s*from\\s+['"]([^'"]+)['"]/g, 'const {$1} = require("$2");')
-            .replace(/export\\s+async\\s+function\\s+run/g, 'async function run')
-            .replace(/export\\s+function\\s+run/g, 'function run');
+            .replace(/export\\s+default\\s+async\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'async function $1')
+            .replace(/export\\s+default\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'function $1')
+            .replace(/export\\s+default\\s+/g, 'const __default_export__ = ')
+            .replace(/export\\s+async\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'async function $1')
+            .replace(/export\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'function $1')
+            .replace(/export\\s+const\\s+([a-zA-Z0-9_$]+)/g, 'const $1')
+            .replace(/export\\s+let\\s+([a-zA-Z0-9_$]+)/g, 'let $1')
+            .replace(/export\\s+var\\s+([a-zA-Z0-9_$]+)/g, 'var $1');
 
           const scriptFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', \`
             return (async () => {

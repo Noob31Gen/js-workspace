@@ -51,10 +51,12 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
   const jsdocKeys = new Set<string>();
 
-  // 2. Extract @param JSDoc annotations safely line-by-line
-  const jsdocLines = code.match(/@param\s+[^\r\n]+/gi) || [];
+  // 2. Extract @param JSDoc annotations safely line-by-line (only when starting a JSDoc line)
+  const jsdocLineRegex = /^\s*\*?\s*@param\s+[^\r\n]+/gim;
+  const jsdocLines = code.match(jsdocLineRegex) || [];
   for (const rawLine of jsdocLines) {
-    const parsed = parseParamLine(rawLine);
+    const cleanLine = rawLine.replace(/^\s*\*?\s*/, '').trim();
+    const parsed = parseParamLine(cleanLine);
     if (parsed && !jsdocKeys.has(parsed.key)) {
       jsdocKeys.add(parsed.key);
       result.options.push(parsed);
@@ -365,10 +367,18 @@ function parseParamLine(line: string): OptionDescriptor | null {
 
   // Extract explicit default from description if present
   let explicitDefault: string | undefined = bracketDefault;
-  const defaultDashMatch = rest.match(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/i);
-  if (defaultDashMatch) {
-    explicitDefault = defaultDashMatch[1].trim();
-    rest = rest.replace(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/gi, '').trim();
+
+  // Check for JSON object/array default value first: - default: {"key":"val"} or (default: [1,2])
+  const defaultJsonMatch = rest.match(/(?:-\s*default:|\(default:)\s*(\{[\s\S]*\}|\[[\s\S]*\])/i);
+  if (defaultJsonMatch) {
+    explicitDefault = defaultJsonMatch[1].trim();
+    rest = rest.replace(/(?:-\s*default:|\(default:)\s*(\{[\s\S]*\}|\[[\s\S]*\])/gi, '').trim();
+  } else {
+    const defaultDashMatch = rest.match(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/i);
+    if (defaultDashMatch) {
+      explicitDefault = defaultDashMatch[1].trim();
+      rest = rest.replace(/(?:-\s*default:|\(default:)\s*["']?([^"')]+)["']?\)?/gi, '').trim();
+    }
   }
 
   // Clean trailing JSDoc artifacts from description (e.g. */ or trailing * or subsequent @tags)

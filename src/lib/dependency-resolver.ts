@@ -155,14 +155,27 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       },
       createHash: (algo) => {
         let _data = '';
-        return {
-          update: (chunk) => { _data += String(chunk); return this; },
-          digest: (enc = 'hex') => {
+        const hasher = {
+          update(chunk) {
+            if (BufferModule.isBuffer(chunk) || chunk instanceof Uint8Array) {
+              _data += new TextDecoder().decode(chunk);
+            } else {
+              _data += String(chunk || '');
+            }
+            return hasher;
+          },
+          digest(enc = 'hex') {
             let h = 0;
-            for (let i = 0; i < _data.length; i++) h = (h << 5) - h + _data.charCodeAt(i) | 0;
-            return Math.abs(h).toString(16).padStart(16, '0');
+            for (let i = 0; i < _data.length; i++) {
+              h = (h << 5) - h + _data.charCodeAt(i) | 0;
+            }
+            const hex = Math.abs(h).toString(16).padStart(16, '0');
+            if (enc === 'hex') return hex;
+            if (enc === 'base64') return btoa(hex);
+            return BufferModule.from(hex);
           }
         };
+        return hasher;
       }
     };
 
@@ -344,6 +357,9 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       const exportsObj = moduleObj.exports;
 
       let transformedCode = scriptCode
+        .replace(/import\\s+\\*\\s+as\\s+([a-zA-Z0-9_$]+)\\s+from\\s+['"]([^'"]+)['"]/g, 'const $1 = require("$2");')
+        .replace(/import\\s+([a-zA-Z0-9_$]+)\\s+from\\s+['"]([^'"]+)['"]/g, 'const $1 = (require("$2").default || require("$2"));')
+        .replace(/import\\s*\\{([^}]+)\\}\\s*from\\s+['"]([^'"]+)['"]/g, 'const {$1} = require("$2");')
         .replace(/export\\s+default\\s+async\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'async function $1() {}; exports.default = $1;')
         .replace(/export\\s+default\\s+function\\s+([a-zA-Z0-9_$]+)/g, 'function $1() {}; exports.default = $1;')
         .replace(/export\\s+default\\s+/g, 'exports.default = ')

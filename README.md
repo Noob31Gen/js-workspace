@@ -4,6 +4,8 @@ This is just an in-browser javascript runner. This solves what? Idk tbh but it a
 
 Demo: https://js.noob31.com/
 
+Full Disclosure: This was made using AI assistance.
+
 ### Features
 
 - Automatic parameter and args detection
