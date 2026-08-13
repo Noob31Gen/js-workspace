@@ -2,6 +2,8 @@
 
 This is just an in-browser javascript runner. This solves what? Idk tbh but it allows me to run scripts when I cant install stuff in my PC.
 
+Demo: https://js.noob31.com/
+
 ### Features
 
 - Automatic parameter and args detection
