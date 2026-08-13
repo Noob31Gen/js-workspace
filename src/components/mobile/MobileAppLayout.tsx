@@ -110,7 +110,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   };
 
   return (
-    <div className="h-[100dvh] min-h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans overflow-hidden select-none">
+    <div className="h-full w-full bg-background text-foreground flex flex-col font-sans overflow-hidden select-none relative">
       {/* 1. Mobile Top Header */}
       <MobileHeader
         activeFile={activeFile}

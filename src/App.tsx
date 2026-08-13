@@ -607,7 +607,7 @@ export function App() {
   return (
     <>
       {/* --- MOBILE UI (Visible on < 768px) --- */}
-      <div className="block md:hidden">
+      <div className="block md:hidden fixed inset-0 z-0 overflow-hidden">
         <MobileAppLayout
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
