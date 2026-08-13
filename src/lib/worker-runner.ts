@@ -93,12 +93,21 @@ export class ScriptRunner {
             .replace(/export\\s+async\\s+function\\s+run/g, 'async function run')
             .replace(/export\\s+function\\s+run/g, 'function run');
 
-          const scriptFunc = new Function('args', 'require', 'workspace', 'process', 'Buffer', \`
+          const scriptFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', \`
+            if (__workspace_args__ && typeof __workspace_args__ === 'object') {
+              const argvList = ['node', typeof CURRENT_FILE_PATH !== 'undefined' ? CURRENT_FILE_PATH : 'script.js'];
+              Object.entries(__workspace_args__).forEach(([k, v]) => {
+                if (v !== undefined && v !== null && v !== '') {
+                  argvList.push(String(v));
+                }
+              });
+              process.argv = argvList;
+            }
+
             \${transformedCode}
+
             if (typeof run === 'function') {
-              return run(args);
-            } else {
-              throw new Error("Script must contain or export an 'async function run(args)'!");
+              return await run(__workspace_args__);
             }
           \`);
 

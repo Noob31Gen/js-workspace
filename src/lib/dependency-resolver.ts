@@ -110,7 +110,15 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
     // 3. Process Module
     const processModule = {
       env: { NODE_ENV: 'development', WORKSPACE_ENV: 'browser-sandbox' },
+      argv: ['node', CURRENT_FILE_PATH],
       cwd: () => '/',
+      exit: (code = 0) => {
+        if (code !== 0) {
+          sendLog('error', ['[process.exit] Exited with code ' + code]);
+        } else {
+          sendLog('info', ['[process.exit] Exited cleanly with code 0']);
+        }
+      },
       nextTick: (fn, ...args) => Promise.resolve().then(() => fn(...args)),
       version: 'v20.11.0',
       platform: 'browser',
