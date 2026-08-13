@@ -525,7 +525,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('');
 
   // Build the transform chain using workerRegexReplace with JSON.stringify
-  let transformChain = '  var transformedCode = scriptCode';
+  let transformChain = '  var transformedCode = (scriptCode || "")';
   for (const t of importTransforms) {
     transformChain += String.fromCharCode(10) + '    ' + workerRegexReplace(t.pattern, t.replacement);
   }

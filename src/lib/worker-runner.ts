@@ -92,7 +92,9 @@ function buildOnMessageHandler(): string {
 
   const lines: string[] = [];
   lines.push('self.onmessage = async function(event) {');
-  lines.push('  var code = event.data.code;');
+  lines.push('  if (event.data && event.data.type === "INPUT_RESPONSE") return;');
+  lines.push('  var code = (event.data && event.data.code != null) ? event.data.code : "";');
+  lines.push('  if (!code) return;');
   lines.push('  var args = event.data.args;');
   lines.push('  var files = event.data.files;');
   lines.push('  var currentFilePath = event.data.currentFilePath;');
