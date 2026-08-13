@@ -1,4 +1,4 @@
-export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB safe browser limit
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB hard cap limit
 
 export type FileKind = 'code' | 'data-json' | 'data-csv' | 'data-text' | 'data-image' | 'binary';
 

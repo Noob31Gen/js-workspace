@@ -102,12 +102,18 @@ export function App() {
 
   const handleUpdateActiveCode = (newCode: string) => {
     if (!activeFile) return;
+    const MAX_10MB = 10 * 1024 * 1024;
+    let safeCode = newCode;
+    if (new Blob([newCode]).size > MAX_10MB) {
+      safeCode = newCode.slice(0, MAX_10MB);
+      console.warn(`Content capped to 10 MB limit for file "${activeFile.name}"`);
+    }
     setWorkspaces(prevWorkspaces =>
       prevWorkspaces.map(ws => {
         if (ws.id !== activeWorkspaceId) return ws;
         return {
           ...ws,
-          nodes: ws.nodes.map(n => n.id === activeFile.id ? { ...n, code: newCode } : n)
+          nodes: ws.nodes.map(n => n.id === activeFile.id ? { ...n, code: safeCode, sizeBytes: safeCode.length } : n)
         };
       })
     );

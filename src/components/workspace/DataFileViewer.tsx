@@ -92,6 +92,29 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
     return rows.join('\n');
   };
 
+  // Handle clipboard paste safely for large payloads (> 10 MB)
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardText = e.clipboardData.getData('text');
+    if (!clipboardText) return;
+
+    const pasteSizeBytes = new Blob([clipboardText]).size;
+    const MAX_PASTE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    if (pasteSizeBytes > MAX_PASTE_BYTES) {
+      e.preventDefault();
+      const sizeMB = (pasteSizeBytes / (1024 * 1024)).toFixed(2);
+      const truncatedText = clipboardText.slice(0, MAX_PASTE_BYTES);
+
+      const target = e.currentTarget;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const newContent = content.substring(0, start) + truncatedText + content.substring(end);
+      onChangeContent(newContent);
+
+      alert(`⚠️ Clipboard Warning: Pasted data (${sizeMB} MB) exceeds the 10 MB safety limit.\n\nThe text has been safely truncated to 10 MB to protect browser execution stability.`);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-border/60 bg-card shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px] relative z-10">
       {/* Header Toolbar */}
@@ -311,6 +334,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
           <textarea
             value={content}
             onChange={(e) => onChangeContent(e.target.value)}
+            onPaste={handlePaste}
             spellCheck={false}
             className="w-full h-full resize-none p-2 font-mono text-xs text-foreground bg-transparent focus:outline-none leading-relaxed border-0 selection:bg-primary/30"
           />

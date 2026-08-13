@@ -65,26 +65,32 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
 
           return (
             <div key={opt.key} className="space-y-2 p-3 rounded-xl bg-card border border-border/60 hover:border-border/80 transition-colors shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-1.5 min-w-0 select-none pb-0.5">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <label htmlFor={`input-${opt.key}`} className="text-xs font-bold text-foreground truncate min-w-0">
-                    {opt.label || opt.key}
-                  </label>
+              <div className="space-y-1 select-none pb-0.5">
+                {/* Line 1: Parameter Display Label */}
+                <label
+                  htmlFor={`input-${opt.key}`}
+                  className="text-xs font-bold text-foreground font-sans leading-snug block break-words"
+                  title={opt.label || opt.key}
+                >
+                  {opt.label || opt.key}
+                </label>
+
+                {/* Line 2: Technical Badges (Key, Source, Type) */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
                   <code className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/40 shrink-0">
                     {opt.key}
                   </code>
-                </div>
 
-                <div className="flex items-center gap-1 shrink-0 ml-auto">
                   {opt.source === 'autodetected' && (
-                    <span 
+                    <span
                       className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0 cursor-help"
                       title="Parameter auto-detected from code property usage"
                     >
                       Auto
                     </span>
                   )}
-                  <span 
+
+                  <span
                     className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-mono font-bold border border-primary/20 whitespace-nowrap shrink-0 cursor-help"
                     title={`Parameter data type: ${opt.type}`}
                   >

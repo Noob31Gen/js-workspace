@@ -109,21 +109,20 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Sync scrolling between textarea, line numbers, and Prism pre overlay
-  const handleScroll = () => {
-    if (textareaRef.current) {
-      const scrollTop = textareaRef.current.scrollTop;
-      const scrollLeft = textareaRef.current.scrollLeft;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-      if (preRef.current) {
-        preRef.current.scrollTop = scrollTop;
-        preRef.current.scrollLeft = scrollLeft;
-      }
-      if (lineNumbersRef.current) {
-        lineNumbersRef.current.scrollTop = scrollTop;
-      }
+  const handleScrollContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
     }
   };
+
+  // Sync scroll position when code updates
+  useEffect(() => {
+    if (lineNumbersRef.current && scrollContainerRef.current) {
+      lineNumbersRef.current.scrollTop = scrollContainerRef.current.scrollTop;
+    }
+  }, [code]);
 
   // Support Tab key indentation & keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -160,6 +159,29 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
       handleRedo();
+    }
+  };
+
+  // Handle clipboard paste safely for large payloads (> 10 MB)
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardText = e.clipboardData.getData('text');
+    if (!clipboardText) return;
+
+    const pasteSizeBytes = new Blob([clipboardText]).size;
+    const MAX_PASTE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    if (pasteSizeBytes > MAX_PASTE_BYTES) {
+      e.preventDefault();
+      const sizeMB = (pasteSizeBytes / (1024 * 1024)).toFixed(2);
+      const truncatedText = clipboardText.slice(0, MAX_PASTE_BYTES);
+
+      const target = e.currentTarget;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const newCode = code.substring(0, start) + truncatedText + code.substring(end);
+      onChangeCode(newCode);
+
+      alert(`⚠️ Clipboard Warning: Pasted data (${sizeMB} MB) exceeds the 10 MB safety limit.\n\nThe text has been safely truncated to 10 MB to protect browser execution stability.`);
     }
   };
 
@@ -211,6 +233,15 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     const lines = (code || '').split('\n').length;
     return Array.from({ length: lines }, (_, i) => i + 1);
   }, [code]);
+
+  // Synchronize scroll positions and trigger alignment check
+  useEffect(() => {
+    if (lineNumbersRef.current && scrollContainerRef.current) {
+      lineNumbersRef.current.scrollTop = scrollContainerRef.current.scrollTop;
+    }
+  }, [code]);
+
+  const EDITOR_FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
 
   const editorContent = (
     <div
@@ -458,13 +489,21 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           {/* Line Numbers Column with Error Badging */}
           <div
             ref={lineNumbersRef}
-            className="w-10 shrink-0 py-4 select-none font-mono text-[11px] text-zinc-600 text-right pr-2.5 bg-[#05080f] border-r border-zinc-800/80 overflow-hidden leading-relaxed"
+            style={{
+              fontFamily: EDITOR_FONT_FAMILY,
+              fontSize: '13px',
+              lineHeight: '20px',
+              paddingTop: '16px',
+              paddingBottom: '16px'
+            }}
+            className="w-10 shrink-0 select-none text-zinc-600 text-right pr-2.5 bg-[#05080f] border-r border-zinc-800/80 overflow-hidden"
           >
             {lineNumbers.map(n => {
               const isErrorLine = syntaxError && syntaxError.line === n;
               return (
                 <div
                   key={n}
+                  style={{ height: '20px', lineHeight: '20px' }}
                   className={`flex items-center justify-end ${
                     isErrorLine ? 'text-destructive font-bold bg-destructive/20 rounded px-1' : ''
                   }`}
@@ -475,33 +514,75 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             })}
           </div>
 
-          {/* Textarea & Syntax Overlay Container */}
-          <div className="relative flex-1 h-full overflow-hidden">
-            {/* Syntax Highlighted Code Overlay */}
-            <pre
-              ref={preRef}
-              className="absolute inset-0 p-4 font-mono text-xs leading-relaxed overflow-hidden pointer-events-none m-0 bg-transparent border-0 whitespace-pre text-zinc-200"
-            >
-              <code
-                className="language-javascript bg-transparent p-0 border-0"
-                dangerouslySetInnerHTML={{ __html: highlightedHtml + '\n' }}
-              />
-            </pre>
+          {/* Unified Native Scroll Container */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScrollContainerScroll}
+            className="relative flex-1 h-full overflow-auto focus:outline-none"
+          >
+            {/* Grid Container locking <pre> and <textarea> into exact same box */}
+            <div className="grid min-w-full min-h-full relative">
+              {/* Syntax Highlighted Code Overlay */}
+              <pre
+                ref={preRef}
+                style={{
+                  gridArea: '1 / 1 / 2 / 2',
+                  fontFamily: EDITOR_FONT_FAMILY,
+                  fontSize: '13px',
+                  lineHeight: '20px',
+                  padding: '16px',
+                  margin: 0,
+                  border: 0,
+                  boxSizing: 'border-box',
+                  whiteSpace: 'pre',
+                  wordWrap: 'normal',
+                  overflowWrap: 'normal',
+                  tabSize: 2
+                }}
+                className="pointer-events-none text-zinc-200 bg-transparent"
+              >
+                <code
+                  className="language-javascript bg-transparent p-0 border-0 m-0"
+                  style={{
+                    fontFamily: EDITOR_FONT_FAMILY,
+                    fontSize: '13px',
+                    lineHeight: '20px'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: highlightedHtml + '\n' }}
+                />
+              </pre>
 
-            {/* Transparent Interactive Textarea */}
-            <textarea
-              ref={textareaRef}
-              value={code}
-              onChange={(e) => onChangeCode(e.target.value)}
-              onScroll={handleScroll}
-              onKeyDown={handleKeyDown}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-              autoComplete="off"
-              className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed text-transparent caret-emerald-400 bg-transparent focus:outline-none resize-none border-0 whitespace-pre selection:bg-primary/30 selection:text-foreground"
-              placeholder="// Write your JavaScript script here..."
-            />
+              {/* Transparent Interactive Textarea */}
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={(e) => onChangeCode(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                autoComplete="off"
+                style={{
+                  gridArea: '1 / 1 / 2 / 2',
+                  fontFamily: EDITOR_FONT_FAMILY,
+                  fontSize: '13px',
+                  lineHeight: '20px',
+                  padding: '16px',
+                  margin: 0,
+                  border: 0,
+                  boxSizing: 'border-box',
+                  whiteSpace: 'pre',
+                  wordWrap: 'normal',
+                  overflowWrap: 'normal',
+                  tabSize: 2,
+                  resize: 'none',
+                  overflow: 'hidden'
+                }}
+                className="w-full h-full text-transparent caret-emerald-400 bg-transparent focus:outline-none selection:bg-primary/30 selection:text-foreground"
+                placeholder="// Write your JavaScript script here..."
+              />
+            </div>
           </div>
         </div>
 

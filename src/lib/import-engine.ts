@@ -33,7 +33,7 @@ export async function parseLocalFolder(fileList: FileList): Promise<ImportedWork
     if (shouldIgnorePath(relPath)) continue;
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      console.warn(`Skipping large file "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)} MB > 5 MB limit)`);
+      console.warn(`Skipping file "${file.name}" (${(file.size / (1024 * 1024)).toFixed(2)} MB > 10 MB limit)`);
       continue;
     }
 
@@ -206,6 +206,12 @@ export async function parseZipArchive(zipFile: File): Promise<ImportedWorkspaceB
  * Reads a single file for insertion into the current active workspace.
  */
 export async function parseSingleFile(file: File, targetPath: string, parentId: string | null): Promise<WorkspaceNode> {
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    const isJs = getFileKind(file.name) === 'code';
+    throw new Error(`File "${file.name}" (${sizeMB} MB) exceeds the 10 MB maximum size limit${isJs ? ' for JavaScript script files' : ''}.`);
+  }
+
   const fileKind = getFileKind(file.name);
   const fileId = `file-usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const isImageOrBinary = fileKind === 'data-image' || fileKind === 'binary';
