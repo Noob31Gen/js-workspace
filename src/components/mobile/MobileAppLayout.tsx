@@ -200,6 +200,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         paramCount={parsedOptions.length}
         hasFrame={!!frame}
         inputPrompt={inputPrompt}
+        hasError={!!errorResult || logs.some(l => l.type === 'error')}
       />
 
       {/* 5. Mobile File Explorer Bottom Sheet Drawer */}
