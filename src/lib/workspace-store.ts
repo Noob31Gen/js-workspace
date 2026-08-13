@@ -4,7 +4,7 @@ export type FileKind = 'code' | 'data-json' | 'data-csv' | 'data-text' | 'data-i
 
 export function getFileKind(filename: string): FileKind {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
-  if (['js', 'ts', 'jsx', 'tsx', 'mjs'].includes(ext)) return 'code';
+  if (['js', 'ts', 'jsx', 'tsx', 'mjs', 'cjs'].includes(ext)) return 'code';
   if (ext === 'json') return 'data-json';
   if (ext === 'csv') return 'data-csv';
   if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'].includes(ext)) return 'data-image';
