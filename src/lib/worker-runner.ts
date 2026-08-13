@@ -94,21 +94,23 @@ export class ScriptRunner {
             .replace(/export\\s+function\\s+run/g, 'function run');
 
           const scriptFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', \`
-            if (__workspace_args__ && typeof __workspace_args__ === 'object') {
-              const argvList = ['node', typeof CURRENT_FILE_PATH !== 'undefined' ? CURRENT_FILE_PATH : 'script.js'];
-              Object.entries(__workspace_args__).forEach(([k, v]) => {
-                if (v !== undefined && v !== null && v !== '') {
-                  argvList.push(String(v));
-                }
-              });
-              process.argv = argvList;
-            }
+            return (async () => {
+              if (__workspace_args__ && typeof __workspace_args__ === 'object') {
+                const argvList = ['node', typeof CURRENT_FILE_PATH !== 'undefined' ? CURRENT_FILE_PATH : 'script.js'];
+                Object.entries(__workspace_args__).forEach(([k, v]) => {
+                  if (v !== undefined && v !== null && v !== '') {
+                    argvList.push(String(v));
+                  }
+                });
+                process.argv = argvList;
+              }
 
-            \${transformedCode}
+              \${transformedCode}
 
-            if (typeof run === 'function') {
-              return await run(__workspace_args__);
-            }
+              if (typeof run === 'function') {
+                return await run(__workspace_args__);
+              }
+            })();
           \`);
 
           const rawResult = await scriptFunc(args, self.require, self.workspace, self.process, self.Buffer);
