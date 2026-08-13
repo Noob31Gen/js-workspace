@@ -279,9 +279,8 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       return segments.join('/');
     }
 
-    async function loadWorkspaceModule(requestedPath, baseFile = CURRENT_FILE_PATH) {
-      // Check Node.js Built-in Core Modules
-      const cleanReq = requestedPath.replace(/^node:/, '');
+    function getBuiltinModule(requestedPath) {
+      const cleanReq = String(requestedPath || '').replace(/^node:/, '');
       if (cleanReq === 'fs') return fsModule;
       if (cleanReq === 'path') return pathModule;
       if (cleanReq === 'buffer') return { Buffer: BufferModule, default: BufferModule };
@@ -289,6 +288,13 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       if (cleanReq === 'events') return { EventEmitter: EventEmitterModule, default: EventEmitterModule };
       if (cleanReq === 'crypto') return cryptoModule;
       if (cleanReq === 'util') return utilModule;
+      return null;
+    }
+
+    async function loadWorkspaceModule(requestedPath, baseFile = CURRENT_FILE_PATH) {
+      // Check Node.js Built-in Core Modules
+      const builtin = getBuiltinModule(requestedPath);
+      if (builtin) return builtin;
 
       // Check if requestedPath is an external NPM package (e.g. 'lodash', 'axios', 'dayjs', 'papaparse')
       if (!requestedPath.startsWith('.') && !requestedPath.startsWith('/')) {
@@ -366,7 +372,14 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
         })();
       \`);
 
-      const scopedRequire = (path) => loadWorkspaceModule(path, resolvedPath);
+      const scopedRequire = (path) => {
+        const builtin = getBuiltinModule(path);
+        if (builtin) return builtin;
+        const resolved = resolvePath(path, resolvedPath);
+        if (MODULE_CACHE.has(resolved)) return MODULE_CACHE.get(resolved);
+        if (MODULE_CACHE.has('npm:' + path)) return MODULE_CACHE.get('npm:' + path);
+        return loadWorkspaceModule(path, resolvedPath);
+      };
       const scopedWorkspace = {
         import: (path) => loadWorkspaceModule(path, resolvedPath),
         runScript: async (path, args = {}) => {
@@ -387,7 +400,14 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
       return resultExports;
     }
 
-    self.require = (path) => loadWorkspaceModule(path, CURRENT_FILE_PATH);
+    self.require = (path) => {
+      const builtin = getBuiltinModule(path);
+      if (builtin) return builtin;
+      const resolved = resolvePath(path, CURRENT_FILE_PATH);
+      if (MODULE_CACHE.has(resolved)) return MODULE_CACHE.get(resolved);
+      if (MODULE_CACHE.has('npm:' + path)) return MODULE_CACHE.get('npm:' + path);
+      return loadWorkspaceModule(path, CURRENT_FILE_PATH);
+    };
     self.workspace = {
       import: (path) => loadWorkspaceModule(path, CURRENT_FILE_PATH),
       runScript: async (path, args = {}) => {
