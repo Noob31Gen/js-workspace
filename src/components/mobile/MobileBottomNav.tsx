@@ -26,7 +26,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'editor' as MobileTab, label: 'Editor', icon: Code2, badge: null },
     { id: 'params' as MobileTab, label: 'Params', icon: Sliders, badge: paramCount > 0 ? paramCount : null },
     { id: 'console' as MobileTab, label: 'Console', icon: Terminal, badge: logCount > 0 ? logCount : null },
-    { id: 'preview' as MobileTab, label: 'Preview', icon: Layout, isPing: hasFrame },
+    ...(hasFrame || activeTab === 'preview' ? [{ id: 'preview' as MobileTab, label: 'Preview', icon: Layout, isPing: hasFrame }] : []),
   ];
 
   return (

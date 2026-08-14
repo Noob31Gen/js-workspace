@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkspaceNode, Workspace } from '@/lib/workspace-store';
 import { ConsoleLogMessage, FramePayload } from '@/lib/worker-runner';
 import { OptionDescriptor } from '@/lib/parser';
@@ -110,6 +110,12 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   const [activeTab, setActiveTab] = useState<MobileTab>('editor');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    if (frame) {
+      setActiveTab('preview');
+    }
+  }, [frame]);
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
 
