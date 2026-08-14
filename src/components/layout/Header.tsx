@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
-import { precacheNpmPackage, getPrecachedPackages } from '@/lib/pwa-register';
+import { precacheNpmPackage, getPrecachedPackages, removePrecachedPackage } from '@/lib/pwa-register';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
+
+const DEFAULT_COMMON_PACKAGES = ['lodash', 'axios', 'dayjs', 'papaparse', 'mathjs', 'cheerio'];
 
 interface HeaderProps {
   onOpenDocs: (docName: string) => void;
@@ -77,6 +79,11 @@ export const Header: React.FC<HeaderProps> = ({
     } else {
       alert(`Failed to precache package "${pkgName}". Make sure internet is connected.`);
     }
+  };
+
+  const handleRemovePrecache = (pkgName: string) => {
+    removePrecachedPackage(pkgName);
+    setPrecachedPkgs(prev => prev.filter(p => p !== pkgName));
   };
 
   const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -374,7 +381,7 @@ export const Header: React.FC<HeaderProps> = ({
                   Quick Pre-Cache Common Packages:
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {['lodash', 'axios', 'dayjs', 'papaparse', 'mathjs', 'cheerio'].map(pkg => (
+                  {DEFAULT_COMMON_PACKAGES.map(pkg => (
                     <button
                       key={pkg}
                       disabled={cachingPkg === pkg}
@@ -396,6 +403,33 @@ export const Header: React.FC<HeaderProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Cached Custom Extra Packages Section */}
+              {precachedPkgs.filter(pkg => !DEFAULT_COMMON_PACKAGES.includes(pkg)).length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+                    <span>Cached Custom Packages ({precachedPkgs.filter(pkg => !DEFAULT_COMMON_PACKAGES.includes(pkg)).length}):</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {precachedPkgs.filter(pkg => !DEFAULT_COMMON_PACKAGES.includes(pkg)).map(pkg => (
+                      <div
+                        key={pkg}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                      >
+                        <Check className="h-3 w-3 text-emerald-400" />
+                        <span>{pkg}</span>
+                        <button
+                          onClick={() => handleRemovePrecache(pkg)}
+                          title={`Remove ${pkg} from precached list`}
+                          className="ml-0.5 p-0.5 rounded text-emerald-400/70 hover:text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-foreground">

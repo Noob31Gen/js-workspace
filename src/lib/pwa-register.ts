@@ -67,6 +67,13 @@ export function savePrecachedPackage(packageName: string) {
   } catch (e) {}
 }
 
+export function removePrecachedPackage(packageName: string) {
+  try {
+    const list = getPrecachedPackages().filter(p => p !== packageName);
+    localStorage.setItem(PRECACHED_PKGS_KEY, JSON.stringify(list));
+  } catch (e) {}
+}
+
 /**
  * Pre-fetches an NPM package from CDN into local CacheStorage for offline use.
  * Correctly handles HTTP redirects, synthetic response caching, and sub-resource imports.
