@@ -10,91 +10,88 @@ export const DOCS_REGISTRY: Record<string, DocItem> = {
     id: 'ARCHITECTURE.md',
     title: 'System Architecture & Web Worker Sandbox',
     category: 'Architecture',
-    content: `# System Architecture & Execution Sandbox
+    content: `# System Architecture and Execution Sandbox
 
-The **JS Workspace** platform is a browser-native script execution environment, IDE, and virtual Node.js filesystem built to execute JavaScript, process local data files, and fetch network APIs completely inside your browser.
+JS Workspace is a browser-native JavaScript execution platform, IDE, and virtual Node.js runtime environment built to execute scripts, manipulate local data files, and perform cross-origin network requests directly inside your browser.
 
 ---
 
 ## Core Subsystems Architecture
 
-\`\`\`
-┌────────────────────────────────────────────────────────────────────────┐
-│                        MAIN THREAD / REACT UI                          │
-│                                                                        │
-│   ┌────────────────────┐   ┌───────────────────┐  ┌────────────────┐  │
-│   │ Folder Tree / IDE  │   │ JSDoc Option Form │  │ Header & CORS  │  │
-│   │ Virtual Filesystem │   │ Generator         │  │ Indicator      │  │
-│   └─────────┬──────────┘   └─────────┬─────────┘  └───────┬────────┘  │
-└─────────────┼────────────────────────┼────────────────────┼────────────┘
-              │ postMessage()          │ options            │ Chrome Msg
-              ▼                        ▼                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        ISOLATED WEB WORKER                             │
-│                                                                        │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │ Node.js Environment Polyfills                                  │   │
-│   │ (fs, path, crypto, buffer, os, util, process, console)         │   │
-│   └────────────────────────────────────────────────────────────────┘   │
-│                                                                        │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │ Script Execution Context (runFn / IIFE Sandbox)                │   │
-│   └────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────────────────────┘
-\`\`\`
++------------------------------------------------------------------------+
+|                        MAIN THREAD / REACT UI                          |
+|                                                                        |
+|   +--------------------+   +-------------------+  +----------------+   |
+|   | Workspace Manager  |   | Dynamic JSDoc     |  | CORS Helper    |   |
+|   | IndexedDB Engine   |   | Form Generator    |  | Status Monitor |   |
+|   +---------+----------+   +---------+---------+  +-------+--------+   |
++-------------|------------------------|--------------------|------------+
+              | postMessage()          | options            | postMessage
+              v                        v                    v
++------------------------------------------------------------------------+
+|                        ISOLATED WEB WORKER                             |
+|                                                                        |
+|   +----------------------------------------------------------------+   |
+|   | Node.js Polyfills (fs, path, crypto, buffer, os, util, process)|   |
+|   +----------------------------------------------------------------+   |
+|                                                                        |
+|   +----------------------------------------------------------------+   |
+|   | Script Execution Context (Async run() IIFE Sandbox)            |   |
+|   +----------------------------------------------------------------+   |
++------------------------------------------------------------------------+
 
 ---
 
 ## 1. Isolated Web Worker Sandbox
 
-User-written JavaScript scripts execute off-the-main-thread inside an isolated **Web Worker**. This architecture guarantees:
-- **UI Responsiveness**: Heavy computational tasks, loops, and data parsing never lock or freeze the browser UI.
-- **Infinite Loop Abort & Timeout**: The main thread monitors execution duration. If a script exceeds the configurable timeout (default 30 seconds), \`worker.terminate()\` is called immediately to kill the execution.
-- **Console Streaming**: \`console.log\`, \`console.warn\`, \`console.error\`, and \`console.table\` calls inside the worker are intercepted and streamed in real-time to the interactive Console panel via \`postMessage\`.
+User scripts run completely off the main UI thread inside a dedicated Web Worker environment. This architecture ensures:
+- UI Responsiveness: High-volume data processing and computational loops will never lock or freeze the browser editor or interface.
+- Execution Timeout and Abort: The main thread controls execution duration. If a script exceeds the configurable timeout (default 30 seconds), the worker process is immediately terminated.
+- Real-Time Console Interception: System output, warnings, errors, and tables (console.log, console.warn, console.error, console.table) inside the worker are intercepted and streamed directly to the UI Console panel.
 
 ---
 
-## 2. In-Memory Virtual Filesystem & Node Polyfills
+## 2. In-Memory Virtual Filesystem and Node.js Polyfills
 
 JS Workspace provides a browser-native implementation of standard Node.js APIs:
-- **\`fs\` (File System)**: Implements synchronous and asynchronous methods (\`readFileSync\`, \`writeFileSync\`, \`existsSync\`, \`readdirSync\`, \`mkdirSync\`, \`statSync\`, \`unlinkSync\`).
-- **\`path\`**: Full implementations of \`path.join\`, \`path.resolve\`, \`path.dirname\`, \`path.extname\`, \`path.basename\`.
-- **\`crypto\`**: Implements \`crypto.randomUUID()\`, \`crypto.createHash('md5'|'sha256')\`, and random byte generation using browser WebCrypto API.
-- **\`buffer\`**: Full Node \`Buffer\` polyfill for binary data manipulation, Base64 encoding, and UTF-8 conversion.
+- fs (File System): Implements synchronous methods (readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, unlinkSync).
+- path: Complete implementations of path.join, path.resolve, path.dirname, path.basename, and path.extname.
+- crypto: Implements crypto.randomUUID(), crypto.createHash('sha256'), and random byte generation via browser Web Crypto API.
+- buffer: Full Node.js Buffer polyfill supporting binary manipulation, Base64, and UTF-8 encoding.
+- process and os: Provides environment variables, current working directory tracking, and operating system polyfills.
 
-All virtual files inside your workspace folders are directly accessible to your scripts using standard \`fs\` calls:
-\`\`\`js
+Scripts access workspace files using standard Node.js fs calls:
+
 const fs = require('fs');
 const path = require('path');
 
 const data = fs.readFileSync(path.join(__dirname, 'data/sample.json'), 'utf-8');
 console.log("Read virtual file content:", JSON.parse(data));
-\`\`\`
 
 ---
 
-## 3. Dynamic JSDoc Parser & UI Control Generator
+## 3. Persistent Workspace Engine (IndexedDB)
 
-Before a script is executed, JS Workspace inspects the script AST and comment block:
-1. **Zero-JSDoc Function Signature Detection**: Auto-detects parameter names and default values from function signatures like \`async function run({ targetUrl, maxDepth = 5, verbose = true })\`.
-2. **JSDoc Tag Parsing**: Parses JSDoc \`@param\` tags to generate rich interactive UI controls (Range sliders, Color pickers, Select dropdowns, Toggle switches, JSON editors).
-
----
-
-## 4. CORS Extension Service Worker Bridge
-
-Browser security restricts cross-origin \`fetch()\` calls made from local web apps (\`localhost\` / \`https\`). JS Workspace solves this cleanly via an optional **Chrome Manifest V3 Extension**:
-- The web app sends a message to the extension background service worker using \`chrome.runtime.sendMessage()\`.
-- The background service worker executes the network fetch on behalf of the script with zero CORS restrictions.
-- Response payload and headers are safely returned to the Web Worker execution sandbox.
+Workspaces and virtual files are saved to browser IndexedDB storage (JSWorkspaceDB_v1).
+- Automatic Auto-Save: All file edits and directory structures persist across browser reloads.
+- Workspace Switching: Users can create, rename, switch between, or export multiple isolated workspaces.
+- Export and Import Options: Supports importing local folders, ZIP archives, JSON workspace bundles, and exporting individual workspaces.
 
 ---
 
-## 5. PWA Offline Cache Engine
+## 4. SHA-256 Hashed CORS Extension Bridge
 
-JS Workspace is registered as a **Progressive Web App (PWA)**:
-- **App Shell Caching**: All static assets, fonts, icons, editor scripts, and Node polyfills are cached locally via Service Worker.
-- **Package Pre-Caching**: Users can pre-cache NPM packages (\`lodash\`, \`axios\`, \`dayjs\`, \`papaparse\`, \`mathjs\`) into CacheStorage so \`require('package')\` works 100% offline without an internet connection.
+To bypass browser Cross-Origin Resource Sharing (CORS) limits, JS Workspace communicates with an optional Manifest V3 browser extension:
+- Domain Isolation: Restricts communication exclusively to https://js.noob31.com.
+- Domain-Salted SHA-256 Hashing: Passwords are hashed locally using browser Web Crypto API with domain salting (js.noob31.com:salt:v1:) to prevent dictionary and rainbow table attacks.
+- Per-Request Verification: The background service worker validates authentication hashes per request before proxying network fetches.
+
+---
+
+## 5. PWA Offline Package Cache Engine
+
+Registered as a Progressive Web App (PWA), JS Workspace caches app shell assets, editor scripts, and Node polyfills in browser CacheStorage.
+- Offline NPM Pre-Caching: Allows pre-downloading NPM packages (lodash, axios, dayjs, papaparse, mathjs, cheerio, or custom packages) so require('package') works without internet.
 `
   },
 
@@ -102,27 +99,23 @@ JS Workspace is registered as a **Progressive Web App (PWA)**:
     id: 'SCRIPT_SPECIFICATION.md',
     title: 'Script Specification & Dynamic Parameters',
     category: 'Guides',
-    content: `# Script Specification & Dynamic Parameter Options
+    content: `# Script Specification and Dynamic Parameter Options
 
-JS Workspace scripts are standard JavaScript files (ES2022 / Node.js style). You can write simple top-level scripts or declare an exported \`run()\` function with dynamic input parameters.
+JS Workspace scripts are standard JavaScript files (ES2022 / Node.js style). You can write simple top-level code or export an async run() function with dynamic parameter options.
 
 ---
 
-## 1. Writing Your First Script
-
-You can structure your script in two ways:
+## 1. Structuring Scripts
 
 ### Option A: Top-Level Execution
-\`\`\`js
-console.log("Hello from JS Workspace!");
+Top-level code executes sequentially when you click Run Script:
+
 const fs = require('fs');
-console.log("Files in root:", fs.readdirSync('.'));
-\`\`\`
+console.log("Files in workspace root:", fs.readdirSync('.'));
 
-### Option B: Exported \`run({ options })\` Function (Recommended)
-By exporting an \`async function run(options)\`, JS Workspace automatically generates interactive UI input controls for your script!
+### Option B: Exported run({ options }) Function (Recommended)
+Exporting an async function run(options) enables JS Workspace to automatically generate interactive UI parameter controls:
 
-\`\`\`js
 /**
  * @name Data Processor
  * @description Processes input dataset with custom threshold
@@ -130,87 +123,70 @@ By exporting an \`async function run(options)\`, JS Workspace automatically gene
 async function run({ threshold = 50, enableLogs = true }) {
   console.log("Running with threshold:", threshold, "logs:", enableLogs);
 }
-\`\`\`
 
 ---
 
-## 2. Dynamic UI Parameter Specifications
+## 2. Dynamic UI Parameter Controls
 
-JS Workspace supports 7 rich interactive UI control types generated directly from JSDoc \`@param\` annotations:
+JS Workspace automatically generates interactive UI input controls from JSDoc @param tags:
 
-### 1. Text Input (\`string\`)
-\`\`\`js
+### 1. Text Input (string)
 /**
  * @param {string} targetUrl Target Endpoint URL - default: "https://api.github.com"
  */
 async function run({ targetUrl }) { ... }
-\`\`\`
 
-### 2. Number Input (\`number\`)
-\`\`\`js
+### 2. Number Input (number)
 /**
  * @param {number} maxItems Maximum Item Count - default: 25
  */
 async function run({ maxItems }) { ... }
-\`\`\`
 
-### 3. Boolean Switch (\`boolean\`)
-\`\`\`js
+### 3. Boolean Switch (boolean)
 /**
  * @param {boolean} verbose Enable Verbose Logging - default: true
  */
 async function run({ verbose }) { ... }
-\`\`\`
 
-### 4. Range Slider (\`range:min:max:step\`)
-\`\`\`js
+### 4. Range Slider (range:min:max:step)
 /**
  * @param {range:1:100:5} speed Processing Speed (1-100) - default: 50
  */
 async function run({ speed }) { ... }
-\`\`\`
 
-### 5. Color Picker (\`color\`)
-\`\`\`js
+### 5. Color Picker (color)
 /**
  * @param {color} brandColor Brand Theme Color - default: "#3b82f6"
  */
 async function run({ brandColor }) { ... }
-\`\`\`
 
-### 6. Dropdown Select (\`select:Opt1|Opt2|Opt3\`)
-\`\`\`js
+### 6. Dropdown Select (select:Opt1|Opt2|Opt3)
 /**
  * @param {select:Fast|Balanced|Thorough} mode Execution Strategy - default: "Balanced"
  */
 async function run({ mode }) { ... }
-\`\`\`
 
-### 7. Interactive JSON Editor (\`json\`)
-\`\`\`js
+### 7. Interactive JSON Editor (json)
 /**
  * @param {json} customConfig Custom Configuration JSON
  */
 async function run({ customConfig }) {
   console.log("Parsed JSON Config:", customConfig);
 }
-\`\`\`
 
 ---
 
-## 3. Cross-Script Imports & Virtual Files
+## 3. Module Imports and Cross-File Referencing
 
-You can organize your code into multiple nested files and import them using standard Node.js \`require()\`:
+Scripts can require relative local files and NPM packages:
 
-\`\`\`js
-// utils/math.js
-function add(a, b) { return a + b; }
-module.exports = { add };
+// utils/calculator.js
+function sum(a, b) { return a + b; }
+module.exports = { sum };
 
 // main.js
-const { add } = require('./utils/math');
-console.log("Result:", add(10, 20));
-\`\`\`
+const { sum } = require('./utils/calculator');
+console.log("Sum result:", sum(15, 25));
 `
   },
 
@@ -218,63 +194,59 @@ console.log("Result:", add(10, 20));
     id: 'CORS_HELPER.md',
     title: 'CORS Helper Extension & Network Fetching',
     category: 'Extension',
-    content: `# CORS Helper Extension & Cross-Origin Network Fetching
+    content: `# CORS Helper Extension and Network Fetching Guide
 
-Browser security policies enforce **CORS (Cross-Origin Resource Sharing)** restrictions. When a script running in a web application attempts to fetch data from an external website or API that does not explicitly include \`Access-Control-Allow-Origin: *\` headers, the browser blocks the request.
-
----
-
-## How JS Workspace Solves CORS
-
-JS Workspace includes an optional **Chrome Manifest V3 Extension** that acts as an un-restricted background network proxy:
-
-\`\`\`
-┌────────────────────────┐      chrome.runtime.sendMessage      ┌────────────────────────┐
-│  JS Workspace Sandbox  ├─────────────────────────────────────►│ CORS Helper Extension  │
-│  (Web Worker Script)   │                                      │ (Background Service Worker)
-│                        │◄─────────────────────────────────────┤                        │
-└────────────────────────┘         Response Payload & Headers   └───────────┬────────────┘
-                                                                            │
-                                                                            │ unrestricted fetch()
-                                                                            ▼
-                                                                ┌────────────────────────┐
-                                                                │ External Target API    │
-                                                                │ (e.g. GitHub, REST)    │
-                                                                └────────────────────────┘
-\`\`\`
+Browser security policies enforce Cross-Origin Resource Sharing (CORS) restrictions. When browser scripts attempt to fetch data from external APIs that do not include Access-Control-Allow-Origin: * headers, the browser blocks the request.
 
 ---
 
-## Installing the CORS Helper Extension
+## CORS Architecture Overview
 
-### Step 1: Download Extension Package
-1. Click the **CORS Helper Inactive** status badge in the top right header bar.
-2. Click **Download Extension Package**.
-3. Save \`js-workspace-cors-extension.zip\` to your computer and extract the zip file.
-
-### Step 2: Load Unpacked in Chrome / Edge / Brave
-1. Open your browser and navigate to \`chrome://extensions\` (or \`edge://extensions\`).
-2. Toggle on **Developer Mode** in the top-right corner.
-3. Click the **Load unpacked** button.
-4. Select the unzipped \`js-workspace-cors-extension\` folder.
-
-### Step 3: Verify Connection
-Return to JS Workspace. The status indicator in the top right header will automatically switch to a green badge: **"CORS Helper Connected"**!
++------------------------+      window.postMessage()      +------------------------+
+|  JS Workspace Sandbox  |------------------------------->| CORS Helper Extension  |
+|  (Web Worker Script)   |                                | (Background Worker)    |
+|                        |<-------------------------------+                        |
++------------------------+         Response Payload       +-----------+------------+
+                                                                      |
+                                                                      | unrestricted fetch()
+                                                                      v
+                                                          +------------------------+
+                                                          | External Target API    |
+                                                          +------------------------+
 
 ---
 
-## Using Network Fetch in Scripts
+## Installing the Extension
 
-With the extension connected, scripts can perform \`fetch()\` requests to any endpoint without CORS errors:
+1. Click CORS Helper Inactive in the top right header bar.
+2. Click Download Extension Package.
+3. Extract the downloaded js-workspace-cors-extension.zip package.
+4. Navigate to chrome://extensions in Chrome, Edge, or Brave.
+5. Enable Developer mode in the top right corner.
+6. Click Load unpacked and select the extracted extension directory.
 
-\`\`\`js
+---
+
+## SHA-256 Hashed Password Security
+
+To secure communications between the web app and the extension:
+1. Click the CORS Helper extension icon in Chrome's toolbar to open the options popup.
+2. Type your secret security password and click Save and Hash Password.
+3. Open JS Workspace, click CORS Helper Connected in the header, enter the same password, and click Save Hash.
+4. The system computes a domain-salted SHA-256 hash (js.noob31.com:salt:v1:) using Web Crypto API and authenticates all requests.
+
+---
+
+## Performing Network Requests
+
+With the extension active and authenticated, scripts perform standard fetch() calls without CORS restrictions:
+
 async function run({ targetUrl = "https://api.github.com/zen" }) {
-  console.log("Fetching data from:", targetUrl);
+  console.log("Fetching endpoint:", targetUrl);
   const response = await fetch(targetUrl);
   const text = await response.text();
-  console.log("Response Received:", text);
+  console.log("Response text:", text);
 }
-\`\`\`
 `
   },
 
@@ -282,50 +254,48 @@ async function run({ targetUrl = "https://api.github.com/zen" }) {
     id: 'NODE_ENVIRONMENT.md',
     title: 'Node.js Polyfills, NPM & PWA Offline Engine',
     category: 'Node & PWA',
-    content: `# Node.js Polyfills, Dynamic NPM Resolution & PWA Offline Engine
+    content: `# Node.js Polyfills, NPM Resolution, and PWA Offline Engine
 
-JS Workspace bridges browser execution with Node.js developer workflows by providing built-in polyfills for core Node modules, automatic CDN package resolution, and full offline PWA support.
+JS Workspace integrates browser execution with Node.js developer workflows through core library polyfills, dynamic CDN package resolution, and PWA offline caching.
 
 ---
 
-## 1. Built-in Node.js Core Modules
+## 1. Built-in Node.js Standard Library Modules
 
-The following Node.js standard library modules are built-in and available via \`require()\`:
+The following Node.js core modules are built-in and available via require():
 
-| Module | Description | Supported API Capabilities |
+| Module | Description | Key Supported Methods |
 | :--- | :--- | :--- |
-| **\`fs\`** | Virtual File System | \`readFileSync\`, \`writeFileSync\`, \`readdirSync\`, \`existsSync\`, \`statSync\`, \`mkdirSync\` |
-| **\`path\`** | Path Manipulation | \`path.join\`, \`path.resolve\`, \`path.dirname\`, \`path.basename\`, \`path.extname\` |
-| **\`crypto\`** | Cryptography & Hashing | \`crypto.randomUUID()\`, \`crypto.createHash('sha256')\`, \`crypto.getRandomValues()\` |
-| **\`buffer\`** | Binary Data Buffer | \`Buffer.from()\`, \`Buffer.alloc()\`, \`buffer.toString('base64')\` |
-| **\`os\`** | Operating System Info | \`os.platform()\`, \`os.arch()\`, \`os.homedir()\`, \`os.tmpdir()\` |
-| **\`util\`** | Utilities | \`util.promisify()\`, \`util.inspect()\` |
-| **\`process\`** | Process State | \`process.env\`, \`process.cwd()\`, \`process.nextTick()\` |
+| fs | Virtual File System | readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSync, unlinkSync |
+| path | Path Operations | path.join, path.resolve, path.dirname, path.basename, path.extname |
+| crypto | Cryptography | crypto.randomUUID(), crypto.createHash('sha256'), Web Crypto API |
+| buffer | Binary Buffers | Buffer.from(), Buffer.alloc(), buffer.toString('base64') |
+| os | System Polyfill | os.platform(), os.arch(), os.homedir(), os.tmpdir() |
+| util | Utilities | util.promisify(), util.inspect() |
+| process | Process Polyfill | process.env, process.cwd(), process.nextTick() |
 
 ---
 
 ## 2. Dynamic NPM Package Resolution
 
-You can import external NPM packages inside your scripts without pre-installing them! JS Workspace resolves packages dynamically over HTTP via fast CDN mirrors (\`unpkg\` / \`esm.sh\`):
+Scripts can require external NPM packages without pre-installing them. Packages resolve dynamically over HTTP via fast CDN mirrors (unpkg / esm.sh):
 
-\`\`\`js
 const _ = require('lodash');
 const dayjs = require('dayjs');
 const Papa = require('papaparse');
 
 console.log("Lodash shuffle:", _.shuffle([1, 2, 3, 4, 5]));
 console.log("Formatted Date:", dayjs().format('YYYY-MM-DD HH:mm:ss'));
-\`\`\`
 
 ---
 
 ## 3. PWA Offline Package Pre-Caching
 
-To ensure your scripts and NPM packages work 100% offline without internet:
-1. Click the **PWA Ready (Online)** badge in the top right header.
-2. Under **Quick Pre-Cache Common Packages**, click packages like \`lodash\`, \`axios\`, \`dayjs\`, or type any custom NPM package name (e.g. \`canvas-confetti\`).
-3. The package bundles are saved into browser \`CacheStorage\`.
-4. Now you can disconnect from Wi-Fi / Internet completely – \`require('package')\` will load instantly from local disk cache!
+To ensure scripts and NPM packages run 100% offline without internet:
+1. Click the PWA Ready (Online) button in the header.
+2. Under Quick Pre-Cache Common Packages, select packages like lodash, axios, dayjs, or papaparse.
+3. Or enter custom NPM package names (e.g. canvas-confetti, cowsay) in the custom input.
+4. Package bundles are saved into local CacheStorage. You can now disconnect from Wi-Fi and run scripts offline.
 `
   }
 };
