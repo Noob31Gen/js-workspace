@@ -11,13 +11,20 @@ export interface ExtensionFetchResponse {
   message?: string;
 }
 
+export interface ExtensionStatusResult {
+  connected: boolean;
+  authRequired: boolean;
+  authenticated: boolean;
+  status: 'CONNECTED_SECURE' | 'CONNECTED_NO_AUTH' | 'AUTH_FAILED' | 'NOT_DETECTED';
+  message: string;
+}
+
 const EXT_AUTH_HASH_KEY = 'js_workspace_ext_auth_hash';
 const DOMAIN_SALT = 'js.noob31.com:salt:v1:';
 let isExtensionBridgeDetected = false;
 
 /**
  * Generates domain-salted SHA-256 hash using browser Web Crypto API.
- * Prevents rainbow table dictionary attacks against passwords.
  */
 export async function hashStringSHA256(text: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -29,7 +36,6 @@ export async function hashStringSHA256(text: string): Promise<string> {
 
 /**
  * Gets cached domain-salted SHA-256 authentication hash.
- * Checks sessionStorage first (high security), then localStorage.
  */
 export function getExtensionAuthHash(): string | null {
   try {
@@ -45,7 +51,7 @@ export function getExtensionAuthHash(): string | null {
 }
 
 /**
- * Sets and caches domain-salted secret password hash across session & local storage.
+ * Sets and caches domain-salted secret password hash.
  */
 export async function setExtensionPassword(password: string): Promise<string> {
   const hash = await hashStringSHA256(password.trim());
@@ -76,16 +82,88 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Checks detailed status of Chrome Extension connection and authentication.
+ */
+export async function checkExtensionDetailedStatus(): Promise<ExtensionStatusResult> {
+  const authHash = getExtensionAuthHash();
+
+  if (typeof window !== 'undefined') {
+    const res = await new Promise<any>((resolve) => {
+      const handler = (event: MessageEvent) => {
+        if (event.data && event.data.source === 'JS_WORKSPACE_EXTENSION' && event.data.type === 'JS_WORKSPACE_PONG') {
+          window.removeEventListener('message', handler);
+          isExtensionBridgeDetected = true;
+          resolve(event.data.response || {});
+        }
+      };
+      window.addEventListener('message', handler);
+      window.postMessage({ source: 'JS_WORKSPACE_PAGE', type: 'JS_WORKSPACE_PING', authHash }, '*');
+      setTimeout(() => {
+        window.postMessage({ source: 'JS_WORKSPACE_PAGE', type: 'JS_WORKSPACE_PING', authHash }, '*');
+      }, 150);
+      setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(null);
+      }, 1000);
+    });
+
+    if (res) {
+      if (res.error === 'AUTH_FAILED') {
+        return {
+          connected: true,
+          authRequired: true,
+          authenticated: false,
+          status: 'AUTH_FAILED',
+          message: 'Password Mismatch: Password configured in extension, but site hash is invalid or missing.'
+        };
+      }
+      if (res.authRequired && res.authenticated) {
+        return {
+          connected: true,
+          authRequired: true,
+          authenticated: true,
+          status: 'CONNECTED_SECURE',
+          message: 'Extension Connected & Authenticated with SHA-256 password hash.'
+        };
+      }
+      if (res.pong && !res.authRequired) {
+        return {
+          connected: true,
+          authRequired: false,
+          authenticated: true,
+          status: 'CONNECTED_NO_AUTH',
+          message: 'Extension Active without password protection. Set password to lock requests.'
+        };
+      }
+    }
+  }
+
+  const isConn = await checkExtensionConnected();
+  if (isConn) {
+    return {
+      connected: true,
+      authRequired: !!authHash,
+      authenticated: true,
+      status: authHash ? 'CONNECTED_SECURE' : 'CONNECTED_NO_AUTH',
+      message: authHash ? 'Extension Connected & Authenticated' : 'Extension Active (No Password Configured)'
+    };
+  }
+
+  return {
+    connected: false,
+    authRequired: false,
+    authenticated: false,
+    status: 'NOT_DETECTED',
+    message: 'Helper Extension Not Detected.'
+  };
+}
+
+/**
  * Checks if the CORS Helper Chrome extension is connected and authenticated.
  */
 export async function checkExtensionConnected(): Promise<boolean> {
   const authHash = getExtensionAuthHash();
 
-  if (isExtensionBridgeDetected && !authHash) {
-    // Basic detection confirmed via postMessage
-  }
-
-  // 1. Handshake via window.postMessage (Content Script bridge)
   if (typeof window !== 'undefined') {
     const detectedViaPostMessage = await new Promise<boolean>((resolve) => {
       const handler = (event: MessageEvent) => {
@@ -115,7 +193,6 @@ export async function checkExtensionConnected(): Promise<boolean> {
     if (detectedViaPostMessage) return true;
   }
 
-  // 2. Fallback via chrome.runtime.sendMessage if available
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
     return new Promise((resolve) => {
       try {
@@ -138,12 +215,10 @@ export async function checkExtensionConnected(): Promise<boolean> {
 
 /**
  * Fetches an external URL using the Chrome Extension background worker (bypassing CORS).
- * Automatically passes domain-salted SHA-256 authHash.
  */
 export async function fetchViaExtension(url: string, options: any = {}): Promise<ExtensionFetchResponse> {
   const authHash = getExtensionAuthHash();
 
-  // 1. Execute via Content Script bridge (window.postMessage)
   if (typeof window !== 'undefined') {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
@@ -170,7 +245,6 @@ export async function fetchViaExtension(url: string, options: any = {}): Promise
     if (responseViaPostMessage) return responseViaPostMessage;
   }
 
-  // 2. Fallback via direct chrome.runtime.sendMessage
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ type: 'FETCH_PROXY', url, options, authHash }, (response: any) => {

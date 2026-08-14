@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldAlert, Download, RefreshCw, X, AlertTriangle, Lock, CheckCircle2, KeyRound, Trash2 } from 'lucide-react';
 import { downloadExtensionZip } from '@/lib/extension-downloader';
-import { setExtensionPassword, clearExtensionPassword, getExtensionAuthHash } from '@/lib/extension-client';
+import { setExtensionPassword, clearExtensionPassword, getExtensionAuthHash, checkExtensionDetailedStatus, ExtensionStatusResult } from '@/lib/extension-client';
 
 interface ExtensionModalProps {
   isOpen: boolean;
@@ -20,6 +20,9 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
+  // Detailed Extension & Password Auth Status
+  const [detailedStatus, setDetailedStatus] = useState<ExtensionStatusResult | null>(null);
+
   // Password Authentication State
   const [passwordInput, setPasswordInput] = useState('');
   const [hasAuthHash, setHasAuthHash] = useState(() => !!getExtensionAuthHash());
@@ -29,8 +32,16 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
   const [riskAcknowledged, setRiskAcknowledged] = useState(false);
 
+  const refreshDetailedStatus = async () => {
+    const res = await checkExtensionDetailedStatus();
+    setDetailedStatus(res);
+  };
+
   useEffect(() => {
-    setHasAuthHash(!!getExtensionAuthHash());
+    if (isOpen) {
+      setHasAuthHash(!!getExtensionAuthHash());
+      refreshDetailedStatus();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -69,6 +80,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
   const handleRecheck = async () => {
     setIsChecking(true);
     await onRefreshStatus();
+    await refreshDetailedStatus();
     setTimeout(() => setIsChecking(false), 500);
   };
 
@@ -79,19 +91,41 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
         <div className="flex items-center justify-between border-b border-border/40 pb-4">
           <div className="flex items-center gap-3">
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
-              extensionActive
+              detailedStatus?.status === 'CONNECTED_SECURE'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                : detailedStatus?.status === 'AUTH_FAILED'
+                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                : extensionActive
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                : 'bg-muted text-muted-foreground border-border'
             }`}>
-              {extensionActive ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+              {detailedStatus?.status === 'CONNECTED_SECURE' ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : detailedStatus?.status === 'AUTH_FAILED' ? (
+                <Lock className="h-5 w-5" />
+              ) : (
+                <ShieldAlert className="h-5 w-5" />
+              )}
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground font-sans flex items-center gap-2">
                 CORS Helper Extension
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
-                  extensionActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  detailedStatus?.status === 'CONNECTED_SECURE'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : detailedStatus?.status === 'AUTH_FAILED'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : extensionActive
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-muted text-muted-foreground border border-border'
                 }`}>
-                  {extensionActive ? 'Connected' : 'Inactive'}
+                  {detailedStatus?.status === 'CONNECTED_SECURE'
+                    ? 'Authenticated'
+                    : detailedStatus?.status === 'AUTH_FAILED'
+                    ? 'Auth Mismatch'
+                    : extensionActive
+                    ? 'Active (No Auth)'
+                    : 'Inactive'}
                 </span>
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -110,22 +144,38 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
         {/* Live Status Card */}
         <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
-          extensionActive
+          detailedStatus?.status === 'CONNECTED_SECURE'
             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+            : detailedStatus?.status === 'AUTH_FAILED'
+            ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+            : extensionActive
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+            : 'bg-muted/40 border-border text-muted-foreground'
         }`}>
           <div className="flex items-center gap-2.5">
             <div className={`w-3 h-3 rounded-full shrink-0 ${
-              extensionActive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'
+              detailedStatus?.status === 'CONNECTED_SECURE'
+                ? 'bg-emerald-400 animate-ping'
+                : detailedStatus?.status === 'AUTH_FAILED'
+                ? 'bg-rose-400 animate-pulse'
+                : extensionActive
+                ? 'bg-amber-400'
+                : 'bg-muted-foreground'
             }`} />
             <div className="text-xs">
               <div className="font-bold">
-                {extensionActive ? 'CORS Helper is Active & Ready' : 'Helper Extension Not Detected'}
+                {detailedStatus?.status === 'CONNECTED_SECURE'
+                  ? 'CORS Helper is Active & Authenticated'
+                  : detailedStatus?.status === 'AUTH_FAILED'
+                  ? 'Authentication Required / Password Mismatch'
+                  : extensionActive
+                  ? 'Extension Active (Unauthenticated)'
+                  : 'Helper Extension Not Detected'}
               </div>
               <div className="text-[11px] opacity-80">
-                {extensionActive
+                {detailedStatus?.message || (extensionActive
                   ? 'All script fetch() requests will bypass CORS boundaries smoothly.'
-                  : 'Install the extension below to enable cross-origin fetching.'}
+                  : 'Install the extension below to enable cross-origin fetching.')}
               </div>
             </div>
           </div>

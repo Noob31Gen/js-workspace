@@ -9,6 +9,10 @@ const EXTENSION_MANIFEST = `{
   "host_permissions": [
     "<all_urls>"
   ],
+  "action": {
+    "default_title": "JS Workspace Security Settings",
+    "default_popup": "options.html"
+  },
   "background": {
     "service_worker": "background.js"
   },
