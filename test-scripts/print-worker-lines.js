@@ -1,5 +1,4 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
 
 // We can compile buildWorkerDependencyLoader or extract the string from dependency-resolver.ts
 const depContent = fs.readFileSync('d:/Programs/code-stuff/js-workspace/src/lib/dependency-resolver.ts', 'utf-8');

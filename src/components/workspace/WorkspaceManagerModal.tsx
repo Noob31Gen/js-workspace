@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Workspace } from '@/lib/workspace-store';
-import { FolderGit2, Plus, Download, Upload, Trash2, Check, X, Layers, Sparkles, MoreVertical } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, X, Layers, MoreVertical } from 'lucide-react';
 
 interface WorkspaceManagerModalProps {
   workspaces: Workspace[];
@@ -54,7 +54,7 @@ export const WorkspaceManagerModal: React.FC<WorkspaceManagerModalProps> = ({
         } else {
           alert('Invalid workspace format');
         }
-      } catch (err) {
+      } catch {
         alert('Failed to parse JSON file');
       }
     };

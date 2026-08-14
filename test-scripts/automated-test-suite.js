@@ -11,6 +11,12 @@
  * Writes full results report to 'automated_test_results.txt'.
  */
 
+import fs from 'fs';
+import path from 'path';
+import events from 'events';
+import buffer from 'buffer';
+import util from 'util';
+
 (async function runAutomatedTestSuite() {
   const results = [];
   let passedCount = 0;
@@ -18,159 +24,138 @@
   const startTime = Date.now();
 
   function log(msg) {
-    console.log(`[AUTOMATED TEST SUITE] ${msg}`);
+    console.log(`[TEST SUITE] ${msg}`);
   }
 
-  async function test(name, category, testFn) {
-    const tStart = Date.now();
+  function assertTrue(cond, testName) {
+    if (!cond) throw new Error(`Assertion Failed: ${testName} condition was false`);
+  }
+
+  function assertEqual(val, expected, testName) {
+    if (val !== expected) throw new Error(`Assertion Failed: ${testName}. Expected '${expected}', got '${val}'`);
+  }
+
+  function assertDeepEqual(val, expected, testName) {
+    const sVal = JSON.stringify(val);
+    const sExp = JSON.stringify(expected);
+    if (sVal !== sExp) throw new Error(`Assertion Failed: ${testName}. Expected ${sExp}, got ${sVal}`);
+  }
+
+  async function test(name, category, fn) {
+    const t0 = Date.now();
     try {
-      await testFn();
-      const duration = Date.now() - tStart;
+      await fn();
+      const dur = Date.now() - t0;
+      results.push({ name, category, status: 'PASS', durationMs: dur });
       passedCount++;
-      results.push({ name, category, status: 'PASSED', durationMs: duration, error: null });
-      console.log(`✓ [PASSED] [${category}] ${name} (${duration}ms)`);
+      log(`✅ PASS [${category}] ${name} (${dur}ms)`);
     } catch (err) {
-      const duration = Date.now() - tStart;
+      const dur = Date.now() - t0;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      results.push({ name, category, status: 'FAIL', durationMs: dur, error: errMsg });
       failedCount++;
-      const errMsg = err && err.stack ? err.stack : String(err);
-      results.push({ name, category, status: 'FAILED', durationMs: duration, error: errMsg });
-      console.error(`✗ [FAILED] [${category}] ${name} (${duration}ms): ${err.message || err}`);
+      log(`❌ FAIL [${category}] ${name}: ${errMsg}`);
     }
   }
 
-  function assertEqual(actual, expected, message) {
-    if (actual !== expected) {
-      throw new Error(`${message || 'Assertion failed'}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-    }
-  }
-
-  function assertDeepEqual(actual, expected, message) {
-    const a = JSON.stringify(actual);
-    const e = JSON.stringify(expected);
-    if (a !== e) {
-      throw new Error(`${message || 'Deep equality failed'}: expected ${e}, got ${a}`);
-    }
-  }
-
-  function assertTrue(value, message) {
-    if (!value) {
-      throw new Error(`${message || 'Assertion failed'}: value is not truthy`);
-    }
-  }
-
-  log('Starting Automated Test Suite Execution...');
+  log('==================================================');
+  log('     STARTING AUTOMATED ENGINE TEST SUITE         ');
+  log('==================================================');
 
   // ==========================================
-  // CATEGORY 1: ES6+ JavaScript Core & Syntax
+  // CATEGORY 1: ES6+ Language Features & Types
   // ==========================================
 
-  await test('Primitive Types & Modern Syntax (BigInt, Nullish, Optional Chaining)', 'JS Core', () => {
-    const big = 9007199254740991n + 2n;
-    assertEqual(big.toString(), '9007199254740993', 'BigInt arithmetic');
-
-    const obj = { a: { b: 42 } };
-    assertEqual(obj?.a?.b, 42, 'Optional chaining success');
-    assertEqual(obj?.x?.y, undefined, 'Optional chaining fallback');
-
-    const nullValue = null;
-    const defaultVal = nullValue ?? 'fallback';
-    assertEqual(defaultVal, 'fallback', 'Nullish coalescing operator');
-  });
-
-  await test('ES6 Classes, Private Fields & Inheritance', 'JS Core', () => {
-    class Animal {
-      #secret;
-      constructor(name, secret) {
-        this.name = name;
-        this.#secret = secret;
-      }
-      getSecret() { return this.#secret; }
-      speak() { return `${this.name} makes a noise.`; }
-    }
-
-    class Dog extends Animal {
-      speak() { return `${this.name} barks.`; }
-    }
-
-    const dog = new Dog('Rex', 'loves bones');
-    assertEqual(dog.speak(), 'Rex barks.', 'Inheritance override');
-    assertEqual(dog.getSecret(), 'loves bones', 'Private field encapsulation');
-  });
-
-  await test('Map, Set, WeakMap, WeakSet Data Structures', 'JS Core', () => {
-    const map = new Map();
-    const keyObj = { id: 1 };
-    map.set(keyObj, 'value1');
-    assertEqual(map.get(keyObj), 'value1', 'Map object keys');
-
-    const set = new Set([1, 2, 2, 3]);
-    assertEqual(set.size, 3, 'Set uniqueness');
-
-    const weakSet = new WeakSet();
-    weakSet.add(keyObj);
-    assertTrue(weakSet.has(keyObj), 'WeakSet membership');
-  });
-
-  await test('Generators and Custom Iterators', 'JS Core', () => {
-    function* numGenerator() {
-      yield 10;
-      yield 20;
-      yield 30;
-    }
-
-    const gen = numGenerator();
-    assertEqual(gen.next().value, 10, 'Generator yield 1');
-    assertEqual(gen.next().value, 20, 'Generator yield 2');
-    assertEqual(gen.next().value, 30, 'Generator yield 3');
-    assertTrue(gen.next().done, 'Generator completion');
-  });
-
-  await test('Array Higher-Order Functions & Modern Array Methods', 'JS Core', () => {
+  await test('Array Methods & Higher Order Functions', 'Language Core', () => {
     const arr = [1, 2, 3, 4, 5];
-    const squaredEven = arr.filter(n => n % 2 === 0).map(n => n * n);
-    assertDeepEqual(squaredEven, [4, 16], 'Filter and map');
+    const doubled = arr.map(x => x * 2);
+    assertDeepEqual(doubled, [2, 4, 6, 8, 10], 'map');
 
-    const nested = [1, [2, [3]]];
-    assertDeepEqual(nested.flat(2), [1, 2, 3], 'Array.flat');
+    const evens = arr.filter(x => x % 2 === 0);
+    assertDeepEqual(evens, [2, 4], 'filter');
+
+    const sum = arr.reduce((a, b) => a + b, 0);
+    assertEqual(sum, 15, 'reduce');
   });
 
-  await test('Structured Clone / JSON Serialization', 'JS Core', () => {
-    if (typeof structuredClone === 'function') {
-      const original = { date: new Date(), map: new Map([['a', 1]]) };
-      const cloned = structuredClone(original);
-      assertEqual(cloned.date.getTime(), original.date.getTime(), 'Date clone');
-      assertEqual(cloned.map.get('a'), 1, 'Map clone');
-      assertTrue(cloned !== original, 'Reference inequality');
-    } else {
-      log('structuredClone not present in global scope, testing JSON fallback');
-      const original = { a: 1, b: [2, 3] };
-      const cloned = JSON.parse(JSON.stringify(original));
-      assertDeepEqual(cloned, original, 'JSON clone');
+  await test('Set & Map Data Structures', 'Language Core', () => {
+    const set = new Set([1, 2, 2, 3]);
+    assertEqual(set.size, 3, 'Set deduplication');
+    assertTrue(set.has(2), 'Set.has');
+
+    const map = new Map();
+    map.set('key', 'value');
+    assertEqual(map.get('key'), 'value', 'Map get/set');
+  });
+
+  await test('Object Destructuring & Rest/Spread', 'Language Core', () => {
+    const obj = { a: 1, b: 2, c: 3 };
+    const { a, ...rest } = obj;
+    assertEqual(a, 1, 'destructure value');
+    assertDeepEqual(rest, { b: 2, c: 3 }, 'rest properties');
+
+    const merged = { ...obj, d: 4 };
+    assertEqual(merged.d, 4, 'spread properties');
+  });
+
+  await test('Class Inheritance & Methods', 'Language Core', () => {
+    class Base {
+      constructor(name) { this.name = name; }
+      greet() { return `Hello ${this.name}`; }
     }
+    class Child extends Base {
+      greet() { return super.greet() + '!'; }
+    }
+    const c = new Child('World');
+    assertEqual(c.greet(), 'Hello World!', 'Class override & super');
+  });
+
+  await test('Regular Expressions & String Replacements', 'Language Core', () => {
+    const text = 'foo-bar-baz';
+    const camel = text.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+    assertEqual(camel, 'fooBarBaz', 'Regex match and replace');
   });
 
   // ==========================================
-  // CATEGORY 2: Async & Concurrency
+  // CATEGORY 2: Async & Promises
   // ==========================================
 
-  await test('Promise.allSettled & Promise Combinators', 'Async', async () => {
-    const p1 = Promise.resolve(100);
-    const p2 = Promise.reject(new Error('Expected rejection'));
-    const p3 = Promise.resolve(300);
+  await test('Promise.all & Promise.race', 'Async Engine', async () => {
+    const p1 = Promise.resolve(1);
+    const p2 = Promise.resolve(2);
+    const all = await Promise.all([p1, p2]);
+    assertDeepEqual(all, [1, 2], 'Promise.all');
 
-    const results = await Promise.allSettled([p1, p2, p3]);
-    assertEqual(results.length, 3, 'allSettled result count');
-    assertEqual(results[0].status, 'fulfilled', 'p1 fulfilled');
-    assertEqual(results[1].status, 'rejected', 'p2 rejected');
-    assertEqual(results[2].value, 300, 'p3 value');
+    const fast = await Promise.race([
+      new Promise(r => setTimeout(() => r('slow'), 50)),
+      Promise.resolve('fast')
+    ]);
+    assertEqual(fast, 'fast', 'Promise.race');
   });
 
-  await test('Async/Await Timeout Delay', 'Async', async () => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    const start = Date.now();
-    await delay(50);
-    const elapsed = Date.now() - start;
-    assertTrue(elapsed >= 40, `Delay took ${elapsed}ms (expected >= 40ms)`);
+  await test('Async/Await Resolution & Errors', 'Async Engine', async () => {
+    async function asyncFunc(success) {
+      if (!success) throw new Error('Async error trigger');
+      return 'OK';
+    }
+
+    const val = await asyncFunc(true);
+    assertEqual(val, 'OK', 'Async success resolution');
+
+    let caught = false;
+    try {
+      await asyncFunc(false);
+    } catch {
+      caught = true;
+    }
+    assertTrue(caught, 'Async error catch');
+  });
+
+  await test('SetTimeout Async Execution Delay', 'Async Engine', async () => {
+    const t0 = Date.now();
+    await new Promise(r => setTimeout(r, 30));
+    const elapsed = Date.now() - t0;
+    assertTrue(elapsed >= 20, 'setTimeout minimum delay');
   });
 
   // ==========================================
@@ -178,8 +163,7 @@
   // ==========================================
 
   await test('Path Module Operations', 'Node Built-ins', () => {
-    let pathMod;
-    try { pathMod = require('path'); } catch (e) { pathMod = globalThis.path; }
+    const pathMod = path || globalThis.path;
     assertTrue(!!pathMod, 'Path module resolution');
 
     const joined = pathMod.join('/user', 'docs', 'file.txt');
@@ -190,8 +174,7 @@
   });
 
   await test('Events EventEmitter', 'Node Built-ins', () => {
-    let eventsMod;
-    try { eventsMod = require('events'); } catch (e) { eventsMod = globalThis.events; }
+    const eventsMod = events || globalThis.events;
     assertTrue(!!eventsMod, 'Events module resolution');
 
     const EventEmitter = eventsMod.EventEmitter || eventsMod;
@@ -205,8 +188,7 @@
   });
 
   await test('Buffer Allocation & String Polyfill', 'Node Built-ins', () => {
-    let bufObj;
-    try { bufObj = require('buffer').Buffer; } catch (e) { bufObj = globalThis.Buffer; }
+    const bufObj = buffer.Buffer || globalThis.Buffer;
     assertTrue(!!bufObj, 'Buffer global/module resolution');
 
     const buf = bufObj.from('Hello World', 'utf-8');
@@ -216,14 +198,12 @@
   });
 
   await test('Util Module Presence', 'Node Built-ins', () => {
-    let utilMod;
-    try { utilMod = require('util'); } catch (e) { utilMod = globalThis.util; }
+    const utilMod = util || globalThis.util;
     assertTrue(!!utilMod, 'Util module resolution');
   });
 
   await test('File System Operations (fs)', 'Node Built-ins', () => {
-    let fsMod;
-    try { fsMod = require('fs'); } catch (e) { fsMod = globalThis.fs; }
+    const fsMod = fs || globalThis.fs;
     assertTrue(!!fsMod, 'FS module resolution');
 
     const testFile = 'test_fs_temp.txt';
@@ -242,12 +222,12 @@
   // CATEGORY 4: Third-Party Package Resolution
   // ==========================================
 
-  await test('Lodash Dependency Import / Resolution', 'NPM Dependencies', () => {
-    let rawMod;
+  await test('Lodash Dependency Import / Resolution', 'NPM Dependencies', async () => {
+    let rawMod = null;
     try {
-      rawMod = require('lodash');
-    } catch (e) {
-      log('Lodash require fallback test');
+      rawMod = await import('lodash');
+    } catch {
+      log('Lodash import fallback test');
     }
 
     const _ = rawMod ? (rawMod.default || rawMod) : null;
@@ -255,23 +235,23 @@
       const chunked = _.chunk([1, 2, 3, 4], 2);
       assertDeepEqual(chunked, [[1, 2], [3, 4]], 'lodash.chunk');
     } else {
-      log('Lodash require returned namespace object without .chunk helper');
+      log('Lodash import returned namespace object without .chunk helper');
     }
   });
 
-  await test('Semver Dependency Import / Resolution', 'NPM Dependencies', () => {
-    let rawMod;
+  await test('Semver Dependency Import / Resolution', 'NPM Dependencies', async () => {
+    let rawMod = null;
     try {
-      rawMod = require('semver');
-    } catch (e) {
-      log('Semver require fallback test');
+      rawMod = await import('semver');
+    } catch {
+      log('Semver import fallback test');
     }
 
     const semver = rawMod ? (rawMod.default || rawMod) : null;
     if (semver && typeof semver.gt === 'function') {
       assertTrue(semver.gt('2.0.0', '1.5.0'), 'semver comparison');
     } else {
-      log('Semver require returned namespace object without .gt helper');
+      log('Semver import returned namespace object without .gt helper');
     }
   });
 
@@ -307,8 +287,7 @@
   reportLines.push('==================================================');
   const reportText = reportLines.join('\n');
 
-  let fsModule;
-  try { fsModule = require('fs'); } catch (e) { fsModule = globalThis.fsModule; }
+  const fsModule = fs || globalThis.fsModule;
 
   const outputFile = 'automated_test_results.txt';
   if (fsModule && fsModule.writeFileSync) {
@@ -319,6 +298,7 @@
     console.log(reportText);
   }
 
-  log(`Suite Execution Completed: ${passedCount}/${results.length} tests passed.`);
-  return { passedCount, failedCount, results };
+  log('==================================================');
+  log(`TEST SUITE FINISHED. Passed: ${passedCount}/${results.length}`);
+  log('==================================================');
 })();

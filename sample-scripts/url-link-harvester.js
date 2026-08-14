@@ -7,7 +7,7 @@
  * @param {boolean} uniqueOnly Deduplicate Returned Links - default: true
  * @param {select:all|http-only|https-only} protocolFilter Filter Protocols - default: "https-only"
  */
-async function run({ targetUrl, maxLinks, uniqueOnly, protocolFilter }) {
+export async function run({ targetUrl, maxLinks, uniqueOnly, protocolFilter }) {
   console.log(`📡 Fetching page content from: ${targetUrl}...`);
 
   let html;
@@ -18,7 +18,7 @@ async function run({ targetUrl, maxLinks, uniqueOnly, protocolFilter }) {
     console.warn(`⚠️ Standard fetch failed (CORS restriction likely). Attempting via extension helper...`);
     const extResult = await fetchViaExtension(targetUrl);
     if (!extResult.success) {
-      throw new Error(`Failed to fetch page: ${extResult.error}`);
+      throw new Error(`Failed to fetch page: ${extResult.error}`, { cause: err });
     }
     html = extResult.data;
   }

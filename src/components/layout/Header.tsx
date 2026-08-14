@@ -1,11 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Wifi, WifiOff, Download, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
 import { OfflinePackageModal } from '@/components/pwa/OfflinePackageModal';
-
-const DEFAULT_COMMON_PACKAGES = ['lodash', 'axios', 'dayjs', 'papaparse', 'mathjs', 'cheerio'];
 
 interface HeaderProps {
   onOpenDocs: (docName: string) => void;
@@ -100,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
         type="file"
         ref={folderInputRef}
         onChange={handleFolderChange}
-        {...({ webkitdirectory: '', directory: '' } as any)}
+        {...({ webkitdirectory: '', directory: '' } as unknown as React.InputHTMLAttributes<HTMLInputElement>)}
         multiple
         className="hidden"
         aria-label="Import PC Folder Input"

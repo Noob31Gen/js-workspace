@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ConsoleLogMessage } from '@/lib/worker-runner';
-import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, CheckCircle2, ChevronRight, FileJson, Maximize2, MoreVertical, Send, Play } from 'lucide-react';
+import { Terminal, Trash2, Copy, Check, Clock, AlertCircle, FileJson, Maximize2, MoreVertical, Play } from 'lucide-react';
 
 interface ConsoleViewerProps {
   logs: ConsoleLogMessage[];
   onClearLogs: () => void;
-  outputResult: any;
+  outputResult: unknown;
   errorResult: string | null;
   executionTimeMs?: number;
   onOpenResultWindow?: () => void;

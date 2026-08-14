@@ -6,7 +6,7 @@ import { ConsoleLogMessage, FramePayload } from '@/lib/worker-runner';
 interface ExecutionResultWindowModalProps {
   isOpen: boolean;
   onClose: () => void;
-  outputResult: any;
+  outputResult: unknown;
   errorResult: string | null;
   executionTimeMs?: number | null;
   logs: ConsoleLogMessage[];
@@ -127,10 +127,10 @@ export const ExecutionResultWindowModal: React.FC<ExecutionResultWindowModalProp
                     </div>
                     <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
                       {frame.type === 'image' && (
-                        <img src={frame.content} alt="Frame" className="max-h-48 rounded border border-border object-contain mx-auto" />
+                        <img src={String(frame.content)} alt="Frame" className="max-h-48 rounded border border-border object-contain mx-auto" />
                       )}
                       {frame.type === 'html' && (
-                        <div className="p-2 bg-background text-foreground rounded text-xs" dangerouslySetInnerHTML={{ __html: frame.content }} />
+                        <div className="p-2 bg-background text-foreground rounded text-xs" dangerouslySetInnerHTML={{ __html: String(frame.content) }} />
                       )}
                       {frame.type === 'json' && (
                         <pre className="text-xs font-mono text-emerald-400 whitespace-pre-wrap">{JSON.stringify(frame.content, null, 2)}</pre>

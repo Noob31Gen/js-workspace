@@ -22,7 +22,7 @@ export function registerServiceWorker(onStatusChange?: (status: OfflineStatus) =
   if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
-        .then((reg) => {
+        .then(() => {
           swRegistered = true;
           updateStatus();
         })
@@ -53,7 +53,9 @@ export function getPrecachedPackages(): string[] {
   try {
     const stored = localStorage.getItem(PRECACHED_PKGS_KEY);
     if (stored) return JSON.parse(stored);
-  } catch (e) {}
+  } catch {
+    // Return fallback list on storage read error
+  }
   return ['lodash', 'dayjs', 'papaparse'];
 }
 
@@ -64,14 +66,18 @@ export function savePrecachedPackage(packageName: string) {
       list.push(packageName);
       localStorage.setItem(PRECACHED_PKGS_KEY, JSON.stringify(list));
     }
-  } catch (e) {}
+  } catch {
+    // Ignore storage write error
+  }
 }
 
 export function removePrecachedPackage(packageName: string) {
   try {
     const list = getPrecachedPackages().filter(p => p !== packageName);
     localStorage.setItem(PRECACHED_PKGS_KEY, JSON.stringify(list));
-  } catch (e) {}
+  } catch {
+    // Ignore storage write error
+  }
 }
 
 const NODE_CORE_MODULES = [
@@ -189,7 +195,9 @@ export async function precacheNpmPackage(packageName: string): Promise<boolean> 
                         });
                         await cache.put(absoluteSubUrl, subSynth);
                       }
-                    } catch (err) {}
+                    } catch {
+                      // Skip failed sub-resource fetch
+                    }
                   })()
                 );
               }
@@ -202,16 +210,16 @@ export async function precacheNpmPackage(packageName: string): Promise<boolean> 
 
           savePrecachedPackage(cleanName);
           fetchedSuccess = true;
-          break;
+          break; // Package successfully fetched & cached
         }
-      } catch (err) {
-        console.warn(`CDN fetch attempt failed for ${targetUrl}:`, err);
+      } catch {
+        // Try next CDN
       }
     }
 
     return fetchedSuccess;
-  } catch (e) {
-    console.warn(`Failed to precache NPM package ${cleanName}:`, e);
+  } catch (err) {
+    console.warn('Failed to precache package:', packageName, err);
     return false;
   }
 }

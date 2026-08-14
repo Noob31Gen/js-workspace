@@ -99,7 +99,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         ref={folderInputRef}
         onChange={handleFolderChange}
         style={{ display: 'none' }}
-        {...({ webkitdirectory: '', directory: '' } as any)}
+        {...({ webkitdirectory: '', directory: '' } as unknown as React.InputHTMLAttributes<HTMLInputElement>)}
         multiple
       />
       <input

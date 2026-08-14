@@ -1,6 +1,5 @@
-// FINAL VALIDATION: Simulate the exact worker code generation and test it
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // Read the music-transfer test files
 const musicTransferDir = 'd:/Programs/code-stuff/js-workspace/music-transfer';
@@ -84,7 +83,7 @@ try {
   for (let i = 0; i < lines.length; i++) {
     try {
       new Function(lines.slice(0, i + 1).join('\n'));
-    } catch (e2) {
+    } catch {
       console.log('Problem at line', i + 1, ':', lines[i]);
       break;
     }
@@ -165,7 +164,7 @@ try {
   for (let i = 0; i < hLines.length; i++) {
     try {
       new Function(hLines.slice(0, i + 1).join('\n'));
-    } catch(e2) {
+    } catch {
       console.log('Problem at line', i + 1, ':', hLines[i].substring(0, 120));
       break;
     }

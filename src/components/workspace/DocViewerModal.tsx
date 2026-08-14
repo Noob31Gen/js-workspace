@@ -13,11 +13,11 @@ interface DocViewerModalProps {
 }
 
 export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose }) => {
-  if (!docName) return null;
-
   const [activeDocKey, setActiveDocKey] = useState<string>(
-    DOCS_REGISTRY[docName] ? docName : 'ARCHITECTURE.md'
+    docName && DOCS_REGISTRY[docName] ? docName : 'ARCHITECTURE.md'
   );
+
+  if (!docName) return null;
 
   const activeDoc: DocItem = DOCS_REGISTRY[activeDocKey] || DOCS_REGISTRY['ARCHITECTURE.md'];
 
@@ -32,7 +32,7 @@ export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose
       } else if (Prism.languages.javascript) {
         highlighted = Prism.highlight(text, Prism.languages.javascript, 'javascript');
       }
-    } catch (e) {
+    } catch {
       highlighted = text;
     }
 

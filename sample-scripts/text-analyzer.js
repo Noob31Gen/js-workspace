@@ -6,7 +6,7 @@
  * @param {number} topWords Number of Top Words to Output - default: 5
  * @param {boolean} ignoreCase Case Insensitive Matching - default: true
  */
-async function run({ sampleText, topWords, ignoreCase }) {
+export async function run({ sampleText, topWords, ignoreCase }) {
   console.log("Analyzing text input...");
 
   const textToProcess = ignoreCase ? sampleText.toLowerCase() : sampleText;

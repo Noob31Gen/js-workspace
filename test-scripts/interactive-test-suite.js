@@ -13,10 +13,11 @@
  * Writes full test results report to 'interactive_input_test_results.txt'.
  */
 
+import fs from 'fs';
+
 (async function runInteractiveInputTestSuite(args = {}) {
   const results = [];
-  let fsMod;
-  try { fsMod = require('fs'); } catch (e) { fsMod = globalThis.fs; }
+  const fsMod = fs || globalThis.fs;
 
   function log(msg) {
     console.log(`[INTERACTIVE TEST] ${msg}`);

@@ -1,4 +1,4 @@
-declare const chrome: any;
+declare const chrome: { runtime?: { sendMessage?: (msg: unknown, cb?: (res: unknown) => void) => void; lastError?: { message?: string } } };
 
 export interface ExtensionFetchResponse {
   success: boolean;
@@ -6,7 +6,7 @@ export interface ExtensionFetchResponse {
   status?: number;
   statusText?: string;
   contentType?: string;
-  data?: any;
+  data?: unknown;
   error?: string;
   message?: string;
 }
@@ -46,7 +46,9 @@ export function getExtensionAuthHash(): string | null {
       sessionStorage.setItem(EXT_AUTH_HASH_KEY, localHash);
       return localHash;
     }
-  } catch (e) {}
+  } catch {
+    // Return null if storage is unavailable
+  }
   return null;
 }
 
@@ -58,7 +60,9 @@ export async function setExtensionPassword(password: string): Promise<string> {
   try {
     sessionStorage.setItem(EXT_AUTH_HASH_KEY, hash);
     localStorage.setItem(EXT_AUTH_HASH_KEY, hash);
-  } catch (e) {}
+  } catch {
+    // Ignore storage write error
+  }
   return hash;
 }
 
@@ -69,16 +73,9 @@ export function clearExtensionPassword() {
   try {
     sessionStorage.removeItem(EXT_AUTH_HASH_KEY);
     localStorage.removeItem(EXT_AUTH_HASH_KEY);
-  } catch (e) {}
-}
-
-// Global window listener for content script announcements & responses
-if (typeof window !== 'undefined') {
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.source === 'JS_WORKSPACE_EXTENSION') {
-      isExtensionBridgeDetected = true;
-    }
-  });
+  } catch {
+    // Ignore storage write error
+  }
 }
 
 /**
@@ -88,12 +85,12 @@ export async function checkExtensionDetailedStatus(): Promise<ExtensionStatusRes
   const authHash = getExtensionAuthHash();
 
   if (typeof window !== 'undefined') {
-    const res = await new Promise<any>((resolve) => {
+    const res = await new Promise<Record<string, unknown> | null>((resolve) => {
       const handler = (event: MessageEvent) => {
         if (event.data && event.data.source === 'JS_WORKSPACE_EXTENSION' && event.data.type === 'JS_WORKSPACE_PONG') {
           window.removeEventListener('message', handler);
           isExtensionBridgeDetected = true;
-          resolve(event.data.response || {});
+          resolve((event.data.response || {}) as Record<string, unknown>);
         }
       };
       window.addEventListener('message', handler);
@@ -193,18 +190,20 @@ export async function checkExtensionConnected(): Promise<boolean> {
     if (detectedViaPostMessage) return true;
   }
 
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+  const runtime = typeof chrome !== 'undefined' ? chrome.runtime : undefined;
+  if (runtime && runtime.sendMessage) {
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage({ type: 'PING', authHash }, (response: any) => {
-          if (chrome.runtime.lastError || !response || !response.pong || response.error === 'AUTH_FAILED') {
+        runtime.sendMessage!({ type: 'PING', authHash }, (response: unknown) => {
+          const resp = response as { pong?: boolean; error?: string } | undefined;
+          if (runtime.lastError || !resp || !resp.pong || resp.error === 'AUTH_FAILED') {
             resolve(false);
           } else {
             isExtensionBridgeDetected = true;
             resolve(true);
           }
         });
-      } catch (e) {
+      } catch {
         resolve(false);
       }
     });
@@ -216,7 +215,7 @@ export async function checkExtensionConnected(): Promise<boolean> {
 /**
  * Fetches an external URL using the Chrome Extension background worker (bypassing CORS).
  */
-export async function fetchViaExtension(url: string, options: any = {}): Promise<ExtensionFetchResponse> {
+export async function fetchViaExtension(url: string, options: Record<string, unknown> = {}): Promise<ExtensionFetchResponse> {
   const authHash = getExtensionAuthHash();
 
   if (typeof window !== 'undefined') {
@@ -245,13 +244,14 @@ export async function fetchViaExtension(url: string, options: any = {}): Promise
     if (responseViaPostMessage) return responseViaPostMessage;
   }
 
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+  const runtime = typeof chrome !== 'undefined' ? chrome.runtime : undefined;
+  if (runtime && runtime.sendMessage) {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'FETCH_PROXY', url, options, authHash }, (response: any) => {
-        if (chrome.runtime.lastError) {
-          resolve({ success: false, error: chrome.runtime.lastError.message });
+      runtime.sendMessage!({ type: 'FETCH_PROXY', url, options, authHash }, (response: unknown) => {
+        if (runtime.lastError) {
+          resolve({ success: false, error: runtime.lastError.message });
         } else {
-          resolve(response || { success: false, error: 'No response received from extension' });
+          resolve((response || { success: false, error: 'No response received from extension' }) as ExtensionFetchResponse);
         }
       });
     });

@@ -37,14 +37,14 @@ interface MobileAppLayoutProps {
   isRunning: boolean;
   logs: ConsoleLogMessage[];
   onClearLogs: () => void;
-  outputResult: any;
+  outputResult: unknown;
   errorResult: string | null;
   executionTimeMs?: number;
   inputPrompt?: string | null;
   onSendInput?: (value: string) => void;
   parsedOptions: OptionDescriptor[];
-  optionValues: Record<string, any>;
-  onChangeOptionValue: (key: string, val: any) => void;
+  optionValues: Record<string, unknown>;
+  onChangeOptionValue: (key: string, val: unknown) => void;
   frame: FramePayload | null;
   onOpenResultWindow: () => void;
   onImportClick: () => void;
@@ -57,7 +57,7 @@ interface MobileAppLayoutProps {
   onExportActiveWorkspace?: () => void;
   extensionActive: boolean;
   isOnline: boolean;
-  getFileKind: (filename: string) => any;
+  getFileKind: (filename: string) => unknown;
 }
 
 export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
@@ -95,7 +95,6 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   onChangeOptionValue,
   frame,
   onOpenResultWindow,
-  onImportClick,
   onOpenExtensionModal,
   onOpenOfflineModal,
   onImportFolder,
@@ -113,7 +112,8 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
 
   useEffect(() => {
     if (frame) {
-      setActiveTab('preview');
+      const timer = requestAnimationFrame(() => setActiveTab('preview'));
+      return () => cancelAnimationFrame(timer);
     }
   }, [frame]);
 

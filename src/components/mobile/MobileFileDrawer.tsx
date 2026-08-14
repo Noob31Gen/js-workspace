@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WorkspaceNode, Workspace } from '@/lib/workspace-store';
 import { FolderTree } from '@/components/layout/FolderTree';
-import { Search, Layers, X, ChevronRight, Plus } from 'lucide-react';
+import { Search, Layers, X, ChevronRight } from 'lucide-react';
 
 interface MobileFileDrawerProps {
   isOpen: boolean;

@@ -50,12 +50,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
       return;
     }
 
-    if (history[historyIndex] !== code) {
-      const nextHistory = history.slice(0, historyIndex + 1);
-      nextHistory.push(code);
-      setHistory(nextHistory);
-      setHistoryIndex(nextHistory.length - 1);
-    }
+    setHistory(prev => {
+      if (prev[prev.length - 1] !== code) {
+        const updated = [...prev, code];
+        setHistoryIndex(updated.length - 1);
+        return updated;
+      }
+      return prev;
+    });
   }, [code]);
 
   // Esc key listener to exit full-screen editor
@@ -200,12 +202,13 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
       new Function(`return (async () => {\n${sanitizedCode}\n})();`);
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorObj = err as Error;
       let line: number | null = null;
-      let column: number | null = null;
-      const msg = err.message || 'Syntax Error';
+      const column: number | null = null;
+      const msg = errorObj.message || 'Syntax Error';
 
-      const lineMatch = err.stack?.match(/<anonymous>:(\d+):(\d+)/) || msg.match(/line (\d+)/i) || msg.match(/(\d+):(\d+)/);
+      const lineMatch = errorObj.stack?.match(/<anonymous>:(\d+):(\d+)/) || msg.match(/line (\d+)/i) || msg.match(/(\d+):(\d+)/);
       if (lineMatch) {
         const parsedLine = parseInt(lineMatch[1], 10);
         if (!isNaN(parsedLine)) {

@@ -1,8 +1,5 @@
 const BS = String.fromCharCode(92);
 function ws() { return BS + 's'; }
-function star() { return BS + '*'; }
-function lbrace() { return BS + '{'; }
-function rbrace() { return BS + '}'; }
 function quoteClass() { return "['" + '"' + "]"; }
 function notQuoteClass() { return "[^'" + '"' + "]+"; }
 

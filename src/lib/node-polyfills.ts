@@ -72,7 +72,8 @@ export class BufferPolyfill {
     return this.data.length;
   }
 
-  public static from(data: any, encoding: string = 'utf8'): BufferPolyfill {
+  public static from(data: unknown, encoding: string = 'utf8'): BufferPolyfill {
+    void encoding;
     if (typeof data === 'string') {
       const encoder = new TextEncoder();
       const arr = encoder.encode(data);
@@ -100,11 +101,12 @@ export class BufferPolyfill {
     return new BufferPolyfill(result);
   }
 
-  public static isBuffer(obj: any): boolean {
+  public static isBuffer(obj: unknown): boolean {
     return obj instanceof BufferPolyfill || obj instanceof Uint8Array;
   }
 
   public toString(encoding: string = 'utf8'): string {
+    void encoding;
     const decoder = new TextDecoder();
     return decoder.decode(this.data);
   }
@@ -120,7 +122,7 @@ export const processPolyfill = {
   cwd(): string {
     return '/';
   },
-  nextTick(fn: (...args: any[]) => void, ...args: any[]): void {
+  nextTick(fn: (...args: unknown[]) => void, ...args: unknown[]): void {
     Promise.resolve().then(() => fn(...args));
   },
   version: 'v20.11.0',
@@ -131,37 +133,39 @@ export const processPolyfill = {
 };
 
 // 4. Events EventEmitter Polyfill
-export class EventEmitterPolyfill {
-  private _events: Record<string, Function[]> = {};
+type EventListenerFn = (...args: unknown[]) => unknown;
 
-  public on(event: string, listener: Function): this {
+export class EventEmitterPolyfill {
+  private _events: Record<string, EventListenerFn[]> = {};
+
+  public on(event: string, listener: EventListenerFn): this {
     if (!this._events[event]) this._events[event] = [];
     this._events[event].push(listener);
     return this;
   }
 
-  public once(event: string, listener: Function): this {
-    const g = (...args: any[]) => {
+  public once(event: string, listener: EventListenerFn): this {
+    const g = (...args: unknown[]) => {
       this.off(event, g);
       listener.apply(this, args);
     };
     return this.on(event, g);
   }
 
-  public emit(event: string, ...args: any[]): boolean {
+  public emit(event: string, ...args: unknown[]): boolean {
     const listeners = this._events[event];
     if (!listeners || listeners.length === 0) return false;
     listeners.slice().forEach(fn => fn.apply(this, args));
     return true;
   }
 
-  public off(event: string, listener: Function): this {
+  public off(event: string, listener: EventListenerFn): this {
     if (!this._events[event]) return this;
     this._events[event] = this._events[event].filter(fn => fn !== listener);
     return this;
   }
 
-  public removeListener(event: string, listener: Function): this {
+  public removeListener(event: string, listener: EventListenerFn): this {
     return this.off(event, listener);
   }
 
@@ -197,9 +201,10 @@ export const cryptoPolyfill = {
     return new BufferPolyfill(arr.buffer);
   },
   createHash(algo: string) {
+    void algo;
     let _data = '';
     return {
-      update(chunk: any) {
+      update(chunk: unknown) {
         _data += String(chunk);
         return this;
       },
@@ -221,21 +226,22 @@ export const cryptoPolyfill = {
 
 // 6. Util Polyfill
 export const utilPolyfill = {
-  promisify(fn: Function) {
-    return function (...args: any[]) {
+  promisify(fn: (...args: unknown[]) => void) {
+    return function (...args: unknown[]) {
       return new Promise((resolve, reject) => {
-        fn(...args, (err: any, res: any) => {
+        fn(...args, (err: unknown, res: unknown) => {
           if (err) reject(err);
           else resolve(res);
         });
       });
     };
   },
-  inspect(obj: any, options: any = {}): string {
+  inspect(obj: unknown, options: unknown = {}): string {
+    void options;
     if (typeof obj === 'object') return JSON.stringify(obj, null, 2);
     return String(obj);
   },
-  format(fmt: string, ...args: any[]): string {
+  format(fmt: string, ...args: unknown[]): string {
     let i = 0;
     return String(fmt).replace(/%[sjd%/]/g, (match) => {
       if (match === '%%') return '%';

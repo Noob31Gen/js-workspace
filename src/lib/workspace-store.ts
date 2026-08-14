@@ -972,7 +972,7 @@ export async function loadWorkspacesAsync(): Promise<Workspace[]> {
     const tx = db.transaction(DB_STORE, 'readonly');
     const store = tx.objectStore(DB_STORE);
     const getReq = store.get(DB_KEY);
-    const result = await new Promise<any>((resolve, reject) => {
+    const result = await new Promise<Workspace[] | undefined>((resolve, reject) => {
       getReq.onsuccess = () => resolve(getReq.result);
       getReq.onerror = () => reject(getReq.error);
     });

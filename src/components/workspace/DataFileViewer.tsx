@@ -26,7 +26,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
     try {
       const parsed = JSON.parse(content);
       onChangeContent(JSON.stringify(parsed, null, 2));
-    } catch (e) {
+    } catch {
       alert('Invalid JSON syntax');
     }
   };
@@ -60,7 +60,7 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
       try {
         const base64 = data.split(',')[1] || '';
         rawString = atob(base64);
-      } catch (e) {
+      } catch {
         rawString = data;
       }
     }

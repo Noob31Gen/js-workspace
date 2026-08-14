@@ -9,7 +9,7 @@ function isAllowedOrigin(sender) {
   try {
     const u = new URL(senderUrl);
     return u.protocol === 'https:' && u.hostname === 'js.noob31.com';
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -68,7 +68,7 @@ function handleMessage(request, sender, sendResponse) {
           });
           return;
         }
-      } catch (e) {
+      } catch {
         sendResponse({
           success: false,
           error: `Invalid target URL provided: "${url}"`
@@ -84,7 +84,7 @@ function handleMessage(request, sender, sendResponse) {
           if (contentType.includes('application/json')) {
             try {
               data = await response.json();
-            } catch (e) {
+            } catch {
               data = await response.text();
             }
           } else {

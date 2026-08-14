@@ -1,11 +1,11 @@
 import React from 'react';
 import { OptionDescriptor } from '@/lib/parser';
-import { Sliders, RotateCcw, Sparkles, HelpCircle, Check, Info } from 'lucide-react';
+import { Sliders, RotateCcw } from 'lucide-react';
 
 interface DynamicOptionFormProps {
   options: OptionDescriptor[];
-  values: Record<string, any>;
-  onChangeValue: (key: string, value: any) => void;
+  values: Record<string, unknown>;
+  onChangeValue: (key: string, value: unknown) => void;
   onResetDefaults?: () => void;
 }
 
@@ -104,7 +104,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <input
                   id={`input-${opt.key}`}
                   type="text"
-                  value={val ?? ''}
+                  value={String(val ?? '')}
                   placeholder={opt.default ? String(opt.default) : 'Enter text value...'}
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
                   className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
@@ -116,7 +116,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <input
                   id={`input-${opt.key}`}
                   type="number"
-                  value={val ?? ''}
+                  value={(val as string | number | undefined) ?? ''}
                   placeholder={String(opt.default ?? '')}
                   onChange={(e) => onChangeValue(opt.key, e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
@@ -128,7 +128,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                     <span>{opt.min ?? 0}</span>
-                    <span className="text-primary font-bold">{val ?? (opt.min ?? 0)}</span>
+                    <span className="text-primary font-bold">{String(val ?? (opt.min ?? 0))}</span>
                     <span>{opt.max ?? 100}</span>
                   </div>
                   <input
@@ -137,7 +137,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                     min={opt.min ?? 0}
                     max={opt.max ?? 100}
                     step={opt.step ?? 1}
-                    value={val ?? (opt.min ?? 0)}
+                    value={(val as number | undefined) ?? (opt.min ?? 0)}
                     onChange={(e) => onChangeValue(opt.key, Number(e.target.value))}
                     className="w-full accent-primary cursor-pointer"
                   />
@@ -164,7 +164,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
               {opt.type === 'select' && (
                 <select
                   id={`input-${opt.key}`}
-                  value={val ?? (opt.options?.[0] || '')}
+                  value={String(val ?? (opt.options?.[0] || ''))}
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
                   className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-xs"
                 >
@@ -181,7 +181,7 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <textarea
                   id={`input-${opt.key}`}
                   rows={3}
-                  value={val ?? ''}
+                  value={String(val ?? '')}
                   placeholder="Enter multiline text..."
                   onChange={(e) => onChangeValue(opt.key, e.target.value)}
                   className="w-full rounded-lg border border-border/80 bg-background p-2.5 text-xs text-foreground font-mono font-semibold placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
@@ -194,13 +194,13 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                   <input
                     id={`input-${opt.key}`}
                     type="color"
-                    value={val || '#3b82f6'}
+                    value={String(val || '#3b82f6')}
                     onChange={(e) => onChangeValue(opt.key, e.target.value)}
                     className="h-8 w-12 rounded cursor-pointer border border-border bg-background p-0.5 shrink-0"
                   />
                   <input
                     type="text"
-                    value={val ?? ''}
+                    value={String(val ?? '')}
                     onChange={(e) => onChangeValue(opt.key, e.target.value)}
                     className="flex-1 rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground font-mono font-semibold shadow-xs"
                   />
@@ -212,24 +212,18 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                 <textarea
                   id={`input-${opt.key}`}
                   rows={4}
-                  value={typeof val === 'object' ? JSON.stringify(val, null, 2) : (val ?? '')}
+                  value={typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val ?? '')}
                   onChange={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value);
                       onChangeValue(opt.key, parsed);
-                    } catch (err) {
+                    } catch {
                       onChangeValue(opt.key, e.target.value);
                     }
                   }}
                   className="w-full rounded-lg border border-border/80 bg-background p-2.5 text-xs text-foreground font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
                   placeholder='{"key": "value"}'
                 />
-              )}
-
-              {opt.description && (
-                <p className="text-[10px] text-muted-foreground font-medium italic pt-0.5">
-                  {opt.description}
-                </p>
               )}
             </div>
           );

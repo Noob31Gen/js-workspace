@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const musicTransferDir = 'd:/Programs/code-stuff/js-workspace/music-transfer';
 const files = fs.readdirSync(musicTransferDir);
@@ -36,7 +36,7 @@ try {
   const scriptFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', 
     'return (async () => { ' + transformedCode + ' })();'
   );
-  console.log("SUCCESS! transfer.js scriptFunc created cleanly with 0 syntax errors!");
+  console.log("SUCCESS! transfer.js scriptFunc created cleanly with 0 syntax errors!", typeof scriptFunc);
 } catch (err) {
   console.error("ERROR CREATING SCRIPT FUNC:", err);
 }
@@ -60,7 +60,7 @@ try {
     const f = new Function('module', 'exports', 'require', 'workspace', 'process', 'Buffer', 
       'return (async () => { ' + trans + ' })();'
     );
-    console.log(`SUCCESS! Sub-module ${modName} created cleanly with 0 syntax errors!`);
+    console.log(`SUCCESS! Sub-module ${modName} created cleanly with 0 syntax errors!`, typeof f);
   } catch (err) {
     console.error(`ERROR IN SUB-MODULE ${modName}:`, err);
   }

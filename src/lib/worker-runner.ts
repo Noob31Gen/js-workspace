@@ -4,18 +4,18 @@ import { WorkspaceNode } from './workspace-store';
 export interface ConsoleLogMessage {
   id: string;
   type: 'log' | 'info' | 'warn' | 'error' | 'table';
-  data: any[];
+  data: unknown[];
   timestamp: string;
 }
 
 export interface FramePayload {
   type: 'html' | 'image' | 'table' | 'json';
-  content: any;
+  content: unknown;
   title?: string;
 }
 
 export interface ExecutionResult {
-  raw: any;
+  raw: unknown;
   frame?: FramePayload;
   executionTimeMs: number;
 }
@@ -28,7 +28,7 @@ export interface FsMutationPayload {
 
 export interface WorkerRunOptions {
   code: string;
-  args: Record<string, any>;
+  args: Record<string, unknown>;
   nodes?: WorkspaceNode[];
   currentFilePath?: string;
   timeoutMs?: number;
@@ -159,7 +159,7 @@ function buildOnMessageHandler(): string {
 
 export class ScriptRunner {
   private currentWorker: Worker | null = null;
-  private timeoutTimer: any = null;
+  private timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
   public execute({
     code,

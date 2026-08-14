@@ -6,7 +6,7 @@
  * @param {number} limit Maximum Records - default: 5
  * @param {boolean} includeMeta Print JSON Schema Metadata - default: true
  */
-async function run({ endpoint, limit, includeMeta }) {
+export async function run({ endpoint, limit, includeMeta }) {
   console.log(`🔍 Requesting JSON data from ${endpoint}...`);
 
   const response = await fetch(`${endpoint}?_limit=${limit}`);

@@ -25,7 +25,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
   // Password Authentication State
   const [passwordInput, setPasswordInput] = useState('');
-  const [hasAuthHash, setHasAuthHash] = useState(() => !!getExtensionAuthHash());
+  const hasAuthHash = !!getExtensionAuthHash();
   const [hashSavedMsg, setHashSavedMsg] = useState<string | null>(null);
 
   // Double Confirmation Modal State
@@ -39,8 +39,15 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setHasAuthHash(!!getExtensionAuthHash());
-      refreshDetailedStatus();
+      let isMounted = true;
+      checkExtensionDetailedStatus().then(res => {
+        if (isMounted) {
+          setDetailedStatus(res);
+        }
+      });
+      return () => {
+        isMounted = false;
+      };
     }
   }, [isOpen]);
 
@@ -50,7 +57,6 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
     e.preventDefault();
     if (!passwordInput.trim()) return;
     await setExtensionPassword(passwordInput.trim());
-    setHasAuthHash(true);
     setPasswordInput('');
     setHashSavedMsg('Password Hashed & Saved!');
     setTimeout(() => setHashSavedMsg(null), 3000);
@@ -59,7 +65,6 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
   const handleClearPassword = async () => {
     clearExtensionPassword();
-    setHasAuthHash(false);
     setHashSavedMsg('Password Auth Cleared');
     setTimeout(() => setHashSavedMsg(null), 3000);
     await handleRecheck();
@@ -70,7 +75,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
     setShowConfirmDownload(false);
     try {
       await downloadExtensionZip();
-    } catch (e) {
+    } catch {
       alert('Failed to generate extension zip package.');
     } finally {
       setIsDownloading(false);

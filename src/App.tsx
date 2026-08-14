@@ -20,7 +20,7 @@ import { ScriptOutputFile, extractFileObjectsFromReturn } from '@/lib/output-fil
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
 import { OfflinePackageModal } from '@/components/pwa/OfflinePackageModal';
-import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
+import { Layout, Code2, FileCode } from 'lucide-react';
 
 const runner = new ScriptRunner();
 
@@ -47,12 +47,12 @@ export function App() {
     return '';
   });
 
-  const [optionValues, setOptionValues] = useState<Record<string, any>>({});
+  const [optionValues, setOptionValues] = useState<Record<string, unknown>>({});
   const [logs, setLogs] = useState<ConsoleLogMessage[]>([]);
   const [frame, setFrame] = useState<FramePayload | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [inputPrompt, setInputPrompt] = useState<string | null>(null);
-  const [outputResult, setOutputResult] = useState<any>(null);
+  const [outputResult, setOutputResult] = useState<unknown>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
   const [executionTimeMs, setExecutionTimeMs] = useState<number | undefined>(undefined);
   const [outputFilesPrompt, setOutputFilesPrompt] = useState<ScriptOutputFile[]>([]);
@@ -172,7 +172,7 @@ export function App() {
     currentRunFilesRef.current = [];
 
     // Ensure all options have their default or user-entered values filled
-    const effectiveArgs: Record<string, any> = {};
+    const effectiveArgs: Record<string, unknown> = {};
     parsedMeta.options.forEach(opt => {
       effectiveArgs[opt.key] = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
     });
@@ -647,8 +647,6 @@ export function App() {
     );
   };
 
-  const [mobileTab, setMobileTab] = useState<'editor' | 'parameters' | 'console' | 'preview'>('editor');
-
   return (
     <>
       {/* --- MOBILE UI (Visible on < 768px) --- */}
@@ -685,7 +683,7 @@ export function App() {
           onSendInput={handleSendInput}
           parsedOptions={parsedMeta.options}
           optionValues={optionValues}
-          onChangeOptionValue={(key: string, val: any) => setOptionValues(prev => ({ ...prev, [key]: val }))}
+          onChangeOptionValue={(key: string, val: unknown) => setOptionValues(prev => ({ ...prev, [key]: val }))}
           frame={frame}
           onOpenResultWindow={() => setIsResultWindowOpen(true)}
           onImportClick={() => setIsWsManagerOpen(true)}

@@ -4,7 +4,7 @@ import { WorkspaceNode } from './workspace-store';
  * Normalizes relative or absolute file paths against a base directory path.
  */
 export function resolveFilePath(targetPath: string, currentFilePath: string = ''): string {
-  let cleanTarget = targetPath.trim().replace(/^\//, '');
+  const cleanTarget = targetPath.trim().replace(/^\//, '');
 
   if (!cleanTarget.startsWith('.')) {
     return cleanTarget;

@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const musicTransferDir = 'd:/Programs/code-stuff/js-workspace/music-transfer';
 const files = fs.readdirSync(musicTransferDir);
@@ -35,7 +35,7 @@ try {
   const badFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', 
     'return (async () => { ' + transCodeWithComment + ' if (typeof run === "function") { return await run(__workspace_args__); } })();'
   );
-  console.log("BAD FUNC OK!");
+  console.log("BAD FUNC OK!", typeof badFunc);
 } catch (e) {
   console.error("EXPECTED FAIL (without newline):", e.message);
 }
@@ -45,7 +45,7 @@ try {
   const goodFunc = new Function('__workspace_args__', 'require', 'workspace', 'process', 'Buffer', 
     'return (async () => {\n' + transCodeWithComment + '\nif (typeof run === "function") { return await run(__workspace_args__); }\n})();'
   );
-  console.log("GOOD FUNC OK! (with newline)");
+  console.log("GOOD FUNC OK! (with newline)", typeof goodFunc);
 } catch (e) {
   console.error("FAIL:", e.message);
 }

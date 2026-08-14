@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FramePayload } from '@/lib/worker-runner';
-import { Monitor, Smartphone, Tablet, ExternalLink, Copy, Download, Check, Sparkles, Code, Table as TableIcon, Layout } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Copy, Download, Check, Sparkles, Layout } from 'lucide-react';
 
 interface FramePreviewProps {
   frame: FramePayload | null;
@@ -192,12 +192,12 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
         {frame.type === 'image' && (
           <div className="flex flex-col items-center gap-3 p-4">
             <img
-              src={frame.content}
+              src={String(frame.content)}
               alt="Frame Rendered Output"
               className="max-h-[400px] rounded-lg border border-border/60 shadow-lg object-contain"
             />
             <a
-              href={frame.content}
+              href={String(frame.content)}
               download="frame-output.png"
               target="_blank"
               rel="noreferrer"
@@ -209,52 +209,56 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
           </div>
         )}
 
-        {frame.type === 'table' && Array.isArray(frame.content) && (
-          <div className="w-full space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <input
-                type="text"
-                placeholder="Filter table records..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-border bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-xs"
-              />
-              <span className="text-xs text-muted-foreground font-mono">
-                {frame.content.length} Total Records
-              </span>
-            </div>
+        {frame.type === 'table' && Array.isArray(frame.content) && (() => {
+          const tableRows = frame.content as Record<string, unknown>[];
+          const firstRow = tableRows[0] || {};
+          return (
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <input
+                  type="text"
+                  placeholder="Filter table records..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-xs"
+                />
+                <span className="text-xs text-muted-foreground font-mono">
+                  {tableRows.length} Total Records
+                </span>
+              </div>
 
-            <div className="rounded-lg border border-border/60 overflow-x-auto bg-background">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
-                  <tr>
-                    <th className="px-3 py-2 border-r border-border/40 w-12">#</th>
-                    {Object.keys(frame.content[0] || {}).map((colKey) => (
-                      <th key={colKey} className="px-3 py-2 border-r border-border/40 font-mono">
-                        {colKey}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40 font-mono">
-                  {frame.content
-                    .filter(row => !searchTerm || JSON.stringify(row).toLowerCase().includes(searchTerm.toLowerCase()))
-                    .slice(0, 50)
-                    .map((row, idx) => (
-                      <tr key={idx} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-3 py-2 border-r border-border/40 text-muted-foreground text-[11px]">{idx + 1}</td>
-                        {Object.keys(frame.content[0] || {}).map((colKey) => (
-                          <td key={colKey} className="px-3 py-2 border-r border-border/40 break-all max-w-xs">
-                            {typeof row[colKey] === 'object' ? JSON.stringify(row[colKey]) : String(row[colKey] ?? '')}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div className="rounded-lg border border-border/60 overflow-x-auto bg-background">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-3 py-2 border-r border-border/40 w-12">#</th>
+                      {Object.keys(firstRow).map((colKey) => (
+                        <th key={colKey} className="px-3 py-2 border-r border-border/40 font-mono">
+                          {colKey}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40 font-mono">
+                    {tableRows
+                      .filter(row => !searchTerm || JSON.stringify(row).toLowerCase().includes(searchTerm.toLowerCase()))
+                      .slice(0, 50)
+                      .map((row, idx) => (
+                        <tr key={idx} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-3 py-2 border-r border-border/40 text-muted-foreground text-[11px]">{idx + 1}</td>
+                          {Object.keys(firstRow).map((colKey) => (
+                            <td key={colKey} className="px-3 py-2 border-r border-border/40 break-all max-w-xs">
+                              {typeof row[colKey] === 'object' ? JSON.stringify(row[colKey]) : String(row[colKey] ?? '')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

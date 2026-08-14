@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
             return synthResponse;
           }
           return networkResponse;
-        } catch (error) {
+        } catch {
           // If offline and not in cache, return fallback json error
           return new Response(
             JSON.stringify({ error: `NPM Package ${url.pathname} is not cached for offline use.` }),

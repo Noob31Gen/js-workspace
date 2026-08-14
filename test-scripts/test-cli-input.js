@@ -1,14 +1,8 @@
 // Test script for CLI user input polyfills: readline, readline/promises, prompt, process.stdin
-const fs = require('fs');
-
-// We simulate worker execution logic with readline and prompt polyfills
-const BS = String.fromCharCode(92);
-function ws() { return BS + 's'; }
 
 console.log('=== Automated Test: CLI Input Polyfills ===');
 
 let userInputQueue = ['Alice', 'Music Transfer', '2026'];
-let pendingInputResolvers = [];
 
 function requestUserInput(promptMsg) {
   console.log('INPUT REQUEST FIRED:', promptMsg);
@@ -24,7 +18,7 @@ function requestUserInput(promptMsg) {
 
 // Test readline polyfill
 const readlineModule = {
-  createInterface: function(opts) {
+  createInterface: function() {
     var rl = {};
     rl.question = function(query, cb) {
       return requestUserInput(query).then(function(ans) {

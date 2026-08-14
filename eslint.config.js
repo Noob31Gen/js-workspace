@@ -15,60 +15,21 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
         ...globals.node,
-        chrome: 'readonly'
+        ...globals.webextensions,
+        ...globals.serviceworker,
+        chrome: 'readonly',
+        fetchViaExtension: 'readonly'
       }
     },
     plugins: {
       'react-hooks': reactHooks
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
-    }
-  },
-  {
-    files: ['extension/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.webextensions,
-        chrome: 'readonly'
-      }
-    },
-    rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
-    }
-  },
-  {
-    files: ['public/sw.js'],
-    languageOptions: {
-      globals: {
-        ...globals.serviceworker,
-        ...globals.browser
-      }
-    },
-    rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
-    }
-  },
-  {
-    files: ['sample-scripts/**/*.js', 'test-scripts/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.browser,
-        fetchViaExtension: 'readonly'
-      }
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
+      ...reactHooks.configs.recommended.rules
     }
   }
 );

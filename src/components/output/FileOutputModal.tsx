@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Download, FolderPlus, Archive, X, CheckCircle2, FileSpreadsheet, FileJson, Image as ImageIcon } from 'lucide-react';
+import { FileText, Download, FolderPlus, Archive, X, FileSpreadsheet, FileJson, Image as ImageIcon } from 'lucide-react';
 import { ScriptOutputFile, downloadSingleFile, downloadFilesAsZip } from '../../lib/output-file-handler';
 
 interface FileOutputModalProps {

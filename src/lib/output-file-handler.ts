@@ -68,16 +68,17 @@ export async function downloadFilesAsZip(
 /**
  * Parses execution raw result payload to extract any structured file objects returned by run()
  */
-export function extractFileObjectsFromReturn(rawResult: any): ScriptOutputFile[] {
+export function extractFileObjectsFromReturn(rawResult: unknown): ScriptOutputFile[] {
   if (!rawResult) return [];
 
   const results: ScriptOutputFile[] = [];
 
-  const checkItem = (item: any) => {
+  const checkItem = (item: unknown) => {
     if (!item || typeof item !== 'object') return;
+    const obj = item as Record<string, unknown>;
 
-    const name = item.name || item.filename || item.fileName || item.title || item.path;
-    const content = item.content !== undefined ? item.content : item.data !== undefined ? item.data : item.text;
+    const name = (obj.name || obj.filename || obj.fileName || obj.title || obj.path) as string | undefined;
+    const content = obj.content !== undefined ? obj.content : obj.data !== undefined ? obj.data : obj.text;
 
     if (name && content !== undefined && typeof name === 'string') {
       const strContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
@@ -93,10 +94,11 @@ export function extractFileObjectsFromReturn(rawResult: any): ScriptOutputFile[]
   if (Array.isArray(rawResult)) {
     rawResult.forEach(checkItem);
   } else if (typeof rawResult === 'object') {
-    if (Array.isArray(rawResult.files)) {
-      rawResult.files.forEach(checkItem);
-    } else if (Array.isArray(rawResult.outputs)) {
-      rawResult.outputs.forEach(checkItem);
+    const objResult = rawResult as Record<string, unknown>;
+    if (Array.isArray(objResult.files)) {
+      objResult.files.forEach(checkItem);
+    } else if (Array.isArray(objResult.outputs)) {
+      objResult.outputs.forEach(checkItem);
     } else {
       checkItem(rawResult);
     }

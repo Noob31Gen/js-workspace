@@ -2,7 +2,7 @@ export interface OptionDescriptor {
   key: string;
   label: string;
   type: 'string' | 'number' | 'boolean' | 'select' | 'text' | 'json' | 'color' | 'range';
-  default: any;
+  default: unknown;
   options?: string[]; // For select dropdowns
   min?: number;
   max?: number;
@@ -79,7 +79,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
         if (paramKey && !jsdocKeys.has(paramKey)) {
           let inferredType: OptionDescriptor['type'] = 'string';
-          let inferredDefault: any = '';
+          let inferredDefault: unknown = '';
 
           if (defaultValRaw) {
             if (defaultValRaw === 'true' || defaultValRaw === 'false') {
@@ -127,7 +127,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
         if (key && !jsdocKeys.has(key)) {
           let inferredType: OptionDescriptor['type'] = 'string';
-          let inferredDefault: any = '';
+          let inferredDefault: unknown = '';
 
           if (defaultValRaw) {
             if (defaultValRaw === 'true' || defaultValRaw === 'false') {
@@ -183,7 +183,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
     if (!jsdocKeys.has(camelKey) && !jsdocKeys.has(rawProp)) {
       let inferredType: OptionDescriptor['type'] = 'string';
-      let inferredDefault: any = '';
+      let inferredDefault: unknown = '';
 
       if (/^(is|enable|disable|has|use|with|show|hide|dry)/i.test(camelKey)) {
         inferredType = 'boolean';
@@ -222,7 +222,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
     if (key && !jsdocKeys.has(key)) {
       let inferredType: OptionDescriptor['type'] = isNumberWrapper ? 'number' : 'string';
-      let inferredDefault: any = isNumberWrapper ? 0 : '';
+      let inferredDefault: unknown = isNumberWrapper ? 0 : '';
 
       if (defaultValRaw) {
         if (defaultValRaw === 'true' || defaultValRaw === 'false') {
@@ -293,7 +293,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
 
     if (key && !jsdocKeys.has(key)) {
       let inferredType: OptionDescriptor['type'] = 'string';
-      let inferredDefault: any = '';
+      let inferredDefault: unknown = '';
 
       if (defaultValRaw) {
         if (defaultValRaw === 'true' || defaultValRaw === 'false') {
@@ -420,7 +420,7 @@ function parseParamLine(line: string): OptionDescriptor | null {
     type = 'color';
   }
 
-  let defaultValue: any = '';
+  let defaultValue: unknown;
   if (type === 'number' || type === 'range') {
     defaultValue = explicitDefault !== undefined ? Number(explicitDefault) : (minVal ?? 0);
   } else if (type === 'boolean') {
