@@ -18,7 +18,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onChangeTab,
   logCount,
   paramCount,
-  hasFrame,
   inputPrompt,
   hasError
 }) => {
@@ -26,7 +25,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'editor' as MobileTab, label: 'Editor', icon: Code2, badge: null },
     { id: 'params' as MobileTab, label: 'Params', icon: Sliders, badge: paramCount > 0 ? paramCount : null },
     { id: 'console' as MobileTab, label: 'Console', icon: Terminal, badge: logCount > 0 ? logCount : null },
-    ...(hasFrame || activeTab === 'preview' ? [{ id: 'preview' as MobileTab, label: 'Preview', icon: Layout, isPing: hasFrame }] : []),
+    { id: 'preview' as MobileTab, label: 'Preview', icon: Layout, badge: null },
   ];
 
   return (
@@ -65,13 +64,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                     {tab.badge}
                   </span>
                 )
-              )}
-
-              {tab.isPing && tab.id === 'preview' && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
               )}
             </div>
 
