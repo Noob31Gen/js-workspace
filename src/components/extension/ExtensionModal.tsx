@@ -85,11 +85,11 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 overflow-y-auto">
-      <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 overflow-y-auto overflow-x-hidden select-none">
+      <div className="w-full max-w-lg max-w-[94vw] max-h-[88vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/40 pb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between border-b border-border/40 pb-4 gap-2">
+          <div className="flex items-center gap-3 min-w-0">
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl border shrink-0 ${
               detailedStatus?.status === 'CONNECTED_SECURE'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
@@ -191,7 +191,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
         </div>
 
         {/* SHA-256 Hashed Password Authentication Card */}
-        <div className="p-3.5 sm:p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <KeyRound className="h-4 w-4 text-primary shrink-0" />
@@ -212,7 +212,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
             Enter the secret password configured in your extension settings. The site generates a SHA-256 hash locally to authenticate per request without transmitting plain text passwords.
           </p>
 
-          <form onSubmit={handleSavePassword} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <form onSubmit={handleSavePassword} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-0">
             <input
               type="password"
               placeholder="Enter extension secret password..."
@@ -220,7 +220,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
               onChange={(e) => setPasswordInput(e.target.value)}
               className="flex-1 px-3 py-1.5 rounded-lg border border-border/80 bg-background text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-0"
             />
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <button
                 type="submit"
                 disabled={!passwordInput.trim()}
@@ -243,14 +243,14 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
           {hashSavedMsg && (
             <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-              {hashSavedMsg}
+              <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+              <span>{hashSavedMsg}</span>
             </div>
           )}
         </div>
 
         {/* Broad Security & Compatibility Warning Box */}
-        <div className="p-3.5 sm:p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs space-y-2 shadow-xs">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs space-y-2 shadow-xs min-w-0">
           <div className="flex items-center gap-2 text-amber-400 font-bold">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
             <span>Important Security & Usage Warning</span>
@@ -258,7 +258,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
           <p className="leading-relaxed opacity-95 text-[11px] sm:text-xs">
             Browser extensions granted cross-origin permissions have broad network access capabilities.
             <strong className="text-amber-300 font-semibold underline decoration-amber-500/50 block mt-1">
-              Only install this extension if your target request server does NOT allow all origins (CORS header <code className="font-mono text-[10px] bg-amber-950/80 px-1 py-0.5 rounded border border-amber-500/30">Access-Control-Allow-Origin: *</code> is missing).
+              Only install this extension if your target request server does NOT allow all origins (CORS header <code className="font-mono text-[10px] bg-amber-950/80 px-1 py-0.5 rounded border border-amber-500/30 break-all inline-block">Access-Control-Allow-Origin: *</code> is missing).
             </strong>
           </p>
           <p className="text-[11px] opacity-85 leading-normal pt-1 border-t border-amber-500/20">
@@ -267,8 +267,8 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
         </div>
 
         {/* Extension Package Download Section */}
-        <div className="p-3.5 sm:p-4 rounded-xl border border-primary/30 bg-primary/10 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 rounded-xl border border-primary/30 bg-primary/10 space-y-3 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
             <div className="min-w-0">
               <div className="text-xs font-bold text-primary truncate">Helper Extension Package (.zip)</div>
               <div className="text-[11px] text-muted-foreground truncate">Contains Chrome V3 Service Worker & Manifest</div>
@@ -292,29 +292,29 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
         </div>
 
         {/* 3-Step Setup Guide */}
-        <div className="space-y-2.5 text-xs text-muted-foreground pt-1">
+        <div className="space-y-2.5 text-xs text-muted-foreground pt-1 min-w-0">
           <div className="text-[11px] font-bold uppercase tracking-wider text-foreground">
             3-Step Installation Walkthrough:
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20">
+          <div className="space-y-2 min-w-0">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20 min-w-0">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">1</span>
-              <div>
-                <span className="font-bold text-foreground">Download & Extract Zip:</span> Click the button above to save <code className="text-primary font-mono">js-workspace-cors-extension.zip</code> and extract its contents.
+              <div className="min-w-0">
+                <span className="font-bold text-foreground">Download & Extract Zip:</span> Click the button above to save <code className="text-primary font-mono break-all">js-workspace-cors-extension.zip</code> and extract its contents.
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20 min-w-0">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">2</span>
-              <div>
-                <span className="font-bold text-foreground">Open Chrome Extensions:</span> Navigate to <code className="text-primary font-mono font-bold">chrome://extensions</code> in Chrome/Edge and toggle on <strong className="text-foreground">Developer Mode</strong> in the top-right.
+              <div className="min-w-0">
+                <span className="font-bold text-foreground">Open Chrome Extensions:</span> Navigate to <code className="text-primary font-mono font-bold break-all">chrome://extensions</code> in Chrome/Edge and toggle on <strong className="text-foreground">Developer Mode</strong> in the top-right.
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-border/40 bg-muted/20 min-w-0">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">3</span>
-              <div>
+              <div className="min-w-0">
                 <span className="font-bold text-foreground">Load Unpacked:</span> Click <strong className="text-foreground">"Load unpacked"</strong> and select the unzipped extension directory. The badge above will turn green instantly!
               </div>
             </div>
@@ -325,7 +325,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
         <div className="pt-2 flex justify-end">
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg bg-muted text-foreground font-semibold text-xs hover:bg-muted/80 cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg bg-muted text-foreground font-semibold text-xs hover:bg-muted/80 cursor-pointer text-center"
           >
             Close
           </button>
@@ -334,8 +334,8 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
 
       {/* Double Confirmation Modal for Extension Package Download */}
       {showConfirmDownload && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-150 select-none">
-          <div className="w-full max-w-md rounded-2xl border border-amber-500/50 bg-card p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-150 select-none overflow-x-hidden">
+          <div className="w-full max-w-md max-w-[94vw] rounded-2xl border border-amber-500/50 bg-card p-4 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 overflow-x-hidden">
             {/* Double Confirm Header */}
             <div className="flex items-center gap-3 border-b border-border/60 pb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
@@ -360,7 +360,7 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
                 <div>⚠️ Usage Checklist:</div>
                 <ul className="list-disc list-inside space-y-1 font-normal opacity-90">
                   <li>Does your target server reject cross-origin requests?</li>
-                  <li>If the server allows all origins (<code className="font-mono">Access-Control-Allow-Origin: *</code>), cancel this download.</li>
+                  <li>If the server allows all origins (<code className="font-mono break-all">Access-Control-Allow-Origin: *</code>), cancel this download.</li>
                 </ul>
               </div>
             </div>

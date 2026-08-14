@@ -49,6 +49,12 @@ interface MobileAppLayoutProps {
   onOpenResultWindow: () => void;
   onImportClick: () => void;
   onOpenExtensionModal: () => void;
+  onOpenOfflineModal?: () => void;
+  onImportFolder?: (fileList: FileList) => void;
+  onImportZip?: (file: File) => void;
+  onImportBundle?: (file: File) => void;
+  onImportSingleFile?: (file: File) => void;
+  onExportActiveWorkspace?: () => void;
   extensionActive: boolean;
   isOnline: boolean;
   getFileKind: (filename: string) => any;
@@ -91,6 +97,12 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   onOpenResultWindow,
   onImportClick,
   onOpenExtensionModal,
+  onOpenOfflineModal,
+  onImportFolder,
+  onImportZip,
+  onImportBundle,
+  onImportSingleFile,
+  onExportActiveWorkspace,
   extensionActive,
   isOnline,
   getFileKind
@@ -124,11 +136,16 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         onSaveScript={handleSave}
         justSaved={justSaved}
         onOpenDocs={onOpenDocs}
-        onImportClick={onImportClick}
         onOpenExtensionModal={onOpenExtensionModal}
+        onOpenOfflineModal={onOpenOfflineModal}
         onOpenResultWindow={onOpenResultWindow}
         onDeleteActiveFile={onDeleteNode}
         onDuplicateActiveFile={onDuplicateNode}
+        onImportFolder={onImportFolder}
+        onImportZip={onImportZip}
+        onImportBundle={onImportBundle}
+        onImportSingleFile={onImportSingleFile}
+        onExportActiveWorkspace={onExportActiveWorkspace}
         extensionActive={extensionActive}
         isOnline={isOnline}
         inputPrompt={inputPrompt}

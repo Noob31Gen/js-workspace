@@ -19,6 +19,7 @@ import { FileNameDetailModal } from '@/components/modals/FileNameDetailModal';
 import { ScriptOutputFile, extractFileObjectsFromReturn } from '@/lib/output-file-handler';
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
+import { OfflinePackageModal } from '@/components/pwa/OfflinePackageModal';
 import { Terminal, ShieldCheck, Sparkles, Layout, Code2, Play, Sliders, Layers, Folder, FileCode, Check, Maximize2 } from 'lucide-react';
 
 const runner = new ScriptRunner();
@@ -74,6 +75,7 @@ export function App() {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [isWsManagerOpen, setIsWsManagerOpen] = useState(false);
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [extensionActive, setExtensionActive] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
@@ -688,6 +690,12 @@ export function App() {
           onOpenResultWindow={() => setIsResultWindowOpen(true)}
           onImportClick={() => setIsWsManagerOpen(true)}
           onOpenExtensionModal={() => setIsExtensionModalOpen(true)}
+          onOpenOfflineModal={() => setIsOfflineModalOpen(true)}
+          onImportFolder={handleImportFolder}
+          onImportZip={handleImportZip}
+          onImportBundle={handleImportBundle}
+          onImportSingleFile={handleImportSingleFile}
+          onExportActiveWorkspace={() => handleExportWorkspace(activeWorkspaceId)}
           extensionActive={extensionActive}
           isOnline={navigator.onLine}
           getFileKind={getFileKind}
@@ -883,6 +891,12 @@ export function App() {
           const active = await checkExtensionConnected();
           setExtensionActive(active);
         }}
+      />
+
+      {/* Offline PWA & Package Cache Modal */}
+      <OfflinePackageModal
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
       />
     </>
   );

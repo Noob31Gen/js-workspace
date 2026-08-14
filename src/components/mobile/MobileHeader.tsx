@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2, AlertTriangle, ExternalLink } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Play, Square, Save, Check, MoreVertical, Upload, BookOpen, ShieldCheck, ShieldAlert, FileCode, Maximize2, Copy, Trash2, AlertTriangle, ExternalLink, Wifi, WifiOff, Folder, Archive, Layers, Download, FileText, ChevronRight } from 'lucide-react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 
 interface MobileHeaderProps {
@@ -12,11 +12,16 @@ interface MobileHeaderProps {
   onSaveScript: () => void;
   justSaved: boolean;
   onOpenDocs: (docName: string) => void;
-  onImportClick: () => void;
   onOpenExtensionModal: () => void;
+  onOpenOfflineModal?: () => void;
   onOpenResultWindow?: () => void;
   onDeleteActiveFile?: (fileId: string) => void;
   onDuplicateActiveFile?: (fileId: string) => void;
+  onImportFolder?: (fileList: FileList) => void;
+  onImportZip?: (file: File) => void;
+  onImportBundle?: (file: File) => void;
+  onImportSingleFile?: (file: File) => void;
+  onExportActiveWorkspace?: () => void;
   extensionActive: boolean;
   isOnline: boolean;
   inputPrompt?: string | null;
@@ -32,19 +37,93 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onSaveScript,
   justSaved,
   onOpenDocs,
-  onImportClick,
   onOpenExtensionModal,
+  onOpenOfflineModal,
   onOpenResultWindow,
   onDeleteActiveFile,
   onDuplicateActiveFile,
+  onImportFolder,
+  onImportZip,
+  onImportBundle,
+  onImportSingleFile,
+  onExportActiveWorkspace,
   extensionActive,
   isOnline,
   inputPrompt
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [showImportSubMenu, setShowImportSubMenu] = useState(false);
+
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+  const bundleInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && onImportFolder) {
+      onImportFolder(e.target.files);
+    }
+    setShowMenu(false);
+    setShowImportSubMenu(false);
+  };
+
+  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportZip) {
+      onImportZip(e.target.files[0]);
+    }
+    setShowMenu(false);
+    setShowImportSubMenu(false);
+  };
+
+  const handleBundleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportBundle) {
+      onImportBundle(e.target.files[0]);
+    }
+    setShowMenu(false);
+    setShowImportSubMenu(false);
+  };
+
+  const handleSingleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImportSingleFile) {
+      onImportSingleFile(e.target.files[0]);
+    }
+    setShowMenu(false);
+    setShowImportSubMenu(false);
+  };
 
   return (
     <header className="h-14 shrink-0 border-b border-border/60 bg-background/90 backdrop-blur-xl px-3 flex items-center justify-between z-30 select-none">
+      {/* Hidden File Inputs for Mobile */}
+      <input
+        type="file"
+        ref={folderInputRef}
+        onChange={handleFolderChange}
+        style={{ display: 'none' }}
+        {...({ webkitdirectory: '', directory: '' } as any)}
+        multiple
+      />
+      <input
+        type="file"
+        ref={zipInputRef}
+        onChange={handleZipChange}
+        accept=".zip"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={bundleInputRef}
+        onChange={handleBundleChange}
+        accept=".json"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleSingleFileChange}
+        style={{ display: 'none' }}
+        multiple
+      />
+
       {/* Left: Active File Picker Trigger Pill */}
       <div className="flex items-center gap-1.5 max-w-[55%] min-w-0">
         <button
@@ -103,7 +182,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={() => {
+              setShowMenu(!showMenu);
+              setShowImportSubMenu(false);
+            }}
             className="p-2 rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer shadow-xs"
             title="More Options"
             aria-label="More Options Menu"
@@ -112,7 +194,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 font-sans text-xs animate-in fade-in zoom-in duration-150">
+            <div className="absolute right-0 top-11 z-50 w-64 max-h-[80vh] overflow-y-auto rounded-2xl border border-border/80 bg-card p-1.5 shadow-2xl space-y-1 font-sans text-xs animate-in fade-in zoom-in duration-150">
               <button
                 type="button"
                 onClick={() => { onSaveScript(); setShowMenu(false); }}
@@ -158,35 +240,96 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => { onImportClick(); setShowMenu(false); }}
-                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
-              >
-                <Upload className="h-4 w-4 text-primary shrink-0" />
-                <span>Import Files / Workspace</span>
-              </button>
+              {/* Import & Export Sub-Menu Trigger */}
+              <div className="border-t border-border/40 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowImportSubMenu(!showImportSubMenu)}
+                  className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center justify-between transition-colors font-bold"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Upload className="h-4 w-4 text-primary shrink-0" />
+                    <span>Import / Export Files</span>
+                  </div>
+                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showImportSubMenu ? 'rotate-90' : ''}`} />
+                </button>
 
-              <button
-                type="button"
-                onClick={() => { onOpenDocs('ARCHITECTURE.md'); setShowMenu(false); }}
-                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
-              >
-                <BookOpen className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>Documentation</span>
-              </button>
+                {showImportSubMenu && (
+                  <div className="pl-3 pr-1 py-1 space-y-1 bg-muted/30 rounded-xl my-1 border border-border/30">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2 transition-colors text-[11px]"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span>Data File / Attachment</span>
+                    </button>
 
-              <a
-                href="https://github.com/Noob31Gen/js-workspace"
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setShowMenu(false)}
-                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
-              >
-                <ExternalLink className="h-4 w-4 text-primary shrink-0" />
-                <span>GitHub Repository</span>
-              </a>
+                    <button
+                      type="button"
+                      onClick={() => folderInputRef.current?.click()}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2 transition-colors text-[11px]"
+                    >
+                      <Folder className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                      <span>Device / PC Folder</span>
+                    </button>
 
+                    <button
+                      type="button"
+                      onClick={() => zipInputRef.current?.click()}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2 transition-colors text-[11px]"
+                    >
+                      <Archive className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span>ZIP Archive (.zip)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => bundleInputRef.current?.click()}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-foreground hover:bg-muted flex items-center gap-2 transition-colors text-[11px]"
+                    >
+                      <Layers className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                      <span>Workspace Bundle (.json)</span>
+                    </button>
+
+                    {onExportActiveWorkspace && (
+                      <button
+                        type="button"
+                        onClick={() => { onExportActiveWorkspace(); setShowMenu(false); setShowImportSubMenu(false); }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-primary font-bold hover:bg-primary/10 flex items-center gap-2 transition-colors text-[11px] border-t border-border/40 pt-1.5"
+                      >
+                        <Download className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span>Export Workspace (.json)</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Node Package Caching Option */}
+              {onOpenOfflineModal && (
+                <button
+                  type="button"
+                  onClick={() => { onOpenOfflineModal(); setShowMenu(false); }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center justify-between transition-colors font-medium border-t border-border/40 pt-2"
+                >
+                  <div className="flex items-center gap-2.5">
+                    {isOnline ? (
+                      <Wifi className="h-4 w-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <WifiOff className="h-4 w-4 text-amber-400 shrink-0" />
+                    )}
+                    <span>Node Dependency Cache</span>
+                  </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                    isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    {isOnline ? 'PWA Ready' : 'Offline'}
+                  </span>
+                </button>
+              )}
+
+              {/* CORS Helper */}
               <button
                 type="button"
                 onClick={() => { onOpenExtensionModal(); setShowMenu(false); }}
@@ -206,6 +349,26 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   {extensionActive ? 'ON' : 'OFF'}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => { onOpenDocs('ARCHITECTURE.md'); setShowMenu(false); }}
+                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium border-t border-border/40 pt-2"
+              >
+                <BookOpen className="h-4 w-4 text-amber-400 shrink-0" />
+                <span>Documentation</span>
+              </button>
+
+              <a
+                href="https://github.com/Noob31Gen/js-workspace"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setShowMenu(false)}
+                className="w-full text-left px-3 py-2 rounded-xl text-foreground hover:bg-muted flex items-center gap-2.5 transition-colors font-medium"
+              >
+                <ExternalLink className="h-4 w-4 text-primary shrink-0" />
+                <span>GitHub Repository</span>
+              </a>
             </div>
           )}
         </div>
