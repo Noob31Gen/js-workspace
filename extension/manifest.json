@@ -3,12 +3,18 @@
   "name": "JS Workspace CORS Fetch Helper",
   "version": "1.0.0",
   "description": "Helper extension allowing JS Workspace (js.noob31.com) to perform cross-origin data fetching.",
-  "permissions": [],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "content_scripts": [
     {

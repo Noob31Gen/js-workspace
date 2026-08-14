@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldCheck, ShieldAlert, Download, RefreshCw, X, AlertTriangle, Lock, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Download, RefreshCw, X, AlertTriangle, Lock, CheckCircle2, KeyRound, Trash2 } from 'lucide-react';
 import { downloadExtensionZip } from '@/lib/extension-downloader';
+import { setExtensionPassword, clearExtensionPassword, getExtensionAuthHash } from '@/lib/extension-client';
 
 interface ExtensionModalProps {
   isOpen: boolean;
@@ -19,11 +20,39 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
+  // Password Authentication State
+  const [passwordInput, setPasswordInput] = useState('');
+  const [hasAuthHash, setHasAuthHash] = useState(() => !!getExtensionAuthHash());
+  const [hashSavedMsg, setHashSavedMsg] = useState<string | null>(null);
+
   // Double Confirmation Modal State
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
   const [riskAcknowledged, setRiskAcknowledged] = useState(false);
 
+  useEffect(() => {
+    setHasAuthHash(!!getExtensionAuthHash());
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordInput.trim()) return;
+    await setExtensionPassword(passwordInput.trim());
+    setHasAuthHash(true);
+    setPasswordInput('');
+    setHashSavedMsg('Password Hashed & Saved!');
+    setTimeout(() => setHashSavedMsg(null), 3000);
+    await handleRecheck();
+  };
+
+  const handleClearPassword = async () => {
+    clearExtensionPassword();
+    setHasAuthHash(false);
+    setHashSavedMsg('Password Auth Cleared');
+    setTimeout(() => setHashSavedMsg(null), 3000);
+    await handleRecheck();
+  };
 
   const handleExecuteDownload = async () => {
     setIsDownloading(true);
@@ -109,6 +138,63 @@ export const ExtensionModal: React.FC<ExtensionModalProps> = ({
             <RefreshCw className={`h-3.5 w-3.5 ${isChecking ? 'animate-spin' : ''}`} />
             <span>Re-check</span>
           </button>
+        </div>
+
+        {/* SHA-256 Hashed Password Authentication Card */}
+        <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+              <div className="text-xs font-bold text-foreground">Extension Hashed Authentication</div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                hasAuthHash
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-muted text-muted-foreground border border-border'
+              }`}>
+                {hasAuthHash ? 'Hash Active' : 'No Password'}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Enter the secret password configured in your extension settings. The site generates a SHA-256 hash locally to authenticate per request without transmitting plain text passwords.
+          </p>
+
+          <form onSubmit={handleSavePassword} className="flex items-center gap-2">
+            <input
+              type="password"
+              placeholder="Enter extension secret password..."
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="flex-1 px-3 py-1.5 rounded-lg border border-border/80 bg-background text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              type="submit"
+              disabled={!passwordInput.trim()}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 cursor-pointer disabled:opacity-50"
+            >
+              Save Hash
+            </button>
+            {hasAuthHash && (
+              <button
+                type="button"
+                onClick={handleClearPassword}
+                title="Clear cached authentication hash"
+                className="p-1.5 rounded-lg border border-border bg-muted/30 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/40 text-muted-foreground transition-all cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </form>
+
+          {hashSavedMsg && (
+            <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+              {hashSavedMsg}
+            </div>
+          )}
         </div>
 
         {/* Broad Security & Compatibility Warning Box */}
