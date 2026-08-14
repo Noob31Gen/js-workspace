@@ -40,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [customPkgInput, setCustomPkgInput] = useState<string>('');
   const [precachedPkgs, setPrecachedPkgs] = useState<string[]>(() => getPrecachedPackages());
   const [cachingPkg, setCachingPkg] = useState<string | null>(null);
+  const [pkgErrorMsg, setPkgErrorMsg] = useState<{ type: 'error' | 'info' | 'success'; text: string } | null>(null);
 
   const folderInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
@@ -71,9 +72,13 @@ export const Header: React.FC<HeaderProps> = ({
   const handlePrecache = async (pkgName: string) => {
     const clean = pkgName.trim().toLowerCase();
     if (!clean) return;
+    setPkgErrorMsg(null);
 
     if (isNodeCoreModule(clean)) {
-      alert(`Note: '${clean}' is a built-in Node.js module provided directly by the offline workspace polyfill engine.`);
+      setPkgErrorMsg({
+        type: 'info',
+        text: `Note: '${clean}' is a built-in Node.js module provided directly by the offline workspace polyfill engine.`
+      });
       if (!precachedPkgs.includes(clean)) {
         setPrecachedPkgs(prev => [...prev, clean]);
       }
@@ -87,8 +92,15 @@ export const Header: React.FC<HeaderProps> = ({
       if (!precachedPkgs.includes(clean)) {
         setPrecachedPkgs(prev => [...prev, clean]);
       }
+      setPkgErrorMsg({
+        type: 'success',
+        text: `Package "${clean}" successfully pre-cached for offline use!`
+      });
     } else {
-      alert(`Failed to precache package "${clean}". Package does not exist on the NPM registry or network request failed.`);
+      setPkgErrorMsg({
+        type: 'error',
+        text: `Failed to precache package "${clean}". Package does not exist on the NPM registry or network request failed.`
+      });
     }
   };
 
@@ -439,6 +451,28 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Inline Package Error / Info / Success Message Banner */}
+              {pkgErrorMsg && (
+                <div className={`p-3 rounded-xl border flex items-start justify-between gap-2 text-xs font-sans animate-in fade-in duration-150 ${
+                  pkgErrorMsg.type === 'error'
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                    : pkgErrorMsg.type === 'info'
+                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{pkgErrorMsg.text}</span>
+                  </div>
+                  <button
+                    onClick={() => setPkgErrorMsg(null)}
+                    className="p-0.5 rounded hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               )}
 
