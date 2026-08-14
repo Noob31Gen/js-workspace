@@ -1,21 +1,28 @@
 // JS Workspace CORS Helper Background Service Worker
-// Strictly Hardened Dual-Way Isolation Security Policy for https://js.noob31.com
+// Strictly Hardened Dual-Way Isolation Security Policy for https://js.noob31.com and localhost
 
-const ALLOWED_ORIGIN = 'https://js.noob31.com';
+const ALLOWED_HOSTS = ['js.noob31.com', 'localhost', '127.0.0.1'];
 
-chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+function isAllowedOrigin(sender) {
+  const senderUrl = sender.url || '';
+  if (!senderUrl) return false;
+  try {
+    const u = new URL(senderUrl);
+    return ALLOWED_HOSTS.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleMessage(request, sender, sendResponse) {
   if (!request) return;
 
   // 1. INBOUND ORIGIN SECURITY CHECK
-  // Ensures the request strictly originates from https://js.noob31.com
-  const senderUrl = sender.url || '';
-  const senderOrigin = sender.origin || (senderUrl ? new URL(senderUrl).origin : '');
-
-  if (senderOrigin !== ALLOWED_ORIGIN || !senderUrl.startsWith(ALLOWED_ORIGIN + '/')) {
-    console.warn(`[Security Block] Rejected unauthorized request from sender origin: "${senderOrigin}" (URL: "${senderUrl}")`);
+  if (!isAllowedOrigin(sender)) {
+    console.warn(`[Security Block] Rejected request from unauthorized origin: "${sender.url}"`);
     sendResponse({
       success: false,
-      error: `Access Denied: Extension strictly exchanges data with ${ALLOWED_ORIGIN} only.`
+      error: `Access Denied: Extension strictly exchanges data with authorized domains only.`
     });
     return true;
   }
@@ -25,7 +32,7 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
     sendResponse({
       pong: true,
       version: '1.0.0',
-      allowedOrigin: ALLOWED_ORIGIN,
+      allowedHosts: ALLOWED_HOSTS,
       secureChannel: true
     });
     return true;
@@ -70,7 +77,7 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
         }
 
         // 4. ISOLATED RESPONSE DELIVERY
-        // Sends fetched data directly back ONLY to the calling sender channel (https://js.noob31.com)
+        // Sends fetched data directly back ONLY to the calling sender channel
         sendResponse({
           success: true,
           ok: response.ok,
@@ -89,4 +96,10 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
 
     return true; // Keep message channel open for async response
   }
-});
+}
+
+// Handle messages from Content Script Bridge
+chrome.runtime.onMessage.addListener(handleMessage);
+
+// Handle messages from Externally Connectable Pages
+chrome.runtime.onMessageExternal.addListener(handleMessage);

@@ -10,9 +10,24 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://js.noob31.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
   "externally_connectable": {
     "matches": [
-      "https://js.noob31.com/*"
+      "https://js.noob31.com/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*"
     ]
   }
 }
