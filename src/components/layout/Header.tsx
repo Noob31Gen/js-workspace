@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
-import { precacheNpmPackage, getPrecachedPackages, removePrecachedPackage } from '@/lib/pwa-register';
+import { precacheNpmPackage, getPrecachedPackages, removePrecachedPackage, isNodeCoreModule } from '@/lib/pwa-register';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
 
 const DEFAULT_COMMON_PACKAGES = ['lodash', 'axios', 'dayjs', 'papaparse', 'mathjs', 'cheerio'];
@@ -69,15 +69,26 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const handlePrecache = async (pkgName: string) => {
-    setCachingPkg(pkgName);
-    const success = await precacheNpmPackage(pkgName);
+    const clean = pkgName.trim().toLowerCase();
+    if (!clean) return;
+
+    if (isNodeCoreModule(clean)) {
+      alert(`Note: '${clean}' is a built-in Node.js module provided directly by the offline workspace polyfill engine.`);
+      if (!precachedPkgs.includes(clean)) {
+        setPrecachedPkgs(prev => [...prev, clean]);
+      }
+      return;
+    }
+
+    setCachingPkg(clean);
+    const success = await precacheNpmPackage(clean);
     setCachingPkg(null);
     if (success) {
-      if (!precachedPkgs.includes(pkgName)) {
-        setPrecachedPkgs(prev => [...prev, pkgName]);
+      if (!precachedPkgs.includes(clean)) {
+        setPrecachedPkgs(prev => [...prev, clean]);
       }
     } else {
-      alert(`Failed to precache package "${pkgName}". Make sure internet is connected.`);
+      alert(`Failed to precache package "${clean}". Package does not exist on the NPM registry or network request failed.`);
     }
   };
 

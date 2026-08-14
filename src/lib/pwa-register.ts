@@ -74,6 +74,33 @@ export function removePrecachedPackage(packageName: string) {
   } catch (e) {}
 }
 
+const NODE_CORE_MODULES = [
+  'fs', 'path', 'crypto', 'buffer', 'util', 'events', 'process',
+  'readline', 'stream', 'http', 'https', 'url', 'os', 'zlib', 'child_process', 'assert'
+];
+
+export function isNodeCoreModule(packageName: string): boolean {
+  const clean = packageName.trim().toLowerCase().replace(/^node:/, '');
+  return NODE_CORE_MODULES.includes(clean);
+}
+
+function isErrorResponseText(text: string): boolean {
+  if (!text || text.trim().length === 0) return true;
+  const lower = text.toLowerCase();
+  if (
+    lower.includes('/* esm.sh - error:') ||
+    lower.includes('cannot find package') ||
+    lower.includes('package not found') ||
+    lower.includes('could not resolve') ||
+    lower.includes('404: not found') ||
+    lower.includes('404 not found') ||
+    (lower.startsWith('{') && lower.includes('"error"'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Pre-fetches an NPM package from CDN into local CacheStorage for offline use.
  * Correctly handles HTTP redirects, synthetic response caching, and sub-resource imports.
@@ -81,6 +108,11 @@ export function removePrecachedPackage(packageName: string) {
 export async function precacheNpmPackage(packageName: string): Promise<boolean> {
   if (!packageName || !packageName.trim()) return false;
   const cleanName = packageName.trim();
+
+  if (isNodeCoreModule(cleanName)) {
+    savePrecachedPackage(cleanName);
+    return true;
+  }
 
   const cdnUrls = [
     `https://esm.sh/${cleanName}`,
@@ -103,6 +135,10 @@ export async function precacheNpmPackage(packageName: string): Promise<boolean> 
         if (response.ok) {
           const finalUrl = response.url || targetUrl;
           const text = await response.text();
+
+          if (isErrorResponseText(text)) {
+            continue; // Skip error bundle response from CDN
+          }
 
           // Create a synthetic clean 200 response to prevent redirect caching errors
           const syntheticResponse = new Response(text, {
