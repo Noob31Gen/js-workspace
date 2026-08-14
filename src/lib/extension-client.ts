@@ -12,7 +12,7 @@ export interface ExtensionFetchResponse {
 
 let isExtensionBridgeDetected = false;
 
-// Global window listener for content script announcement & responses
+// Global window listener for content script announcements & responses
 if (typeof window !== 'undefined') {
   window.addEventListener('message', (event) => {
     if (event.data && event.data.source === 'JS_WORKSPACE_EXTENSION') {
@@ -41,9 +41,13 @@ export async function checkExtensionConnected(): Promise<boolean> {
       window.addEventListener('message', handler);
       window.postMessage({ source: 'JS_WORKSPACE_PAGE', type: 'JS_WORKSPACE_PING' }, '*');
       setTimeout(() => {
+        window.postMessage({ source: 'JS_WORKSPACE_PAGE', type: 'JS_WORKSPACE_PING' }, '*');
+      }, 150);
+
+      setTimeout(() => {
         window.removeEventListener('message', handler);
-        resolve(false);
-      }, 300);
+        resolve(isExtensionBridgeDetected);
+      }, 1000);
     });
 
     if (detectedViaPostMessage) return true;

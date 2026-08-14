@@ -1,14 +1,14 @@
 // JS Workspace CORS Helper Background Service Worker
-// Strictly Hardened Dual-Way Isolation Security Policy for https://js.noob31.com and localhost
+// Production Security Policy: Exclusively hardened for https://js.noob31.com
 
-const ALLOWED_HOSTS = ['js.noob31.com', 'localhost', '127.0.0.1'];
+const ALLOWED_ORIGIN = 'https://js.noob31.com';
 
 function isAllowedOrigin(sender) {
   const senderUrl = sender.url || '';
   if (!senderUrl) return false;
   try {
     const u = new URL(senderUrl);
-    return ALLOWED_HOSTS.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
+    return u.protocol === 'https:' && u.hostname === 'js.noob31.com';
   } catch (e) {
     return false;
   }
@@ -17,12 +17,13 @@ function isAllowedOrigin(sender) {
 function handleMessage(request, sender, sendResponse) {
   if (!request) return;
 
-  // 1. INBOUND ORIGIN SECURITY CHECK
+  // 1. PRODUCTION INBOUND ORIGIN SECURITY CHECK
+  // Accepts messages strictly from https://js.noob31.com
   if (!isAllowedOrigin(sender)) {
-    console.warn(`[Security Block] Rejected request from unauthorized origin: "${sender.url}"`);
+    console.warn(`[Security Alert] Extension request rejected from unauthorized origin: "${sender.url}"`);
     sendResponse({
       success: false,
-      error: `Access Denied: Extension strictly exchanges data with authorized domains only.`
+      error: `Access Denied: Extension strictly exchanges data with ${ALLOWED_ORIGIN} only.`
     });
     return true;
   }
@@ -32,7 +33,7 @@ function handleMessage(request, sender, sendResponse) {
     sendResponse({
       pong: true,
       version: '1.0.0',
-      allowedHosts: ALLOWED_HOSTS,
+      allowedOrigin: ALLOWED_ORIGIN,
       secureChannel: true
     });
     return true;
@@ -77,7 +78,7 @@ function handleMessage(request, sender, sendResponse) {
         }
 
         // 4. ISOLATED RESPONSE DELIVERY
-        // Sends fetched data directly back ONLY to the calling sender channel
+        // Sends fetched data directly back ONLY to the calling sender channel (https://js.noob31.com)
         sendResponse({
           success: true,
           ok: response.ok,

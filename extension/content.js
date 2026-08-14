@@ -1,5 +1,5 @@
 // JS Workspace Extension Content Script Bridge
-// Relays window.postMessage calls from js.noob31.com to background service worker
+// Relays window.postMessage calls from js.noob31.com and localhost to background service worker
 
 window.addEventListener("message", (event) => {
   if (event.source !== window || !event.data) return;
@@ -36,5 +36,8 @@ window.addEventListener("message", (event) => {
   }
 });
 
-// Announce presence immediately to JS Workspace web page
+// Announce presence to page immediately and after load
 window.postMessage({ source: "JS_WORKSPACE_EXTENSION", type: "JS_WORKSPACE_ANNOUNCE" }, "*");
+setTimeout(() => {
+  window.postMessage({ source: "JS_WORKSPACE_EXTENSION", type: "JS_WORKSPACE_ANNOUNCE" }, "*");
+}, 500);
