@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "JS Workspace CORS Fetch Helper",
   "version": "1.0.0",
-  "description": "Helper extension allowing local JS Workspace applications to perform cross-origin data fetching.",
+  "description": "Helper extension allowing JS Workspace (js.noob31.com) to perform cross-origin data fetching.",
   "permissions": [],
   "host_permissions": [
     "<all_urls>"
@@ -12,9 +12,7 @@
   },
   "externally_connectable": {
     "matches": [
-      "http://localhost/*",
-      "http://127.0.0.1:*/*",
-      "https://*.noob31.com/*"
+      "https://js.noob31.com/*"
     ]
   }
 }
