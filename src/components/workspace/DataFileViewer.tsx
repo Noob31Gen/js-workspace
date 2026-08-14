@@ -115,6 +115,33 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
     }
   };
 
+  const handleDownloadFile = () => {
+    let url = file.binaryData;
+    let createdUrl = false;
+    if (!url) {
+      const mimeTypes: Record<string, string> = {
+        'data-json': 'application/json',
+        'data-csv': 'text/csv',
+        'data-text': 'text/plain',
+        'code': 'text/javascript',
+        'binary': 'application/octet-stream'
+      };
+      const mime = mimeTypes[fileKind] || 'text/plain';
+      const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+      url = URL.createObjectURL(blob);
+      createdUrl = true;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (createdUrl) {
+      URL.revokeObjectURL(url);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-border/60 bg-card shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px] relative z-10">
       {/* Header Toolbar */}
@@ -177,6 +204,15 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
             {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
+
+          <button
+            onClick={handleDownloadFile}
+            className="inline-flex items-center gap-1 rounded-lg bg-primary text-primary-foreground px-2.5 py-1 text-[11px] font-bold shadow hover:bg-primary/90 transition-all cursor-pointer"
+            title={`Export and download "${file.name}" to disk`}
+          >
+            <Download className="h-3 w-3" />
+            <span>Export File</span>
+          </button>
         </div>
 
         {/* Compact & 3-Dot Options Dropdown (< 1280px) */}
@@ -221,6 +257,15 @@ export const DataFileViewer: React.FC<DataFileViewerProps> = ({ file, onChangeCo
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-emerald-400" />}
                   <span>{copied ? 'Copied File' : 'Copy File Content'}</span>
+                </button>
+
+                <button
+                  onClick={() => { handleDownloadFile(); setShowMobileMenu(false); }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary font-bold hover:bg-primary/20 flex items-center gap-2 cursor-pointer"
+                  title={`Export and download "${file.name}" to disk`}
+                >
+                  <Download className="h-3.5 w-3.5 text-primary" />
+                  <span>Export File</span>
                 </button>
               </div>
             )}

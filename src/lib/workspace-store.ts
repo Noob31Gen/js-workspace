@@ -945,6 +945,62 @@ export const INITIAL_WORKSPACES: Workspace[] = [
 const STORAGE_KEY = 'js_workspace_v10_master_suite';
 const ACTIVE_STATE_KEY = 'js_workspace_active_state_v2';
 
+const DB_NAME = 'JSWorkspaceDB_v1';
+const DB_STORE = 'workspaces';
+const DB_KEY = 'all_workspaces';
+
+function openIndexedDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB not supported'));
+    }
+    const request = window.indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function loadWorkspacesAsync(): Promise<Workspace[]> {
+  try {
+    const db = await openIndexedDB();
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const store = tx.objectStore(DB_STORE);
+    const getReq = store.get(DB_KEY);
+    const result = await new Promise<any>((resolve, reject) => {
+      getReq.onsuccess = () => resolve(getReq.result);
+      getReq.onerror = () => reject(getReq.error);
+    });
+    if (
+      Array.isArray(result) &&
+      result.length > 0 &&
+      result.every(w => w && w.id && w.name && Array.isArray(w.nodes))
+    ) {
+      return result;
+    }
+  } catch (e) {
+    console.warn('IndexedDB load fallback to localStorage:', e);
+  }
+  return WorkspaceStore.loadWorkspaces();
+}
+
+export async function saveWorkspacesAsync(workspaces: Workspace[]): Promise<void> {
+  WorkspaceStore.saveWorkspaces(workspaces);
+  try {
+    const db = await openIndexedDB();
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    const store = tx.objectStore(DB_STORE);
+    store.put(workspaces, DB_KEY);
+  } catch (e) {
+    console.warn('IndexedDB save failed:', e);
+  }
+}
+
 export interface ActiveWorkspaceState {
   activeWorkspaceId?: string;
   activeFileId?: string;
@@ -959,9 +1015,7 @@ export class WorkspaceStore {
         if (
           Array.isArray(parsed) &&
           parsed.length > 0 &&
-          parsed[0]?.nodes &&
-          Array.isArray(parsed[0].nodes) &&
-          parsed[0].nodes.length > 0
+          parsed.every(w => w && w.id && w.name && Array.isArray(w.nodes))
         ) {
           return parsed;
         }
@@ -976,7 +1030,7 @@ export class WorkspaceStore {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
     } catch (e) {
-      console.warn('Failed to save workspaces to localStorage:', e);
+      console.warn('Failed to save workspaces to localStorage (may exceed 5MB quota):', e);
     }
   }
 

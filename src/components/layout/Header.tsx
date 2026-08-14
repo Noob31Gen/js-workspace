@@ -11,6 +11,7 @@ interface HeaderProps {
   onImportZip?: (file: File) => void;
   onImportBundle?: (file: File) => void;
   onImportSingleFile?: (file: File) => void;
+  onExportActiveWorkspace?: () => void;
   onToggleMobileSidebar?: () => void;
   onToggleSidebar?: () => void;
   isMobileSidebarOpen?: boolean;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   onImportZip,
   onImportBundle,
   onImportSingleFile,
+  onExportActiveWorkspace,
   onToggleMobileSidebar,
   onToggleSidebar,
   isMobileSidebarOpen,
@@ -252,6 +254,21 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="text-[10px] text-muted-foreground">Drops into active workspace</div>
                 </div>
               </button>
+
+              {onExportActiveWorkspace && (
+                <button
+                  onClick={() => { onExportActiveWorkspace(); setShowImportMenu(false); }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-primary font-bold hover:bg-primary/10 flex items-center gap-2.5 transition-colors border-t border-border/40 pt-2"
+                  title="Export active workspace as JSON bundle file"
+                  aria-label="Export Active Workspace as JSON bundle"
+                >
+                  <Download className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-bold">Export Workspace (.json)</div>
+                    <div className="text-[10px] text-muted-foreground">Downloads active workspace</div>
+                  </div>
+                </button>
+              )}
             </div>
           )}
         </div>

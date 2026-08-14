@@ -17,6 +17,7 @@ interface SidebarProps {
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onInspectNode?: (node: WorkspaceNode) => void;
+  onExportNode?: (node: WorkspaceNode) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (doc: string) => void;
 }
@@ -35,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDuplicateNode,
   onMoveNode,
   onInspectNode,
+  onExportNode,
   onOpenWorkspaceManager
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
@@ -94,6 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onDuplicateNode={onDuplicateNode}
             onMoveNode={onMoveNode}
             onInspectNode={onInspectNode}
+            onExportNode={onExportNode}
             onRestoreDemo={onOpenWorkspaceManager}
           />
         </div>

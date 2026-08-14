@@ -11,7 +11,7 @@ import { parseScriptOptions } from '@/lib/parser';
 import { ScriptRunner, ConsoleLogMessage, FramePayload, ExecutionResult } from '@/lib/worker-runner';
 import { DataFileViewer } from '@/components/workspace/DataFileViewer';
 import { parseLocalFolder, parseZipArchive, parseSingleFile } from '@/lib/import-engine';
-import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind, duplicateNodeInWorkspace, moveNodeInWorkspace } from '@/lib/workspace-store';
+import { WorkspaceStore, Workspace, WorkspaceNode, getFileKind, duplicateNodeInWorkspace, moveNodeInWorkspace, loadWorkspacesAsync, saveWorkspacesAsync } from '@/lib/workspace-store';
 import { ExecutionResultWindowModal } from '@/components/workspace/ExecutionResultWindowModal';
 import { FileOutputModal } from '@/components/output/FileOutputModal';
 import { ConfirmDeleteModal, DeleteTarget } from '@/components/modals/ConfirmDeleteModal';
@@ -93,9 +93,20 @@ export function App() {
   const activeFile = activeNodes.find(n => n.id === activeFileId) || activeNodes.find(n => n.type === 'file');
   const activeCode = activeFile?.code || '';
 
-  // Persist workspace changes
+  // Load workspaces asynchronously from IndexedDB on startup
   useEffect(() => {
-    WorkspaceStore.saveWorkspaces(workspaces);
+    let isMounted = true;
+    loadWorkspacesAsync().then(loaded => {
+      if (isMounted && loaded && loaded.length > 0) {
+        setWorkspaces(loaded);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Persist workspace changes to IndexedDB & LocalStorage
+  useEffect(() => {
+    saveWorkspacesAsync(workspaces);
   }, [workspaces]);
 
   // Persist active workspace & active file selection across page refresh
@@ -491,6 +502,38 @@ export function App() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportNode = (node: WorkspaceNode) => {
+    if (node.type === 'file') {
+      let url = node.binaryData;
+      let createdUrl = false;
+      if (!url) {
+        const mimeTypes: Record<string, string> = {
+          'data-json': 'application/json',
+          'data-csv': 'text/csv',
+          'data-text': 'text/plain',
+          'code': 'text/javascript',
+          'binary': 'application/octet-stream'
+        };
+        const kind = node.fileKind || getFileKind(node.name);
+        const mime = mimeTypes[kind] || 'text/plain';
+        const blob = new Blob([node.code || ''], { type: `${mime};charset=utf-8` });
+        url = URL.createObjectURL(blob);
+        createdUrl = true;
+      }
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = node.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (createdUrl) {
+        URL.revokeObjectURL(url);
+      }
+    } else {
+      handleExportWorkspace(activeWorkspaceId);
+    }
+  };
+
   const handleImportWorkspace = (imported: Workspace) => {
     const newWs: Workspace = {
       ...imported,
@@ -625,6 +668,7 @@ export function App() {
           onDuplicateNode={handleDuplicateNode}
           onMoveNode={handleMoveNode}
           onInspectNode={(node) => setInspectTargetNode(node)}
+          onExportNode={handleExportNode}
           onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
           onOpenDocs={setSelectedDoc}
           onRunScript={handleRunScript}
@@ -666,6 +710,8 @@ export function App() {
           onDuplicateNode={handleDuplicateNode}
           onMoveNode={handleMoveNode}
           onInspectNode={(node) => setInspectTargetNode(node)}
+          onExportNode={handleExportNode}
+          onExportActiveWorkspace={() => handleExportWorkspace(activeWorkspaceId)}
           onOpenWorkspaceManager={() => setIsWsManagerOpen(true)}
           onSelectDoc={setSelectedDoc}
           onImportFolder={handleImportFolder}

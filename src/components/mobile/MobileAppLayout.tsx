@@ -29,6 +29,7 @@ interface MobileAppLayoutProps {
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onInspectNode?: (node: WorkspaceNode) => void;
+  onExportNode?: (node: WorkspaceNode) => void;
   onOpenWorkspaceManager: () => void;
   onOpenDocs: (docName: string) => void;
   onRunScript: () => void;
@@ -50,7 +51,7 @@ interface MobileAppLayoutProps {
   onOpenExtensionModal: () => void;
   extensionActive: boolean;
   isOnline: boolean;
-  getFileKind: (filename: string) => string;
+  getFileKind: (filename: string) => any;
 }
 
 export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
@@ -70,6 +71,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   onDuplicateNode,
   onMoveNode,
   onInspectNode,
+  onExportNode,
   onOpenWorkspaceManager,
   onOpenDocs,
   onRunScript,
@@ -220,6 +222,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
         onDuplicateNode={onDuplicateNode}
         onMoveNode={onMoveNode}
         onInspectNode={onInspectNode}
+        onExportNode={onExportNode}
         onOpenWorkspaceManager={onOpenWorkspaceManager}
       />
     </div>

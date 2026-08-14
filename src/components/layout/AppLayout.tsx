@@ -18,6 +18,8 @@ interface AppLayoutProps {
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onInspectNode?: (node: WorkspaceNode) => void;
+  onExportNode?: (node: WorkspaceNode) => void;
+  onExportActiveWorkspace?: () => void;
   onOpenWorkspaceManager: () => void;
   onSelectDoc: (doc: string) => void;
   onImportFolder?: (fileList: FileList) => void;
@@ -41,6 +43,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onDuplicateNode,
   onMoveNode,
   onInspectNode,
+  onExportNode,
+  onExportActiveWorkspace,
   onOpenWorkspaceManager,
   onSelectDoc,
   onImportFolder,
@@ -90,6 +94,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         onImportZip={onImportZip}
         onImportBundle={onImportBundle}
         onImportSingleFile={onImportSingleFile}
+        onExportActiveWorkspace={onExportActiveWorkspace}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isMobileSidebarOpen={isMobileSidebarOpen}
@@ -118,6 +123,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               onDuplicateNode={onDuplicateNode}
               onMoveNode={onMoveNode}
               onInspectNode={onInspectNode}
+              onExportNode={onExportNode}
               onOpenWorkspaceManager={onOpenWorkspaceManager}
               onOpenDocs={onSelectDoc}
             />
@@ -150,6 +156,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 onMoveNode={onMoveNode}
                 onInspectNode={(node) => {
                   onInspectNode?.(node);
+                  setIsMobileSidebarOpen(false);
+                }}
+                onExportNode={(node) => {
+                  onExportNode?.(node);
                   setIsMobileSidebarOpen(false);
                 }}
                 onOpenWorkspaceManager={() => {

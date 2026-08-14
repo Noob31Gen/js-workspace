@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { WorkspaceNode } from '@/lib/workspace-store';
 import { identifyCoreFiles } from '@/lib/entrypoint-analyzer';
-import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, FilePlus, FolderPlus, Trash2, Edit3, Copy, FolderInput, MoreVertical, Eye } from 'lucide-react';
+import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, FilePlus, FolderPlus, Trash2, Edit3, Copy, FolderInput, MoreVertical, Eye, Download } from 'lucide-react';
 
 interface FolderTreeProps {
   nodes: WorkspaceNode[];
@@ -15,6 +15,7 @@ interface FolderTreeProps {
   onDuplicateNode?: (nodeId: string) => void;
   onMoveNode?: (nodeId: string, targetParentId: string | null) => void;
   onInspectNode?: (node: WorkspaceNode) => void;
+  onExportNode?: (node: WorkspaceNode) => void;
   onRestoreDemo?: () => void;
 }
 
@@ -30,6 +31,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   onDuplicateNode,
   onMoveNode,
   onInspectNode,
+  onExportNode,
   onRestoreDemo
 }) => {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
@@ -224,6 +226,19 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                     </>
                   )}
 
+                  {/* Export / Download Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onExportNode?.(node);
+                    }}
+                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-colors"
+                    title={`Export & download "${node.name}"`}
+                    aria-label={`Export & download "${node.name}"`}
+                  >
+                    <Download className="h-3 w-3 text-primary" />
+                  </button>
+
                   {/* Duplicate / Copy Button */}
                   <button
                     onClick={(e) => {
@@ -302,10 +317,21 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                           onInspectNode?.(node);
                           setActiveMenuNodeId(null);
                         }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-xl text-foreground hover:bg-muted flex items-center gap-2"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span>View Full Name</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onExportNode?.(node);
+                          setActiveMenuNodeId(null);
+                        }}
                         className="w-full text-left px-2.5 py-1.5 rounded-xl text-primary font-bold hover:bg-primary/10 flex items-center gap-2"
                       >
-                        <Eye className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span>View Full Name</span>
+                        <Download className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span>Export {isFolder ? 'Folder' : 'File'}</span>
                       </button>
 
                       {isFolder && (
