@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Globe, Wifi, WifiOff, Download, Check, Sparkles, X, Upload, Folder, Archive, Layers, FileText, ChevronDown, Menu, PanelLeft } from 'lucide-react';
 import { checkExtensionConnected } from '@/lib/extension-client';
-import { precacheNpmPackage } from '@/lib/pwa-register';
+import { precacheNpmPackage, getPrecachedPackages } from '@/lib/pwa-register';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
 
 interface HeaderProps {
@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState<boolean>(false);
   const [showImportMenu, setShowImportMenu] = useState<boolean>(false);
   const [customPkgInput, setCustomPkgInput] = useState<string>('');
-  const [precachedPkgs, setPrecachedPkgs] = useState<string[]>(['lodash', 'dayjs', 'papaparse']);
+  const [precachedPkgs, setPrecachedPkgs] = useState<string[]>(() => getPrecachedPackages());
   const [cachingPkg, setCachingPkg] = useState<string | null>(null);
 
   const folderInputRef = useRef<HTMLInputElement>(null);

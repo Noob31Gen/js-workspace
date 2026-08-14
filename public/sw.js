@@ -35,18 +35,33 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Handle Dynamic NPM Packages from CDN (esm.sh / skypack / unpkg)
-  if (url.hostname.includes('esm.sh') || url.hostname.includes('skypack') || url.hostname.includes('unpkg')) {
+  // Handle Dynamic NPM Packages from CDN (esm.sh / skypack / unpkg / jsdelivr)
+  if (url.hostname.includes('esm.sh') || url.hostname.includes('skypack') || url.hostname.includes('unpkg') || url.hostname.includes('jsdelivr')) {
     event.respondWith(
       caches.open(CACHE_NPM).then(async (cache) => {
-        const cachedResponse = await cache.match(event.request);
+        let cachedResponse = await cache.match(event.request);
+        if (!cachedResponse) {
+          const cleanUrl = event.request.url.split('?')[0];
+          cachedResponse = await cache.match(cleanUrl);
+        }
         if (cachedResponse) {
           return cachedResponse;
         }
         try {
           const networkResponse = await fetch(event.request);
-          if (networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
+          if (networkResponse.ok) {
+            const text = await networkResponse.text();
+            const synthResponse = new Response(text, {
+              status: 200,
+              statusText: 'OK',
+              headers: {
+                'Content-Type': networkResponse.headers.get('Content-Type') || 'application/javascript; charset=utf-8',
+                'Access-Control-Allow-Origin': '*'
+              }
+            });
+            cache.put(event.request, synthResponse.clone());
+            cache.put(event.request.url.split('?')[0], synthResponse.clone());
+            return synthResponse;
           }
           return networkResponse;
         } catch (error) {
