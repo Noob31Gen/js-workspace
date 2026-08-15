@@ -78,6 +78,14 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('// Node.js Core Modules & Virtual Filesystem Engine');
   parts.push('var WORKSPACE_FILES = {};');
   parts.push('var CURRENT_FILE_PATH = ' + JSON.stringify(currentFilePath) + ';');
+  parts.push('var __filename = CURRENT_FILE_PATH;');
+  parts.push('var __dirname = CURRENT_FILE_PATH.indexOf("/") >= 0 ? CURRENT_FILE_PATH.substring(0, CURRENT_FILE_PATH.lastIndexOf("/")) : ".";');
+  parts.push('var dirname = __dirname;');
+  parts.push('var filename = __filename;');
+  parts.push('self.__filename = __filename;');
+  parts.push('self.__dirname = __dirname;');
+  parts.push('self.dirname = dirname;');
+  parts.push('self.filename = filename;');
   parts.push('var MODULE_CACHE = new Map();');
   parts.push('var CALL_STACK = new Set();');
   parts.push('if (typeof SharedArrayBuffer === "undefined") {');
@@ -798,7 +806,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
     { pattern: 'export' + W + '+var' + W + '+([a-zA-Z0-9_$]+)', replacement: 'var $1' },
   ];
 
-  parts.push('async function loadWorkspaceModule(requestedPath, baseFile) {');
+  parts.push('function loadWorkspaceModuleSync(requestedPath, baseFile) {');
   parts.push('  if (baseFile === undefined) baseFile = CURRENT_FILE_PATH;');
   parts.push('  var builtin = getBuiltinModule(requestedPath);');
   parts.push('  if (builtin) return builtin;');
@@ -806,21 +814,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push("  if (requestedPath.indexOf('.') !== 0 && requestedPath.indexOf('/') !== 0) {");
   parts.push("    var npmCacheKey = 'npm:' + requestedPath;");
   parts.push('    if (MODULE_CACHE.has(npmCacheKey)) return MODULE_CACHE.get(npmCacheKey);');
-  // Build the emoji using String.fromCodePoint to avoid any escape issues
-  const packageEmoji = String.fromCodePoint(0x1F4E6);
-  parts.push("    sendLog('info', ['" + packageEmoji + " Loading NPM package ' + JSON.stringify(requestedPath) + ' dynamically via CDN (https://esm.sh/' + requestedPath + ')...']);");
-  parts.push('    try {');
-  parts.push("      var cdnUrl = 'https://esm.sh/' + requestedPath;");
-  parts.push('      var npmModule = await import(cdnUrl);');
-  parts.push('      var resolvedExports = npmModule.default !== undefined ? npmModule.default : npmModule;');
-  parts.push("      if (typeof resolvedExports === 'function' || typeof resolvedExports === 'object') {");
-  parts.push('        Object.assign(resolvedExports, npmModule);');
-  parts.push('      }');
-  parts.push('      MODULE_CACHE.set(npmCacheKey, resolvedExports);');
-  parts.push('      return resolvedExports;');
-  parts.push('    } catch (err) {');
-  parts.push("      throw new Error('Failed to load NPM package ' + JSON.stringify(requestedPath) + ' from CDN: ' + (err.message || String(err)));");
-  parts.push('    }');
+  parts.push("    throw new Error('NPM package ' + JSON.stringify(requestedPath) + ' is not preloaded. Use \"await workspace.import(' + JSON.stringify(requestedPath) + ')\" or pre-cache it in the PWA tab.');");
   parts.push('  }');
   parts.push('');
   parts.push('  var resolvedPath = resolvePath(requestedPath, baseFile);');
@@ -845,12 +839,20 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push("    throw new Error('Module not found: ' + JSON.stringify(requestedPath) + ' (resolved as ' + JSON.stringify(resolvedPath) + '). Available files: ' + available);");
   parts.push('  }');
   parts.push('');
+  parts.push("  if (resolvedPath.indexOf('.json') === resolvedPath.length - 5) {");
+  parts.push('    try {');
+  parts.push('      var jsonParsed = JSON.parse(scriptCode);');
+  parts.push('      MODULE_CACHE.set(resolvedPath, jsonParsed);');
+  parts.push('      return jsonParsed;');
+  parts.push('    } catch(err) {');
+  parts.push("      throw new Error('Failed to parse JSON file ' + JSON.stringify(resolvedPath) + ': ' + (err.message || String(err)));");
+  parts.push('    }');
+  parts.push('  }');
+  parts.push('');
   parts.push('  CALL_STACK.add(resolvedPath);');
   parts.push('  var moduleObj = { exports: {} };');
   parts.push('  var exportsObj = moduleObj.exports;');
   parts.push('');
-
-  // Build the transform chain using workerRegexReplace with JSON.stringify
   let transformChain = '  var transformedCode = (scriptCode || "")';
   for (const t of importTransforms) {
     transformChain += String.fromCharCode(10) + '    ' + workerRegexReplace(t.pattern, t.replacement);
@@ -858,12 +860,9 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   transformChain += ';';
   parts.push(transformChain);
   parts.push('');
-
-  // Export binding extraction
   const exportFuncPattern = 'export' + W + '+(?:async' + W + '+)?function' + W + '+([a-zA-Z0-9_$]+)';
   const exportClassPattern = 'export' + W + '+class' + W + '+([a-zA-Z0-9_$]+)';
   const exportVarPattern = 'export' + W + '+(?:const|let|var)' + W + '+([a-zA-Z0-9_$]+)';
-
   parts.push('  var _rawSrc = scriptCode;');
   parts.push('  var _exportFuncRe = new RegExp(' + JSON.stringify(exportFuncPattern) + ', "g");');
   parts.push('  var _m;');
@@ -879,60 +878,75 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('    transformedCode += String.fromCharCode(10) + "exports." + _m[1] + " = " + _m[1] + ";";');
   parts.push('  }');
   parts.push('');
-
-  // evalFunc — the new Function body is built by string concatenation in the worker
   const NL = 'String.fromCharCode(10)';
-  parts.push("  var evalFunc = new Function('module', 'exports', 'require', 'workspace', 'process', 'Buffer',");
-  parts.push("    'return (async () => {' + " + NL + " +");
-  parts.push("      transformedCode + " + NL + " +");
-  parts.push('      ' + JSON.stringify('if (typeof run === "function" && !exports.run) {') + ' + ' + NL + ' +');
+  parts.push('  var _modFilename = resolvedPath;');
+  parts.push('  var _modDirname = resolvedPath.indexOf("/") >= 0 ? resolvedPath.substring(0, resolvedPath.lastIndexOf("/")) : ".";');
+  parts.push("  var evalFunc = new Function('module', 'exports', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename',");
+  parts.push("    transformedCode + " + NL + " +");
+  parts.push('    ' + JSON.stringify('if (typeof run === "function" && !exports.run) {') + ' + ' + NL + ' +');
   parts.push('      ' + JSON.stringify('exports.run = run;') + ' + ' + NL + ' +');
   parts.push('      ' + JSON.stringify('}') + ' + ' + NL + ' +');
-  parts.push('      ' + JSON.stringify('return module.exports;') + ' + ' + NL + ' +');
-  parts.push("    '})();'");
-  parts.push('  );');
+  parts.push('      ' + JSON.stringify('return module.exports;'));
+  parts.push("  );");
   parts.push('');
-
   parts.push('  var scopedRequire = function(path) {');
-  parts.push('    var b = getBuiltinModule(path);');
-  parts.push('    if (b) return b;');
-  parts.push('    var resolved = resolvePath(path, resolvedPath);');
-  parts.push('    if (MODULE_CACHE.has(resolved)) return MODULE_CACHE.get(resolved);');
-  parts.push("    if (MODULE_CACHE.has('npm:' + path)) return MODULE_CACHE.get('npm:' + path);");
-  parts.push('    return loadWorkspaceModule(path, resolvedPath);');
+  parts.push('    return loadWorkspaceModuleSync(path, resolvedPath);');
   parts.push('  };');
   parts.push('  var scopedWorkspace = {');
-  parts.push('    import: function(path) { return loadWorkspaceModule(path, resolvedPath); },');
+  parts.push('    import: function(path) { return loadWorkspaceModuleAsync(path, resolvedPath); },');
   parts.push('    runScript: async function(path, args) {');
   parts.push('      if (!args) args = {};');
-  parts.push('      var mod = await loadWorkspaceModule(path, resolvedPath);');
+  parts.push('      var mod = await loadWorkspaceModuleAsync(path, resolvedPath);');
   parts.push("      if (typeof mod.run === 'function') return mod.run(args);");
   parts.push("      if (typeof mod.default === 'function') return mod.default(args);");
   parts.push("      throw new Error('Script ' + JSON.stringify(path) + ' does not export a run(args) or default function!');");
   parts.push('    }');
   parts.push('  };');
   parts.push('');
-  parts.push('  var resultExports = await evalFunc(moduleObj, exportsObj, scopedRequire, scopedWorkspace, processModule, BufferModule);');
+  parts.push('  var resultExports = evalFunc(moduleObj, exportsObj, scopedRequire, scopedWorkspace, processModule, BufferModule, _modDirname, _modFilename, _modDirname, _modFilename);');
+  parts.push('  if (resultExports === undefined) resultExports = moduleObj.exports;');
   parts.push('  CALL_STACK.delete(resolvedPath);');
   parts.push('  MODULE_CACHE.set(resolvedPath, resultExports);');
   parts.push('  return resultExports;');
   parts.push('}');
   parts.push('');
-
-  // Global require & workspace
-  parts.push('self.require = function(path) {');
-  parts.push('  var builtin = getBuiltinModule(path);');
+  parts.push('async function loadWorkspaceModuleAsync(requestedPath, baseFile) {');
+  parts.push('  if (baseFile === undefined) baseFile = CURRENT_FILE_PATH;');
+  parts.push('  var builtin = getBuiltinModule(requestedPath);');
   parts.push('  if (builtin) return builtin;');
-  parts.push('  var resolved = resolvePath(path, CURRENT_FILE_PATH);');
-  parts.push('  if (MODULE_CACHE.has(resolved)) return MODULE_CACHE.get(resolved);');
-  parts.push("  if (MODULE_CACHE.has('npm:' + path)) return MODULE_CACHE.get('npm:' + path);");
-  parts.push('  return loadWorkspaceModule(path, CURRENT_FILE_PATH);');
+  parts.push('');
+  parts.push("  if (requestedPath.indexOf('.') !== 0 && requestedPath.indexOf('/') !== 0) {");
+  parts.push("    var npmCacheKey = 'npm:' + requestedPath;");
+  parts.push('    if (MODULE_CACHE.has(npmCacheKey)) return MODULE_CACHE.get(npmCacheKey);');
+  parts.push("    sendLog('info', ['Loading NPM package ' + JSON.stringify(requestedPath) + ' dynamically via CDN (https://esm.sh/' + requestedPath + ')...']);");
+  parts.push('    try {');
+  parts.push("      var cdnUrl = 'https://esm.sh/' + requestedPath;");
+  parts.push('      var npmModule = await import(cdnUrl);');
+  parts.push('      var resolvedExports = npmModule.default !== undefined ? npmModule.default : npmModule;');
+  parts.push("      if (typeof resolvedExports === 'function' || typeof resolvedExports === 'object') {");
+  parts.push('        Object.assign(resolvedExports, npmModule);');
+  parts.push('      }');
+  parts.push('      MODULE_CACHE.set(npmCacheKey, resolvedExports);');
+  parts.push('      return resolvedExports;');
+  parts.push('    } catch (err) {');
+  parts.push("      throw new Error('Failed to load NPM package ' + JSON.stringify(requestedPath) + ' from CDN: ' + (err.message || String(err)));");
+  parts.push('    }');
+  parts.push('  }');
+  parts.push('');
+  parts.push('  return loadWorkspaceModuleSync(requestedPath, baseFile);');
+  parts.push('}');
+  parts.push('');
+  parts.push('// Global synchronous require for CommonJS modules');
+  parts.push('self.require = function(path) {');
+  parts.push('  return loadWorkspaceModuleSync(path, CURRENT_FILE_PATH);');
   parts.push('};');
+  parts.push('');
+  parts.push('// Global async workspace tools');
   parts.push('self.workspace = {');
-  parts.push('  import: function(path) { return loadWorkspaceModule(path, CURRENT_FILE_PATH); },');
+  parts.push('  import: function(path) { return loadWorkspaceModuleAsync(path, CURRENT_FILE_PATH); },');
   parts.push('  runScript: async function(path, args) {');
   parts.push('    if (!args) args = {};');
-  parts.push('    var mod = await loadWorkspaceModule(path, CURRENT_FILE_PATH);');
+  parts.push('    var mod = await loadWorkspaceModuleAsync(path, CURRENT_FILE_PATH);');
   parts.push("    if (typeof mod.run === 'function') return mod.run(args);");
   parts.push("    if (typeof mod.default === 'function') return mod.default(args);");
   parts.push("    throw new Error('Script ' + JSON.stringify(path) + ' does not export a run(args) or default function!');");

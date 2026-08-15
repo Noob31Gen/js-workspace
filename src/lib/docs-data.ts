@@ -6,6 +6,112 @@ export interface DocItem {
 }
 
 export const DOCS_REGISTRY: Record<string, DocItem> = {
+  'SITE_NAVIGATION.md': {
+    id: 'SITE_NAVIGATION.md',
+    title: 'Site Navigation & Workspace Guide',
+    category: 'Getting Started',
+    content: `# Site Navigation and Workspace Guide
+
+Welcome to **JS Workspace**! This guide walks you through the core interface components, navigation workflows, script execution, file management, and tool integrations.
+
+---
+
+## Interface Layout Overview
+
+The JS Workspace interface is divided into functional zones:
+
+\`\`\`
++-----------------------------------------------------------------------------------+
+|  [Logo] JS Workspace        [Workspaces]  [Import/Export]   [Docs] [CORS] [PWA]   | (Header Bar)
++-------------------+---------------------------------------+-----------------------+
+|  File Explorer    |  Code Editor                          |  Dynamic Options      |
+|  - Files & Folders|  - JavaScript / TypeScript Code       |  - Auto-generated UI  |
+|  - Workspace Switch| - Tab Management                      |  - [Run Script]       |
+|  - Add/Upload/Del |  - Syntax Highlighting                |                       |
+|                   +---------------------------------------+-----------------------+
+|                   |  Console & Results / Frame Preview                            |
+|                   |  - Real-time logs, tables, errors, and visual iframe previews  |
++-------------------+---------------------------------------------------------------+
+\`\`\`
+
+---
+
+## 1. File Explorer (Left Sidebar)
+
+The File Explorer panel lets you manage the virtual project hierarchy in browser storage:
+
+- **Active Workspace Selector**: Click the top workspace banner to open the **Workspace Manager Modal** to create, rename, switch between, import, or export isolated workspaces.
+- **Search Files**: Filter files and folders by typing in the search box.
+- **Create Files & Folders**: Hover over any folder or the top action buttons to create new \`.js\`, \`.json\`, \`.csv\`, or \`.txt\` files.
+- **Context Actions (Three Dots)**: Rename, duplicate, move, inspect file properties, export individual files, or delete nodes.
+- **Toggle Sidebar**: Use \`Ctrl+B\` (or \`Cmd+B\`) to hide/show the explorer sidebar for more coding space.
+
+---
+
+## 2. Code Editor (Center Area)
+
+The central editor provides a full JavaScript coding environment:
+
+- **Standard JS & Node.js**: Write standard modern JavaScript, ES Modules, or Node.js scripts using \`require()\` and \`import\`.
+- **Automatic Core File Detection**: The system analyzes imports and identifies core entrypoint files (e.g., \`main.js\`, \`welcome.js\`) marked with special badges.
+- **Multi-File Imports**: Import sibling files or sub-modules directly, e.g.:
+  \`const { calculateMetrics } = require('./utils/helpers');\`
+- **Virtual Filesystem Access**: Read and write files directly using Node's \`fs\` module:
+  \`const raw = fs.readFileSync('data/sample-data.json', 'utf8');\`
+  \`fs.writeFileSync('output-report.txt', 'Summary data...');\`
+
+---
+
+## 3. Dynamic Parameter Controls (Right Panel)
+
+When your script exports an \`async function run(options)\` function, JS Workspace analyzes JSDoc \`@param\` annotations and automatically builds an interactive UI form:
+
+- **String Inputs**: \`@param {string} title Report Title - default: "Audit"\`
+- **Dropdown Selectors**: \`@param {select:Production|Staging|Dev} env Environment\`
+- **Range Sliders**: \`@param {range:1:10:1} limit Max Records - default: 5\`
+- **Boolean Toggles**: \`@param {boolean} exportToFs Save Output File - default: true\`
+- **Color Pickers**: \`@param {color} themeColor Brand Accent - default: "#10b981"\`
+- **JSON Objects**: \`@param {json} config Custom JSON Configuration\`
+
+Values configured in the UI form are automatically injected into your \`run({ ... })\` function when you click **Run Script**.
+
+---
+
+## 4. Running Scripts & Execution Sandbox
+
+- **Execute**: Click the **Run Script** button in the top right or press \`Ctrl+Enter\` / \`Cmd+Enter\`.
+- **Isolated Worker Sandbox**: Scripts execute off the main thread in a dedicated Web Worker. Even heavy loops or complex calculations will never freeze your browser UI.
+- **Timeout Protection**: The sandbox enforces safety timeouts to prevent runaway loops.
+- **Interactive Prompts**: Scripts can request user input at runtime using \`prompt("Your name:")\` or Node \`readline\`, displaying an interactive input bar in the Console.
+
+---
+
+## 5. Console Viewer & Frame Preview (Bottom Panel)
+
+- **Console Stream Tab**: Intercepts and formats all \`console.log\`, \`console.info\`, \`console.warn\`, \`console.error\`, and structured \`console.table()\` outputs in real time.
+- **Frame Preview Tab**: If your script returns HTML (\`{ __html: "<div>...</div>" }\`), an image URL, or a structured dataset, the Frame Preview tab renders a live, interactive visual dashboard.
+- **Generated File Detection**: Any files created during execution via \`fs.writeFileSync()\` are automatically added to the virtual workspace and highlighted with download prompts.
+
+---
+
+## 6. Top Bar Utilities & Advanced Features
+
+- **Documentation (Docs Button)**: Open this comprehensive built-in documentation and architectural manuals anytime.
+- **CORS Helper Extension**: Connect the companion browser extension to execute cross-origin \`fetch()\` requests to any external API without CORS limitations.
+- **PWA Offline Packages**: Pre-cache NPM packages (such as \`lodash\`, \`dayjs\`, \`papaparse\`) into local CacheStorage so scripts run completely offline without internet connectivity.
+- **Import / Export**:
+  - Export active workspace as a portable JSON bundle.
+  - Import folders, ZIP files, or single scripts directly from your computer.
+
+---
+
+## Quick Tips for Getting Started
+
+1. **Start with \`welcome.js\`**: Read the comments, test running the starter script, and experiment with editing code.
+2. **Explore \`main.js\`**: Switch to \`main.js\` in the left sidebar to see a full demonstration of multi-file imports, virtual filesystem operations, and rich frame previews.
+3. **Create your own scripts**: Click the **+** icon in the sidebar to add a new script and build your own browser-native tools!
+`
+  },
   'ARCHITECTURE.md': {
     id: 'ARCHITECTURE.md',
     title: 'System Architecture & Web Worker Sandbox',

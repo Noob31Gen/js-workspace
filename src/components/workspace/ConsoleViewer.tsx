@@ -290,13 +290,13 @@ export const ConsoleViewer: React.FC<ConsoleViewerProps> = ({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={inputPrompt ? `Script paused: "${inputPrompt.trim()}"...` : "Enter runtime user input for CLI..."}
-              className="flex-1 bg-background border border-border/80 rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50 min-w-0 h-8"
+              className="flex-1 bg-background border border-border/80 rounded-lg px-3 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground/50 min-w-0 h-8 box-border leading-none"
               autoFocus={!!inputPrompt}
             />
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-md hover:shadow-primary/20 transition-all cursor-pointer shrink-0 h-8 active:scale-95"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold font-sans shadow-sm hover:shadow-primary/20 transition-all cursor-pointer shrink-0 h-8 border border-transparent box-border active:scale-95 leading-none"
               title="Submit user input and resume script execution"
             >
               <span>Continue</span>

@@ -32,7 +32,7 @@ export function App() {
     if (saved.activeWorkspaceId && workspaces.some(w => w.id === saved.activeWorkspaceId)) {
       return saved.activeWorkspaceId;
     }
-    return workspaces[0]?.id || 'ws-master-suite';
+    return workspaces[0]?.id || 'ws-demo-workspace';
   });
 
   const [activeFileId, setActiveFileId] = useState<string>(() => {

@@ -14,12 +14,12 @@ interface DocViewerModalProps {
 
 export const DocViewerModal: React.FC<DocViewerModalProps> = ({ docName, onClose }) => {
   const [activeDocKey, setActiveDocKey] = useState<string>(
-    docName && DOCS_REGISTRY[docName] ? docName : 'ARCHITECTURE.md'
+    docName && DOCS_REGISTRY[docName] ? docName : 'SITE_NAVIGATION.md'
   );
 
   if (!docName) return null;
 
-  const activeDoc: DocItem = DOCS_REGISTRY[activeDocKey] || DOCS_REGISTRY['ARCHITECTURE.md'];
+  const activeDoc: DocItem = DOCS_REGISTRY[activeDocKey] || DOCS_REGISTRY['SITE_NAVIGATION.md'];
 
   // Configure marked renderer for rich IDE-style code blocks
   const renderer = new marked.Renderer();
