@@ -80,6 +80,10 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('var CURRENT_FILE_PATH = ' + JSON.stringify(currentFilePath) + ';');
   parts.push('var MODULE_CACHE = new Map();');
   parts.push('var CALL_STACK = new Set();');
+  parts.push('if (typeof SharedArrayBuffer === "undefined") {');
+  parts.push('  self.SharedArrayBuffer = ArrayBuffer;');
+  parts.push('  globalThis.SharedArrayBuffer = ArrayBuffer;');
+  parts.push('}');
   parts.push('');
 
   // 1. Path Module

@@ -3,6 +3,10 @@
  * path, buffer, process, events, crypto, util, and Virtual fs.
  */
 
+if (typeof globalThis.SharedArrayBuffer === 'undefined') {
+  (globalThis as unknown as { SharedArrayBuffer: typeof ArrayBuffer }).SharedArrayBuffer = ArrayBuffer;
+}
+
 // 1. Path Polyfill
 export const pathPolyfill = {
   sep: '/',
