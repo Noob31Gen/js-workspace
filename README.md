@@ -29,3 +29,8 @@ Serves from `dist`.
 
 Serves from `http://localhost:3000`
 
+### Credits
+
+- **almostnode** (https://github.com/macaly/almostnode) for the comprehensive browser-native Node.js runtime shims and module compatibility layer.
+- **Nodebox** (https://github.com/codesandbox/nodebox-runtime) by CodeSandbox for in-browser Node runtime architecture.
+

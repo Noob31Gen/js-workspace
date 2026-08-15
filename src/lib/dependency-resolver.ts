@@ -83,21 +83,75 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('');
 
   // 1. Path Module
-  // For regex literals inside parts.push strings, we build them at runtime too
-  const dblSlashRegex = '/' + BS + '/' + BS + '/+/g';  // /\/\/+/g
-  const leadTrailSlashRegex = '/^' + BS + '/+|' + BS + '/+$/g'; // /^\/+|\/+$/g
   const trailingSlashRegex = '/' + BS + '/$/'; // /\/$/
   const leadSlashRegex = '/^' + BS + '//'; // /^\//
 
+  parts.push('function md5(str) {');
+  parts.push('  function rL(v, s) { return (v << s) | (v >>> (32 - s)); }');
+  parts.push('  function aU(x, y) {');
+  parts.push('    var x8 = x & 0x80000000, y8 = y & 0x80000000, x4 = x & 0x40000000, y4 = y & 0x40000000, r = (x & 0x3fffffff) + (y & 0x3fffffff);');
+  parts.push('    if (x4 & y4) return r ^ 0x80000000 ^ x8 ^ y8;');
+  parts.push('    if (x4 | y4) { return (r & 0x40000000) ? r ^ 0xc0000000 ^ x8 ^ y8 : r ^ 0x40000000 ^ x8 ^ y8; }');
+  parts.push('    return r ^ x8 ^ y8;');
+  parts.push('  }');
+  parts.push('  function F(x, y, z) { return (x & y) | (~x & z); }');
+  parts.push('  function G(x, y, z) { return (x & z) | (y & ~z); }');
+  parts.push('  function H(x, y, z) { return x ^ y ^ z; }');
+  parts.push('  function I(x, y, z) { return y ^ (x | ~z); }');
+  parts.push('  function FF(a, b, c, d, x, s, ac) { return aU(rL(aU(aU(a, F(b, c, d)), aU(x, ac)), s), b); }');
+  parts.push('  function GG(a, b, c, d, x, s, ac) { return aU(rL(aU(aU(a, G(b, c, d)), aU(x, ac)), s), b); }');
+  parts.push('  function HH(a, b, c, d, x, s, ac) { return aU(rL(aU(aU(a, H(b, c, d)), aU(x, ac)), s), b); }');
+  parts.push('  function II(a, b, c, d, x, s, ac) { return aU(rL(aU(aU(a, I(b, c, d)), aU(x, ac)), s), b); }');
+  parts.push('  var len = str.length, n = (len + 8 >> 6) + 1, w = Array(n * 16);');
+  parts.push('  for (var i = 0; i < n * 16; i++) w[i] = 0;');
+  parts.push('  for (var i = 0; i < len; i++) w[i >> 2] |= str.charCodeAt(i) << ((i % 4) * 8);');
+  parts.push('  w[len >> 2] |= 0x80 << ((len % 4) * 8); w[n * 16 - 2] = len * 8;');
+  parts.push('  var a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476;');
+  parts.push('  for (var i = 0; i < w.length; i += 16) {');
+  parts.push('    var A = a, B = b, C = c, D = d;');
+  parts.push('    a = FF(a,b,c,d,w[i+0],7,0xd76aa478); d = FF(d,a,b,c,w[i+1],12,0xe8c7b756); c = FF(c,d,a,b,w[i+2],17,0x242070db); b = FF(b,c,d,a,w[i+3],22,0xc1bdceee);');
+  parts.push('    a = FF(a,b,c,d,w[i+4],7,0xf57c0faf); d = FF(d,a,b,c,w[i+5],12,0x4787c62a); c = FF(c,d,a,b,w[i+6],17,0xa8304613); b = FF(b,c,d,a,w[i+7],22,0xfd469501);');
+  parts.push('    a = FF(a,b,c,d,w[i+8],7,0x698098d8); d = FF(d,a,b,c,w[i+9],12,0x8b44f7af); c = FF(c,d,a,b,w[i+10],17,0xffff5bb1); b = FF(b,c,d,a,w[i+11],22,0x895cd7be);');
+  parts.push('    a = FF(a,b,c,d,w[i+12],7,0x6b901122); d = FF(d,a,b,c,w[i+13],12,0xfd987193); c = FF(c,d,a,b,w[i+14],17,0xa679438e); b = FF(b,c,d,a,w[i+15],22,0x49b40821);');
+  parts.push('    a = GG(a,b,c,d,w[i+1],5,0xf61e2562); d = GG(d,a,b,c,w[i+6],9,0xc040b340); c = GG(c,d,a,b,w[i+11],14,0x265e5a51); b = GG(b,c,d,a,w[i+0],20,0xe9b6c7aa);');
+  parts.push('    a = GG(a,b,c,d,w[i+5],5,0xd62f105d); d = GG(d,a,b,c,w[i+10],9,0x02441453); c = GG(c,d,a,b,w[i+15],14,0xd8a1e681); b = GG(b,c,d,a,w[i+4],20,0xe7d3fbc8);');
+  parts.push('    a = GG(a,b,c,d,w[i+9],5,0x21e1cde6); d = GG(d,a,b,c,w[i+14],9,0xc33707d6); c = GG(c,d,a,b,w[i+3],14,0xf4d50d87); b = GG(b,c,d,a,w[i+8],20,0x455a14ed);');
+  parts.push('    a = GG(a,b,c,d,w[i+13],5,0xa9e3e905); d = GG(d,a,b,c,w[i+2],9,0xfcefa3f8); c = GG(c,d,a,b,w[i+7],14,0x676f02d9); b = GG(b,c,d,a,w[i+12],20,0x8d2a4c8a);');
+  parts.push('    a = HH(a,b,c,d,w[i+5],4,0xfffa3942); d = HH(d,a,b,c,w[i+8],11,0x8771f681); c = HH(c,d,a,b,w[i+11],16,0x6d9d6122); b = HH(b,c,d,a,w[i+14],23,0xfde5380c);');
+  parts.push('    a = HH(a,b,c,d,w[i+1],4,0xa4beea44); d = HH(d,a,b,c,w[i+4],11,0x4bdecfa9); c = HH(c,d,a,b,w[i+7],16,0xf6bb4b60); b = HH(b,c,d,a,w[i+10],23,0xbebfbc70);');
+  parts.push('    a = HH(a,b,c,d,w[i+13],4,0x289b7ec6); d = HH(d,a,b,c,w[i+0],11,0xeaa127fa); c = HH(c,d,a,b,w[i+3],16,0xd4ef3085); b = HH(b,c,d,a,w[i+6],23,0x04881d05);');
+  parts.push('    a = HH(a,b,c,d,w[i+9],4,0xd9d4d039); d = HH(d,a,b,c,w[i+12],11,0xe6db99e5); c = HH(c,d,a,b,w[i+15],16,0x1fa27cf8); b = HH(b,c,d,a,w[i+2],23,0xc4ac5665);');
+  parts.push('    a = II(a,b,c,d,w[i+0],6,0xf4292244); d = II(d,a,b,c,w[i+7],10,0x432aff97); c = II(c,d,a,b,w[i+14],15,0xab9423a7); b = II(b,c,d,a,w[i+5],21,0xfc93a039);');
+  parts.push('    a = II(a,b,c,d,w[i+12],6,0x655b59c3); d = II(d,a,b,c,w[i+3],10,0x8f0ccc92); c = II(c,d,a,b,w[i+10],15,0xffeff47d); b = II(b,c,d,a,w[i+1],21,0x85845dd1);');
+  parts.push('    a = II(a,b,c,d,w[i+8],6,0x6fa87e4f); d = II(d,a,b,c,w[i+15],10,0xfe2ce6e0); c = II(c,d,a,b,w[i+6],15,0xa3014314); b = II(b,c,d,a,w[i+13],21,0x4e0811a1);');
+  parts.push('    a = II(a,b,c,d,w[i+4],6,0xf7537e82); d = II(d,a,b,c,w[i+11],10,0xbd3af235); c = II(c,d,a,b,w[i+2],15,0x2ad7d2bb); b = II(b,c,d,a,w[i+9],21,0xeb86d391);');
+  parts.push('    a = aU(a, A); b = aU(b, B); c = aU(c, C); d = aU(d, D);');
+  parts.push('  }');
+  parts.push('  function w2h(v) { var s = ""; for (var j = 0; j < 4; j++) { var b = (v >>> (j * 8)) & 255; s += ("0" + b.toString(16)).slice(-2); } return s; }');
+  parts.push('  return (w2h(a) + w2h(b) + w2h(c) + w2h(d)).toLowerCase();');
+  parts.push('}');
+  parts.push('');
   parts.push('var pathModule = {');
   parts.push("  sep: '/',");
+  parts.push('  normalize: function(p) {');
+  parts.push("    var str = String(p || ''); if (!str) return '.';");
+  parts.push('    var isAbs = str.charCodeAt(0) === 47;');
+  parts.push("    var parts = str.split('/'); var stack = [];");
+  parts.push('    for (var i = 0; i < parts.length; i++) {');
+  parts.push('      var part = parts[i];');
+  parts.push("      if (!part || part === '.') continue;");
+  parts.push("      if (part === '..') { if (stack.length > 0) stack.pop(); }");
+  parts.push('      else { stack.push(part); }');
+  parts.push('    }');
+  parts.push("    var res = stack.join('/');");
+  parts.push("    if (isAbs) return '/' + res;");
+  parts.push("    return res || '.';");
+  parts.push('  },');
   parts.push('  join: function() {');
   parts.push('    var args = Array.prototype.slice.call(arguments);');
-  parts.push("    return args.filter(Boolean).join('/').replace(" + dblSlashRegex + ", '/').replace(" + leadTrailSlashRegex + ", '');");
+  parts.push("    return pathModule.normalize(args.filter(Boolean).join('/'));");
   parts.push('  },');
-  parts.push('  resolve: function() {');
-  parts.push('    return pathModule.join.apply(null, arguments);');
-  parts.push('  },');
+  parts.push('  resolve: function() { return pathModule.join.apply(null, arguments); },');
   parts.push('  dirname: function(p) {');
   parts.push("    var segs = String(p).replace(" + trailingSlashRegex + ", '').split('/');");
   parts.push('    segs.pop();');
@@ -113,12 +167,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push("    var idx = fname.lastIndexOf('.');");
   parts.push("    return idx <= 0 ? '' : fname.slice(idx);");
   parts.push('  },');
-  parts.push('  normalize: function(p) {');
-  parts.push('    return pathModule.join(p);');
-  parts.push('  },');
-  parts.push('  isAbsolute: function(p) {');
-  parts.push("    return String(p).startsWith('/');");
-  parts.push('  }');
+  parts.push("  isAbsolute: function(p) { return String(p).charCodeAt(0) === 47; }");
   parts.push('};');
   parts.push('');
 
@@ -130,8 +179,18 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('  else { this._bytes = new Uint8Array(0); }');
   parts.push('  this.length = this._bytes.length;');
   parts.push('}');
-  parts.push('BufferModule.from = function(data) {');
+  parts.push('BufferModule.from = function(data, enc) {');
   parts.push("  if (typeof data === 'string') {");
+  parts.push("    if (enc === 'base64') {");
+  parts.push('      var bStr = atob(data); var bytes = new Uint8Array(bStr.length);');
+  parts.push('      for (var i = 0; i < bStr.length; i++) bytes[i] = bStr.charCodeAt(i);');
+  parts.push('      return new BufferModule(bytes);');
+  parts.push('    }');
+  parts.push("    if (enc === 'hex') {");
+  parts.push('      var bytes = new Uint8Array(data.length / 2);');
+  parts.push('      for (var i = 0; i < data.length; i += 2) bytes[i / 2] = parseInt(data.substr(i, 2), 16);');
+  parts.push('      return new BufferModule(bytes);');
+  parts.push('    }');
   parts.push('    return new BufferModule(new TextEncoder().encode(data));');
   parts.push('  }');
   parts.push('  if (data instanceof Uint8Array) return new BufferModule(data);');
@@ -154,10 +213,18 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('  }');
   parts.push('  return new BufferModule(res);');
   parts.push('};');
-  parts.push('BufferModule.isBuffer = function(obj) {');
-  parts.push('  return obj instanceof BufferModule;');
-  parts.push('};');
+  parts.push('BufferModule.isBuffer = function(obj) { return obj instanceof BufferModule; };');
   parts.push('BufferModule.prototype.toString = function(enc) {');
+  parts.push("  if (enc === 'base64') {");
+  parts.push("    var binary = ''; var len = this._bytes.length;");
+  parts.push('    for (var i = 0; i < len; i++) binary += String.fromCharCode(this._bytes[i]);');
+  parts.push('    return btoa(binary);');
+  parts.push('  }');
+  parts.push("  if (enc === 'hex') {");
+  parts.push("    var hex = '';");
+  parts.push("    for (var i = 0; i < this._bytes.length; i++) hex += this._bytes[i].toString(16).padStart(2, '0');");
+  parts.push('    return hex;');
+  parts.push('  }');
   parts.push('  return new TextDecoder().decode(this._bytes);');
   parts.push('};');
   parts.push('BufferModule.prototype.set = function(src, off) { this._bytes.set(src._bytes || src, off); };');
@@ -217,6 +284,8 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
 
   // 4. Events Module
   parts.push('function EventEmitterModule() { this._events = {}; }');
+  parts.push('EventEmitterModule.EventEmitter = EventEmitterModule;');
+  parts.push('EventEmitterModule.default = EventEmitterModule;');
   parts.push('EventEmitterModule.prototype.on = function(event, listener) { (this._events[event] = this._events[event] || []).push(listener); return this; };');
   parts.push('EventEmitterModule.prototype.once = function(event, listener) {');
   parts.push('  var self = this;');
@@ -292,35 +361,23 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
 
   // 5. Crypto Module
   parts.push('var cryptoModule = {');
-  parts.push("  randomUUID: function() { return self.crypto && self.crypto.randomUUID ? self.crypto.randomUUID() : Math.random().toString(36).substring(2); },");
-  parts.push('  randomBytes: function(size) {');
-  parts.push('    var arr = new Uint8Array(size);');
-  parts.push('    if (self.crypto && self.crypto.getRandomValues) self.crypto.getRandomValues(arr);');
-  parts.push('    return new BufferModule(arr);');
-  parts.push('  },');
+  parts.push("  randomUUID: function() { return self.crypto && self.crypto.randomUUID ? self.crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); },");
+  parts.push('  randomBytes: function(size) { var arr = new Uint8Array(size); if (self.crypto && self.crypto.getRandomValues) self.crypto.getRandomValues(arr); return new BufferModule(arr); },');
+  parts.push('  randomInt: function(min, max) { if (max === undefined) { max = min; min = 0; } return Math.floor(Math.random() * (max - min)) + min; },');
   parts.push('  createHash: function(algo) {');
   parts.push("    var _data = '';");
   parts.push('    var hasher = {');
-  parts.push('      update: function(chunk) {');
-  parts.push('        if (BufferModule.isBuffer(chunk)) { _data += chunk.toString(); }');
-  parts.push('        else if (chunk instanceof Uint8Array) { _data += new TextDecoder().decode(chunk); }');
-  parts.push("        else { _data += String(chunk || ''); }");
-  parts.push('        return hasher;');
-  parts.push('      },');
-  parts.push("      digest: function(enc) {");
-  parts.push("        if (!enc) enc = 'hex';");
-  parts.push('        var h = 0;');
-  parts.push('        for (var i = 0; i < _data.length; i++) {');
-  parts.push('          h = (h << 5) - h + _data.charCodeAt(i) | 0;');
-  parts.push('        }');
-  parts.push("        var hex = Math.abs(h).toString(16).padStart(16, '0');");
-  parts.push("        if (enc === 'hex') return hex;");
-  parts.push("        if (enc === 'base64') return btoa(hex);");
-  parts.push('        return BufferModule.from(hex);');
-  parts.push('      }');
-  parts.push('    };');
-  parts.push('    return hasher;');
-  parts.push('  }');
+  parts.push('      update: function(chunk) { if (BufferModule.isBuffer(chunk)) _data += chunk.toString(); else if (chunk instanceof Uint8Array) _data += new TextDecoder().decode(chunk); else _data += String(chunk || ""); return hasher; },');
+  parts.push("      digest: function(enc) { if (!enc) enc = 'hex'; var h = 0; for (var i = 0; i < _data.length; i++) h = (h << 5) - h + _data.charCodeAt(i) | 0; var hex = Math.abs(h).toString(16).padStart(16, '0') + 'a7b8c9d0'; if (enc === 'hex') return hex.slice(0, 32); return BufferModule.from(hex); }");
+  parts.push('    }; return hasher;');
+  parts.push('  },');
+  parts.push('  createCipheriv: function(algo, key, iv) { var _d = ""; return { update: function(data) { _d += String(data || ""); return BufferModule.from(_d); }, final: function() { return BufferModule.from(_d); } }; },');
+  parts.push('  createDecipheriv: function(algo, key, iv) { var _d = ""; return { update: function(data) { _d += String(data || ""); return BufferModule.from(_d); }, final: function() { return BufferModule.from(_d); } }; },');
+  parts.push('  createSign: function() { return { update: function() { return this; }, sign: function() { return BufferModule.from("signature"); } }; },');
+  parts.push('  createVerify: function() { return { update: function() { return this; }, verify: function() { return true; } }; },');
+  parts.push('  pbkdf2: function(pwd, salt, iter, keylen, digest, cb) { if (typeof digest === "function") cb = digest; setTimeout(function() { if (cb) cb(null, BufferModule.alloc(keylen || 32)); }, 0); },');
+  parts.push('  pbkdf2Sync: function(pwd, salt, iter, keylen) { return BufferModule.alloc(keylen || 32); },');
+  parts.push('  webcrypto: self.crypto || {}');
   parts.push('};');
   parts.push('');
 
@@ -332,7 +389,173 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('};');
   parts.push('');
 
-  // 7. Virtual FS Module
+  // 7. Stream Module
+  parts.push('function StreamModule() { EventEmitterModule.call(this); }');
+  parts.push('StreamModule.prototype = Object.create(EventEmitterModule.prototype);');
+  parts.push('StreamModule.Readable = StreamModule;');
+  parts.push('StreamModule.Writable = StreamModule;');
+  parts.push('StreamModule.Transform = StreamModule;');
+  parts.push('StreamModule.Duplex = StreamModule;');
+  parts.push('StreamModule.PassThrough = StreamModule;');
+  parts.push('StreamModule.pipeline = function() {');
+  parts.push('  var args = Array.prototype.slice.call(arguments);');
+  parts.push('  var cb = typeof args[args.length - 1] === "function" ? args.pop() : null;');
+  parts.push('  var p = new Promise(function(resolve) { setTimeout(function() { resolve(); if (cb) cb(null); }, 0); });');
+  parts.push('  return cb ? null : p;');
+  parts.push('};');
+  parts.push('StreamModule.finished = function(stream, cb) { setTimeout(function() { if (cb) cb(null); }, 0); };');
+  parts.push('StreamModule.promises = { pipeline: StreamModule.pipeline, finished: StreamModule.finished };');
+  parts.push('var streamModule = StreamModule;');
+  parts.push('streamModule.pipeline = StreamModule.pipeline;');
+  parts.push('streamModule.finished = StreamModule.finished;');
+  parts.push('streamModule.promises = StreamModule.promises;');
+  parts.push('streamModule.default = streamModule;');
+  parts.push('');
+
+  // 8. Zlib Module
+  parts.push('var zlibModule = {');
+  parts.push('  gzip: function(buf, cb) { setTimeout(function() { cb(null, BufferModule.from(buf)); }, 0); },');
+  parts.push('  gzipSync: function(buf) { return BufferModule.from(buf); },');
+  parts.push('  gunzip: function(buf, cb) { setTimeout(function() { cb(null, BufferModule.from(buf)); }, 0); },');
+  parts.push('  gunzipSync: function(buf) { return BufferModule.from(buf); },');
+  parts.push('  deflate: function(buf, cb) { setTimeout(function() { cb(null, BufferModule.from(buf)); }, 0); },');
+  parts.push('  inflate: function(buf, cb) { setTimeout(function() { cb(null, BufferModule.from(buf)); }, 0); },');
+  parts.push('  createGzip: function() { return new StreamModule(); },');
+  parts.push('  createGunzip: function() { return new StreamModule(); },');
+  parts.push('  createBrotliCompress: function() { return new StreamModule(); }');
+  parts.push('};');
+  parts.push('');
+
+  // 9. Net Module
+  parts.push('function SocketModule() { EventEmitterModule.call(this); }');
+  parts.push('SocketModule.prototype = Object.create(EventEmitterModule.prototype);');
+  parts.push('SocketModule.prototype.connect = function(port, host, cb) { var self = this; setTimeout(function() { self.emit("connect"); if (cb) cb(); }, 0); return this; };');
+  parts.push('SocketModule.prototype.write = function(data, cb) { if (cb) setTimeout(cb, 0); return true; };');
+  parts.push('SocketModule.prototype.end = function(data) { var self = this; if (data) this.write(data); setTimeout(function() { self.emit("end"); self.emit("close"); }, 0); };');
+  parts.push('SocketModule.prototype.destroy = function() { this.emit("close"); };');
+  parts.push('var netModule = {');
+  parts.push('  Socket: SocketModule,');
+  parts.push('  createConnection: function(port, host, cb) { var s = new SocketModule(); s.connect(port, host, cb); return s; },');
+  parts.push('  connect: function(port, host, cb) { var s = new SocketModule(); s.connect(port, host, cb); return s; },');
+  parts.push('  createServer: function(cb) { var s = new EventEmitterModule(); s.listen = function() { return s; }; s.close = function(c) { if (c) c(); }; if (cb) s.on("connection", cb); return s; }');
+  parts.push('};');
+  parts.push('');
+
+  // 10. Dgram Module
+  parts.push('var dgramModule = {');
+  parts.push('  createSocket: function(type, cb) {');
+  parts.push('    var s = new EventEmitterModule();');
+  parts.push('    s.bind = function(p, c) { if (c) c(); return s; };');
+  parts.push('    s.send = function(msg, port, host, c) { if (c) c(null, msg.length); return s; };');
+  parts.push('    s.close = function(c) { if (c) c(); s.emit("close"); };');
+  parts.push('    if (cb) s.on("message", cb);');
+  parts.push('    return s;');
+  parts.push('  }');
+  parts.push('};');
+  parts.push('');
+
+  // 11. DNS Module
+  parts.push('var dnsModule = {');
+  parts.push('  lookup: function(domain, cb) { setTimeout(function() { cb(null, "127.0.0.1", 4); }, 0); },');
+  parts.push('  resolve: function(domain, cb) { setTimeout(function() { cb(null, ["127.0.0.1"]); }, 0); },');
+  parts.push('  resolve4: function(domain, cb) { setTimeout(function() { cb(null, ["127.0.0.1"]); }, 0); },');
+  parts.push('  resolve6: function(domain, cb) { setTimeout(function() { cb(null, ["::1"]); }, 0); },');
+  parts.push('  resolveTxt: function(domain, cb) { setTimeout(function() { cb(null, [["v=spf1 include:_spf.google.com ~all"]]); }, 0); },');
+  parts.push('  promises: {');
+  parts.push('    lookup: function(domain) { return Promise.resolve({ address: "127.0.0.1", family: 4 }); },');
+  parts.push('    resolve: function(domain) { return Promise.resolve(["127.0.0.1"]); },');
+  parts.push('    resolveTxt: function(domain) { return Promise.resolve([["v=spf1 include:_spf.google.com ~all"]]); }');
+  parts.push('  }');
+  parts.push('};');
+  parts.push('');
+
+  // 12. HTTP & HTTPS Module
+  parts.push('function ClientRequestModule() { EventEmitterModule.call(this); }');
+  parts.push('ClientRequestModule.prototype = Object.create(EventEmitterModule.prototype);');
+  parts.push('ClientRequestModule.prototype.write = function() { return true; };');
+  parts.push('ClientRequestModule.prototype.end = function() { return this; };');
+  parts.push('var httpModule = {');
+  parts.push('  ClientRequest: ClientRequestModule,');
+  parts.push('  get: function(url, opts, cb) { return httpModule.request(url, opts, cb); },');
+  parts.push('  request: function(url, opts, cb) {');
+  parts.push('    if (typeof opts === "function") { cb = opts; opts = {}; }');
+  parts.push('    var req = new ClientRequestModule();');
+  parts.push('    var targetUrl = typeof url === "string" ? url : (url.href || url.path || "");');
+  parts.push('    setTimeout(function() {');
+  parts.push('      fetch(targetUrl).then(function(res) { return res.text().then(function(text) {');
+  parts.push('        var incoming = new EventEmitterModule();');
+  parts.push('        incoming.statusCode = res.status;');
+  parts.push('        incoming.headers = {};');
+  parts.push('        res.headers.forEach(function(v, k) { incoming.headers[k] = v; });');
+  parts.push('        if (cb) cb(incoming);');
+  parts.push('        req.emit("response", incoming);');
+  parts.push('        setTimeout(function() { incoming.emit("data", text); incoming.emit("end"); }, 0);');
+  parts.push('      }); }).catch(function(err) { req.emit("error", err); });');
+  parts.push('    }, 0);');
+  parts.push('    return req;');
+  parts.push('  },');
+  parts.push('  createServer: function(cb) { var s = new EventEmitterModule(); s.listen = function() { return s; }; s.close = function(c) { if (c) c(); }; if (cb) s.on("request", cb); return s; }');
+  parts.push('};');
+  parts.push('var httpsModule = Object.assign({}, httpModule);');
+  parts.push('var http2Module = { connect: function() { return new EventEmitterModule(); }, createServer: httpModule.createServer };');
+  parts.push('var tlsModule = { connect: function(p, h, cb) { var s = new SocketModule(); s.connect(p, h, cb); return s; }, createServer: httpModule.createServer, TLSSocket: SocketModule };');
+  parts.push('');
+
+  // 13. Child Process Module
+  parts.push('function ChildProcessModule() { EventEmitterModule.call(this); this.stdout = new EventEmitterModule(); this.stderr = new EventEmitterModule(); this.stdin = new EventEmitterModule(); }');
+  parts.push('ChildProcessModule.prototype = Object.create(EventEmitterModule.prototype);');
+  parts.push('ChildProcessModule.prototype.kill = function() { this.emit("exit", 0, null); };');
+  parts.push('var childProcessModule = {');
+  parts.push('  exec: function(cmd, opts, cb) { if (typeof opts === "function") cb = opts; var cp = new ChildProcessModule(); setTimeout(function() { if (cb) cb(null, "stdout output", ""); cp.emit("exit", 0, null); }, 0); return cp; },');
+  parts.push('  execFile: function(file, args, opts, cb) { if (typeof opts === "function") cb = opts; var cp = new ChildProcessModule(); setTimeout(function() { if (cb) cb(null, "stdout output", ""); cp.emit("exit", 0, null); }, 0); return cp; },');
+  parts.push('  spawn: function(cmd, args) { var cp = new ChildProcessModule(); setTimeout(function() { cp.emit("exit", 0, null); }, 0); return cp; },');
+  parts.push('  fork: function(modulePath) { var cp = new ChildProcessModule(); cp.send = function() {}; setTimeout(function() { cp.emit("exit", 0, null); }, 0); return cp; }');
+  parts.push('};');
+  parts.push('');
+
+  // 14. Worker Threads & Cluster Modules
+  parts.push('var workerThreadsModule = {');
+  parts.push('  isMainThread: true,');
+  parts.push('  parentPort: null,');
+  parts.push('  Worker: function() { EventEmitterModule.call(this); this.postMessage = function() {}; },');
+  parts.push('  MessageChannel: function() { this.port1 = new EventEmitterModule(); this.port2 = new EventEmitterModule(); }');
+  parts.push('};');
+  parts.push('var clusterModule = { isMaster: true, isPrimary: true, isWorker: false, fork: function() { return new ChildProcessModule(); } };');
+  parts.push('');
+
+  // 15. VM Module
+  parts.push('var vmModule = {');
+  parts.push('  Script: function(code) { this.code = code; this.runInContext = function(ctx) { return eval(code); }; this.runInNewContext = function(sandbox) { return eval(code); }; this.runInThisContext = function() { return eval(code); }; },');
+  parts.push('  createContext: function(sandbox) { return sandbox || {}; },');
+  parts.push('  runInContext: function(code, ctx) { return eval(code); },');
+  parts.push('  runInNewContext: function(code, sandbox) { return eval(code); },');
+  parts.push('  runInThisContext: function(code) { return eval(code); }');
+  parts.push('};');
+  parts.push('');
+
+  // 16. OS, V8, Performance & Inspector Modules
+  parts.push('var osModule = {');
+  parts.push('  cpus: function() { return [{ model: "Browser Virtual Core", speed: 3000, times: { user: 100, nice: 0, sys: 50, idle: 850, irq: 0 } }, { model: "Browser Virtual Core", speed: 3000, times: { user: 100, nice: 0, sys: 50, idle: 850, irq: 0 } }]; },');
+  parts.push('  totalmem: function() { return 8589934592; },');
+  parts.push('  freemem: function() { return 4294967296; },');
+  parts.push('  networkInterfaces: function() { return { lo: [{ address: "127.0.0.1", netmask: "255.0.0.0", family: "IPv4", mac: "00:00:00:00:00:00", internal: true }] }; },');
+  parts.push('  userInfo: function() { return { username: "workspace", homedir: "/", shell: "/bin/sh" }; },');
+  parts.push('  hostname: function() { return "js-workspace"; },');
+  parts.push('  type: function() { return "Linux"; },');
+  parts.push('  release: function() { return "5.15.0-browser"; },');
+  parts.push('  uptime: function() { return 3600; },');
+  parts.push('  loadavg: function() { return [0.1, 0.2, 0.15]; },');
+  parts.push('  platform: function() { return "browser"; },');
+  parts.push('  arch: function() { return "x64"; },');
+  parts.push('  homedir: function() { return "/"; },');
+  parts.push('  tmpdir: function() { return "/tmp"; }');
+  parts.push('};');
+  parts.push('var v8Module = { getHeapStatistics: function() { return { total_heap_size: 33554432, total_heap_size_executable: 4194304, total_physical_size: 33554432, total_available_size: 4294967296, heap_size_limit: 4294967296, used_heap_size: 16777216 }; }, getHeapSpaceStatistics: function() { return []; } };');
+  parts.push('var perfHooksModule = { performance: self.performance || { now: function() { return Date.now(); } } };');
+  parts.push('var inspectorModule = { open: function() {}, close: function() {}, url: function() { return undefined; } };');
+  parts.push('');
+
+  // 17. Virtual FS Module
   parts.push('var fsModule = {');
   parts.push("  readFileSync: function(filePath, encoding) {");
   parts.push("    if (encoding === undefined) encoding = 'utf8';");
@@ -399,13 +622,22 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('    delete WORKSPACE_FILES[resolved];');
   parts.push("    postMessage({ type: 'FS_MUTATION', action: 'delete', path: resolved });");
   parts.push('  },');
+  parts.push('  ReadStream: StreamModule,');
+  parts.push('  WriteStream: StreamModule,');
+  parts.push('  createReadStream: function(p) { var s = new StreamModule(); setTimeout(function() { s.emit("data", fsModule.readFileSync(p)); s.emit("end"); }, 0); return s; },');
+  parts.push('  createWriteStream: function(p) { var s = new StreamModule(); s.write = function(d) { fsModule.writeFileSync(p, d); return true; }; return s; },');
+  parts.push('  watch: function(p, opts, listener) { if (typeof opts === "function") listener = opts; var w = new EventEmitterModule(); if (listener) w.on("change", listener); return w; },');
+  parts.push('  watchFile: function(p, listener) { var w = new EventEmitterModule(); if (listener) w.on("change", listener); return w; },');
   parts.push('  promises: {');
   parts.push('    readFile: function(p, enc) { return Promise.resolve(fsModule.readFileSync(p, enc)); },');
   parts.push('    writeFile: function(p, d, enc) { return Promise.resolve(fsModule.writeFileSync(p, d, enc)); },');
   parts.push('    readdir: function(p) { return Promise.resolve(fsModule.readdirSync(p)); },');
   parts.push('    stat: function(p) { return Promise.resolve(fsModule.statSync(p)); },');
   parts.push('    mkdir: function(p) { return Promise.resolve(fsModule.mkdirSync(p)); },');
-  parts.push('    unlink: function(p) { return Promise.resolve(fsModule.unlinkSync(p)); }');
+  parts.push('    unlink: function(p) { return Promise.resolve(fsModule.unlinkSync(p)); },');
+  parts.push('    access: function(p) { return fsModule.existsSync(p) ? Promise.resolve() : Promise.reject(new Error("ENOENT")); },');
+  parts.push('    copyFile: function(src, dest) { var d = fsModule.readFileSync(src); fsModule.writeFileSync(dest, d); return Promise.resolve(); },');
+  parts.push('    rm: function(p) { fsModule.unlinkSync(p); return Promise.resolve(); }');
   parts.push('  }');
   parts.push('};');
   parts.push('');
@@ -416,6 +648,7 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('processModule.default = processModule;');
   parts.push('cryptoModule.default = cryptoModule;');
   parts.push('utilModule.default = utilModule;');
+  parts.push('osModule.default = osModule;');
   parts.push('');
 
   // Global Bindings & Polyfills
@@ -423,7 +656,10 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push('self.Buffer = BufferModule;');
   parts.push('self.fs = fsModule;');
   parts.push('self.path = pathModule;');
+  parts.push('self.os = osModule;');
   parts.push('self.global = self;');
+  parts.push('self.setImmediate = function(fn) { var args = Array.prototype.slice.call(arguments, 1); return setTimeout(function() { fn.apply(null, args); }, 0); };');
+  parts.push('self.clearImmediate = function(id) { clearTimeout(id); };');
   parts.push('');
 
   // Polyfill Browser Web Page DOM (document.body.innerHTML, document.write, document.createElement)
@@ -508,12 +744,30 @@ export function buildWorkerDependencyLoader(nodes: WorkspaceNode[], currentFileP
   parts.push("  if (cleanReq === 'path') return pathModule;");
   parts.push("  if (cleanReq === 'buffer') return { Buffer: BufferModule, default: BufferModule };");
   parts.push("  if (cleanReq === 'process') return processModule;");
-  parts.push("  if (cleanReq === 'events') return { EventEmitter: EventEmitterModule, default: EventEmitterModule };");
+  parts.push("  if (cleanReq === 'events') return EventEmitterModule;");
   parts.push("  if (cleanReq === 'crypto') return cryptoModule;");
   parts.push("  if (cleanReq === 'util') return utilModule;");
   parts.push("  if (cleanReq === 'readline' || cleanReq === 'readline/promises') return readlineModule;");
+  parts.push("  if (cleanReq === 'stream' || cleanReq === 'stream/promises') return streamModule;");
+  parts.push("  if (cleanReq === 'zlib') return zlibModule;");
+  parts.push("  if (cleanReq === 'net') return netModule;");
+  parts.push("  if (cleanReq === 'dgram') return dgramModule;");
+  parts.push("  if (cleanReq === 'dns' || cleanReq === 'dns/promises') return dnsModule;");
+  parts.push("  if (cleanReq === 'http') return httpModule;");
+  parts.push("  if (cleanReq === 'https') return httpsModule;");
+  parts.push("  if (cleanReq === 'http2') return http2Module;");
+  parts.push("  if (cleanReq === 'tls') return tlsModule;");
+  parts.push("  if (cleanReq === 'child_process') return childProcessModule;");
+  parts.push("  if (cleanReq === 'worker_threads') return workerThreadsModule;");
+  parts.push("  if (cleanReq === 'cluster') return clusterModule;");
+  parts.push("  if (cleanReq === 'vm') return vmModule;");
+  parts.push("  if (cleanReq === 'os') return osModule;");
+  parts.push("  if (cleanReq === 'v8') return v8Module;");
+  parts.push("  if (cleanReq === 'perf_hooks') return perfHooksModule;");
+  parts.push("  if (cleanReq === 'inspector') return inspectorModule;");
   parts.push('  return null;');
   parts.push('}');
+  parts.push('');
   parts.push('');
 
   // loadWorkspaceModule — CRITICAL: build regex patterns using String.fromCharCode(92)

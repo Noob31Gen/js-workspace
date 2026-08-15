@@ -179,13 +179,13 @@ export function App() {
     // Also include any extra optionValues keys
     Object.assign(effectiveArgs, optionValues);
 
-    runner.execute({
+    const runOptions = {
       code: activeCode,
       args: effectiveArgs,
       nodes: activeNodes,
       currentFilePath: activeFile?.path || 'main.js',
-      onLog: (msg) => setLogs(prev => [...prev, msg]),
-      onInputRequest: (promptText) => {
+      onLog: (msg: ConsoleLogMessage) => setLogs(prev => [...prev, msg]),
+      onInputRequest: (promptText: string) => {
         setInputPrompt(promptText);
         setLogs(prev => [
           ...prev,
@@ -197,7 +197,7 @@ export function App() {
           }
         ]);
       },
-      onFsMutation: (mutation) => {
+      onFsMutation: (mutation: { action: 'write' | 'mkdir' | 'delete'; path: string; content?: string }) => {
         if (mutation.action === 'write' && mutation.content !== undefined) {
           const filePath = mutation.path;
           const fileName = filePath.split('/').pop() || filePath;
@@ -258,12 +258,14 @@ export function App() {
           setOutputFilesPrompt(finalOutputFiles);
         }
       },
-      onError: (err) => {
+      onError: (err: string) => {
         setIsRunning(false);
         setInputPrompt(null);
         setErrorResult(err);
       }
-    });
+    };
+
+    runner.execute(runOptions);
   };
 
   const handleAddToWorkspaceRoot = (file: ScriptOutputFile) => {

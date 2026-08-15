@@ -2,3 +2,5 @@ node_modules
 dist
 music-transfer
 android-template
+node-test
+/almostnode/
