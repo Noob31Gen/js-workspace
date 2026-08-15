@@ -301,55 +301,17 @@ To ensure scripts and NPM packages run 100% offline without internet:
 
   'CREDITS.md': {
     id: 'CREDITS.md',
-    title: 'Credits & Open Source Acknowledgments',
+    title: 'Credits',
     category: 'About',
-    content: `# Credits & Open Source Acknowledgments
+    content: `# Credits
 
-JS Workspace is powered by incredible open-source projects, libraries, and runtime engines. We extend our sincere gratitude to the developers and communities behind these technologies.
+### [almostnode](https://github.com/macaly/almostnode)
+Browser-native Node.js runtime and compatibility layer by [Macaly](https://almostnode.dev) (MIT License).
 
-## 1. almostnode Browser Node.js Runtime
-
-Huge credit to the **Macaly** team for building and open-sourcing **almostnode**:
-
-- **Project**: [almostnode](https://github.com/macaly/almostnode)
-- **License**: MIT License
-- **Description**: A lightweight, browser-native Node.js runtime environment with 40+ comprehensive Node.js API shims ('fs', 'path', 'http', 'events', 'stream', 'crypto', 'net', 'child_process', 'zlib', 'worker_threads', 'cluster', 'dgram', 'vm', 'v8', etc.), virtual filesystem, and in-browser package management.
-- **Integration**: Powers JS Workspace's rich Node.js core compatibility layer, providing real browser shims for cryptographic hashing (RFC 1321 MD5, SHA-256, HMAC, PBKDF2), streaming I/O, event dispatching, and POSIX path resolution.
-
----
-
-## 2. CodeSandbox Nodebox Runtime Engine
-
-Special credit to the **CodeSandbox** team for building and open-sourcing **Nodebox**:
-
-- **Project**: [CodeSandbox Nodebox Runtime](https://github.com/codesandbox/nodebox-runtime)
-- **License**: MIT License
-- **Description**: Nodebox is an in-browser Node.js runtime environment that enables client-side execution of Node.js modules, shell commands, virtual filesystems, and micro-services using Web Workers and MessageChannel IPC without server infrastructure.
-
----
-
-## 3. Core Application Technologies
-
-| Technology | Role & Usage | License |
-| :--- | :--- | :--- |
-| **React 19** | User Interface & Component Architecture | MIT |
-| **TypeScript** | Static Type Checking & Developer Tooling | Apache-2.0 |
-| **Vite** | Next-Generation Frontend Tooling & Dev Server | MIT |
-| **Tailwind CSS v4** | Utility-First Styling & Custom Design Tokens | MIT |
-| **Lucide React** | Premium Icon System | ISC |
-| **PrismJS** | Syntax Highlighting for Editor & Docs Viewer | MIT |
-| **Marked** | Fast Markdown Parser & HTML Compiler | MIT |
-| **Geist Font** | Variable Typography System by Vercel | OFL-1.1 |
-
----
-
-## 3. Polyfills & Utilities
-
-- **@open-draft/deferred-promise**: Promise deferred pattern utility for async messaging.
-- **cuid**: Collision-resistant unique identifier generator.
-- **outvariant**: Runtime assertion and formatting utility.
-- **strict-event-emitter**: Type-safe event emitter implementation.
-- **Capacitor**: Cross-platform runtime powering Android APK builds.
+#### Components Used:
+- **Node.js Core Shims**: In-browser implementations for \`fs\`, \`path\`, \`stream\`, \`buffer\`, \`events\`, \`crypto\`, \`net\`, \`http\`, \`child_process\`, \`zlib\`, \`os\`, and system utilities.
+- **Virtual File System**: In-memory POSIX-compatible filesystem layer with sync/async I/O.
+- **Package Management**: In-browser npm package resolver and tarball extraction.
 `
   }
 };
