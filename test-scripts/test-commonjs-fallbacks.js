@@ -348,6 +348,52 @@ async function main() {
     assert.strictEqual(dryOpt?.default, false);
   });
 
+  // 8. Test Complex Mixed Destructuring & Array Signatures (Kitchen Sink)
+  await runTest('parseScriptOptions parses complex mixed signatures (testKitchenSink)', async () => {
+    const { parseScriptOptions } = await import('../src/lib/parser.ts');
+
+    const kitchenSinkCode = `
+      function testKitchenSink(
+          jobId,
+          [route1, route2 = "0.0.0.0/0"],
+          { verifySSL = true, retries = 3 } = {},
+          ...tags
+      ) {
+          console.log(jobId);
+      }
+    `;
+
+    const meta = parseScriptOptions(kitchenSinkCode);
+    assert.strictEqual(meta.options.length, 6, 'Detected all 6 parameters');
+
+    const optJobId = meta.options.find(o => o.key === 'jobId');
+    assert.strictEqual(optJobId?.label, 'Job Id');
+    assert.strictEqual(optJobId?.type, 'number');
+
+    const optRoute1 = meta.options.find(o => o.key === 'route1');
+    assert.strictEqual(optRoute1?.label, 'Route 1');
+    assert.strictEqual(optRoute1?.type, 'string');
+
+    const optRoute2 = meta.options.find(o => o.key === 'route2');
+    assert.strictEqual(optRoute2?.label, 'Route 2');
+    assert.strictEqual(optRoute2?.type, 'string');
+    assert.strictEqual(optRoute2?.default, '0.0.0.0/0');
+
+    const optVerify = meta.options.find(o => o.key === 'verifySSL');
+    assert.strictEqual(optVerify?.label, 'Verify SSL', 'Acronym SSL preserved without splitting into S S L');
+    assert.strictEqual(optVerify?.type, 'boolean');
+    assert.strictEqual(optVerify?.default, true);
+
+    const optRetries = meta.options.find(o => o.key === 'retries');
+    assert.strictEqual(optRetries?.label, 'Retries');
+    assert.strictEqual(optRetries?.type, 'number');
+    assert.strictEqual(optRetries?.default, 3);
+
+    const optTags = meta.options.find(o => o.key === 'tags');
+    assert.strictEqual(optTags?.label, 'Tags');
+    assert.strictEqual(optTags?.type, 'text');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
