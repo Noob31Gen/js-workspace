@@ -161,6 +161,99 @@ async function main() {
     assert.strictEqual(md5Hash, '5d41402abc4b2a76b9719d911017c592', 'MD5 matches standard vector');
   });
 
+  // 8. Union Literals -> Select Dropdowns (TypeScript & JSDoc)
+  await runTest('Union string literals auto-generate Select dropdown options', () => {
+    const tsUnionCode = `
+      function generateReport(
+        format: 'json' | 'csv' | 'xml' = 'json',
+        mode: 'fast' | 'thorough' = 'fast'
+      ) {}
+    `;
+    const meta = parseScriptOptions(tsUnionCode);
+    const fmtOpt = meta.options.find(o => o.key === 'format');
+    assert.strictEqual(fmtOpt?.type, 'select');
+    assert.deepStrictEqual(fmtOpt?.options, ['json', 'csv', 'xml']);
+    assert.strictEqual(fmtOpt?.default, 'json');
+
+    const modeOpt = meta.options.find(o => o.key === 'mode');
+    assert.strictEqual(modeOpt?.type, 'select');
+    assert.deepStrictEqual(modeOpt?.options, ['fast', 'thorough']);
+  });
+
+  // 9. process.env Auto-Detection
+  await runTest('process.env variables are automatically detected with ENV badge', () => {
+    const envCode = `
+      const apiKey = process.env.API_KEY || 'default-key';
+      const port = Number(process.env.PORT || 8080);
+      const isDebug = process.env.DEBUG === 'true';
+    `;
+    const meta = parseScriptOptions(envCode);
+    const keyOpt = meta.options.find(o => o.key === 'API_KEY');
+    assert.ok(keyOpt, 'Detected API_KEY');
+    assert.strictEqual(keyOpt?.source, 'env');
+
+    const portOpt = meta.options.find(o => o.key === 'PORT');
+    assert.ok(portOpt, 'Detected PORT');
+    assert.strictEqual(portOpt?.type, 'number');
+    assert.strictEqual(portOpt?.source, 'env');
+  });
+
+  // 10. Top-Level Config Object Auto-Detection
+  await runTest('Top-level config / settings objects are automatically detected', () => {
+    const configCode = `
+      export const config = {
+        endpoint: 'https://api.example.com',
+        maxRetries: 5,
+        enableCache: true,
+        themeColor: '#3b82f6'
+      };
+    `;
+    const meta = parseScriptOptions(configCode);
+    assert.strictEqual(meta.options.length, 4);
+
+    const epOpt = meta.options.find(o => o.key === 'endpoint');
+    assert.strictEqual(epOpt?.default, 'https://api.example.com');
+    assert.strictEqual(epOpt?.source, 'config');
+
+    const colorOpt = meta.options.find(o => o.key === 'themeColor');
+    assert.strictEqual(colorOpt?.type, 'color');
+  });
+
+  // 11. Yargs Option Auto-Detection
+  await runTest('Yargs .option() calls are automatically detected', () => {
+    const yargsCode = `
+      const yargs = require('yargs');
+      yargs.option('timeout', { type: 'number', default: 5000, describe: 'Request timeout' });
+    `;
+    const meta = parseScriptOptions(yargsCode);
+    const timeoutOpt = meta.options.find(o => o.key === 'timeout');
+    assert.ok(timeoutOpt);
+    assert.strictEqual(timeoutOpt?.type, 'number');
+    assert.strictEqual(timeoutOpt?.default, 5000);
+  });
+
+  // 12. Filtering Runtime-Evaluated Expressions
+  await runTest('Dynamic runtime expressions (new ..., tagged templates, closures, binary math) are not auto-detected as form inputs', () => {
+    const complexCode = `
+      function testAdvancedGlobals(
+        query = sanitizeQuery\`SELECT data FROM logs WHERE ip = \${"10.0.0.1' OR 1=1"}\`,
+        formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC' })
+      ) {}
+
+      function testParameterScope(
+        baseKey = 0x5A,
+        derivedKey = baseKey ^ 0xFF,
+        encoderFn = (data) => data.map(b => b ^ derivedKey)
+      ) {}
+    `;
+    const meta = parseScriptOptions(complexCode);
+    // query, formatter, derivedKey, encoderFn must all be skipped!
+    // Only baseKey (0x5A = 90) should be detected!
+    assert.strictEqual(meta.options.length, 1, 'Only primitive baseKey is detected');
+    assert.strictEqual(meta.options[0].key, 'baseKey');
+    assert.strictEqual(meta.options[0].default, 90);
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');

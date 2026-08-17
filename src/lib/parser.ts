@@ -11,7 +11,7 @@ export interface OptionDescriptor {
   max?: number;
   step?: number;
   description?: string;
-  source?: 'jsdoc' | 'autodetected';
+  source?: 'jsdoc' | 'autodetected' | 'env' | 'config';
 }
 
 export interface ParsedScriptMeta {
@@ -29,6 +29,12 @@ interface ASTComment {
   value: string;
   start?: number;
   end?: number;
+}
+
+interface ExtractedDefault {
+  val: unknown;
+  type: OptionDescriptor['type'];
+  isRuntimeExpr?: boolean;
 }
 
 const ACRONYMS = new Set([
@@ -79,12 +85,32 @@ function isBooleanParamName(name: string): boolean {
 }
 
 /**
+ * Infers semantic UI control types based on property naming conventions and default values.
+ */
+function inferSemanticType(key: string, defaultVal: unknown, currentType: OptionDescriptor['type']): OptionDescriptor['type'] {
+  if (currentType === 'select' || currentType === 'boolean' || currentType === 'range') return currentType;
+
+  const strDefault = String(defaultVal ?? '');
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(strDefault) || /^(?:themeColor|color|bgColor|backgroundColor|textColor|fillColor|strokeColor)$/i.test(key)) {
+    return 'color';
+  }
+
+  if (/^(?:payload|body|template|query|sql|script|markdown|html|notes|rawCode|prompt|systemPrompt)$/i.test(key)) {
+    return 'text';
+  }
+
+  return currentType;
+}
+
+/**
  * Converts an AST node value to a clean JSON/string/primitive default representation.
+ * Distinguishes genuine configurable data from runtime-evaluated expressions.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractDefaultValue(node: any, code: string): { val: unknown; type: OptionDescriptor['type'] } {
+function extractDefaultValue(node: any, code: string): ExtractedDefault {
   if (!node) return { val: '', type: 'string' };
 
+  // 1. Literal Primitives
   if (node.type === 'Literal' || node.type === 'StringLiteral' || node.type === 'NumericLiteral' || node.type === 'BooleanLiteral' || node.type === 'BigIntLiteral' || node.type === 'RegExpLiteral') {
     if (typeof node.value === 'number') {
       return { val: node.value, type: 'number' };
@@ -101,21 +127,34 @@ function extractDefaultValue(node: any, code: string): { val: unknown; type: Opt
     return { val: node.value, type: 'string' };
   }
 
+  // 2. Pure Static Template Literals (without dynamic interpolations)
+  if (node.type === 'TemplateLiteral') {
+    if (!node.expressions || node.expressions.length === 0) {
+      const rawText = node.quasis?.map((q: { value: { raw: string } }) => q.value?.raw || '').join('') || '';
+      return { val: rawText, type: 'string' };
+    }
+    // Dynamic interpolated template literal (e.g. `Hello ${user}`) -> runtime expression
+    return { val: null, type: 'string', isRuntimeExpr: true };
+  }
+
+  // 3. Unary Expressions (-1, +5, !0)
   if (node.type === 'UnaryExpression') {
     if (node.operator === '-' && node.argument) {
       const inner = extractDefaultValue(node.argument, code);
       if (typeof inner.val === 'number') return { val: -inner.val, type: 'number' };
-      if (typeof inner.val === 'string') return { val: `-${inner.val}`, type: inner.type };
+      if (typeof inner.val === 'string' && inner.val && !inner.isRuntimeExpr) return { val: `-${inner.val}`, type: inner.type };
     }
     if (node.operator === '+' && node.argument) {
       return extractDefaultValue(node.argument, code);
     }
     if (node.operator === '!' && node.argument) {
       const inner = extractDefaultValue(node.argument, code);
-      return { val: !inner.val, type: 'boolean' };
+      if (!inner.isRuntimeExpr) return { val: !inner.val, type: 'boolean' };
     }
+    return { val: null, type: 'string', isRuntimeExpr: true };
   }
 
+  // 4. Arrays
   if (node.type === 'ArrayExpression') {
     try {
       const raw = code.slice(node.start, node.end);
@@ -125,6 +164,7 @@ function extractDefaultValue(node: any, code: string): { val: unknown; type: Opt
     }
   }
 
+  // 5. Objects
   if (node.type === 'ObjectExpression') {
     try {
       const raw = code.slice(node.start, node.end);
@@ -134,9 +174,9 @@ function extractDefaultValue(node: any, code: string): { val: unknown; type: Opt
     }
   }
 
-  // Complex expressions: IIFE, Arrow Function, Class, NewExpression, BinaryExpression, TaggedTemplate
-  const rawExpr = code.slice(node.start, node.end).trim();
-  return { val: rawExpr, type: 'text' };
+  // 6. Runtime-evaluated Expressions (NewExpression, TaggedTemplate, CallExpression, Closures, Binary Math, Identifiers)
+  // These should NOT be presented as user-editable form parameters.
+  return { val: null, type: 'string', isRuntimeExpr: true };
 }
 
 /**
@@ -150,14 +190,49 @@ function extractParamNodes(paramNode: any, code: string, jsdocKeys: Set<string>,
   if (paramNode.type === 'AssignmentPattern') {
     const left = paramNode.left;
     const right = paramNode.right;
-    const { val: defaultVal, type: inferredType } = extractDefaultValue(right, code);
+    const extracted = extractDefaultValue(right, code);
+
+    // If the default value is a dynamic runtime expression, skip generating a form input
+    if (extracted.isRuntimeExpr) {
+      return;
+    }
+
+    const defaultVal = extracted.val;
+    const inferredType = extracted.type;
 
     if (left.type === 'Identifier') {
       const key = left.name;
       if (CALLBACK_PARAM_NAMES.has(key) || jsdocKeys.has(key) || resultOptions.some(o => o.key === key)) return;
 
+      // Check for TypeScript union literals (e.g. format: 'json' | 'csv' | 'xml' = 'json')
+      if (left.typeAnnotation && left.typeAnnotation.typeAnnotation) {
+        const tsNode = left.typeAnnotation.typeAnnotation;
+        if (tsNode.type === 'TSUnionType' && tsNode.types) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const unionValues = tsNode.types.map((t: any) => {
+            if (t.type === 'TSLiteralType' && t.literal) {
+              return String(t.literal.value !== undefined ? t.literal.value : t.literal.raw?.replace(/^['"]|['"]$/g, ''));
+            }
+            return null;
+          }).filter(Boolean);
+
+          if (unionValues.length > 0) {
+            resultOptions.push({
+              key,
+              label: formatCamelLabel(key),
+              type: 'select',
+              options: unionValues,
+              default: defaultVal || unionValues[0],
+              source: 'autodetected'
+            });
+            return;
+          }
+        }
+      }
+
       let type = inferredType;
       if (type === 'string' && isBooleanParamName(key)) type = 'boolean';
+      type = inferSemanticType(key, defaultVal, type);
 
       resultOptions.push({
         key,
@@ -180,24 +255,46 @@ function extractParamNodes(paramNode: any, code: string, jsdocKeys: Set<string>,
     const key = paramNode.name;
     if (CALLBACK_PARAM_NAMES.has(key) || jsdocKeys.has(key) || resultOptions.some(o => o.key === key)) return;
 
-    // Check for TypeScript type annotation if present (from Babel fallback)
+    // Check for TypeScript type annotations / union literals
     let type: OptionDescriptor['type'] = 'string';
+    let options: string[] | undefined = undefined;
+
     if (paramNode.typeAnnotation && paramNode.typeAnnotation.typeAnnotation) {
       const tsType = paramNode.typeAnnotation.typeAnnotation.type;
-      if (tsType === 'TSNumberKeyword') type = 'number';
-      else if (tsType === 'TSBooleanKeyword') type = 'boolean';
-      else if (tsType === 'TSArrayType' || tsType === 'TSTypeLiteral') type = 'json';
+      if (tsType === 'TSNumberKeyword') {
+        type = 'number';
+      } else if (tsType === 'TSBooleanKeyword') {
+        type = 'boolean';
+      } else if (tsType === 'TSArrayType' || tsType === 'TSTypeLiteral') {
+        type = 'json';
+      } else if (tsType === 'TSUnionType' && paramNode.typeAnnotation.typeAnnotation.types) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const unionVals = paramNode.typeAnnotation.typeAnnotation.types.map((t: any) => {
+          if (t.type === 'TSLiteralType' && t.literal) {
+            return String(t.literal.value !== undefined ? t.literal.value : t.literal.raw?.replace(/^['"]|['"]$/g, ''));
+          }
+          return null;
+        }).filter(Boolean);
+
+        if (unionVals.length > 0) {
+          type = 'select';
+          options = unionVals;
+        }
+      }
     } else if (isBooleanParamName(key)) {
       type = 'boolean';
     } else if (/(?:id|port|timeout|count|limit|retries|delay|size|length|index|idx)$/i.test(key)) {
       type = 'number';
     }
 
+    type = inferSemanticType(key, '', type);
+
     resultOptions.push({
       key,
       label: formatCamelLabel(key),
       type,
-      default: type === 'boolean' ? false : type === 'number' ? 0 : '',
+      options,
+      default: type === 'boolean' ? false : type === 'number' ? 0 : (options ? options[0] : ''),
       source: 'autodetected'
     });
     return;
@@ -224,11 +321,19 @@ function extractParamNodes(paramNode: any, code: string, jsdocKeys: Set<string>,
           const key = propKey || (innerLeft.type === 'Identifier' ? innerLeft.name : '');
           if (CALLBACK_PARAM_NAMES.has(key) || jsdocKeys.has(key) || resultOptions.some(o => o.key === key)) return;
 
-          const { val: defaultVal, type: inferredType } = extractDefaultValue(propValue.right, code);
+          const extracted = extractDefaultValue(propValue.right, code);
+          if (extracted.isRuntimeExpr) {
+            return;
+          }
+
+          const defaultVal = extracted.val;
+          const inferredType = extracted.type;
+          const type = inferSemanticType(key, defaultVal, inferredType);
+
           resultOptions.push({
             key,
             label: formatCamelLabel(key),
-            type: inferredType,
+            type,
             default: defaultVal,
             source: 'autodetected'
           });
@@ -236,7 +341,8 @@ function extractParamNodes(paramNode: any, code: string, jsdocKeys: Set<string>,
           const key = propKey || propValue.name;
           if (CALLBACK_PARAM_NAMES.has(key) || jsdocKeys.has(key) || resultOptions.some(o => o.key === key)) return;
 
-          const type: OptionDescriptor['type'] = isBooleanParamName(key) ? 'boolean' : 'string';
+          let type: OptionDescriptor['type'] = isBooleanParamName(key) ? 'boolean' : 'string';
+          type = inferSemanticType(key, '', type);
           resultOptions.push({
             key,
             label: formatCamelLabel(key),
@@ -366,10 +472,10 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
       const catMatch = line.match(/^@category\s+(.+)$/i);
       if (catMatch) { result.category = catMatch[1].trim(); isHeaderDoc = true; }
 
-      // Parse @param tags
+      // Parse @param tags with union types, min/max, color, range
       const paramMatch = line.match(/^@param\s+(?:\{([^}]+)\}\s+)?(?:\[([a-zA-Z0-9_$.]+)(?:=([^\]]+))?\]|([a-zA-Z0-9_$.]+))(?:\s*-\s*|\s+)?([\s\S]*)$/i);
       if (paramMatch) {
-        const rawType = (paramMatch[1] || 'string').toLowerCase().trim();
+        const rawType = (paramMatch[1] || 'string').trim();
         const paramName = (paramMatch[2] || paramMatch[4] || '').trim();
         const explicitDefault = paramMatch[3] !== undefined ? paramMatch[3].trim() : undefined;
         const description = (paramMatch[5] || '').trim();
@@ -377,23 +483,43 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
         if (paramName && !CALLBACK_PARAM_NAMES.has(paramName)) {
           let type: OptionDescriptor['type'] = 'string';
           let defaultValue: unknown = explicitDefault || '';
+          let selectOptions: string[] | undefined = undefined;
 
-          if (rawType.includes('number') || rawType.includes('int') || rawType.includes('float')) {
-            type = 'number';
-            defaultValue = explicitDefault !== undefined ? Number(explicitDefault) : 0;
-          } else if (rawType.includes('bool')) {
-            type = 'boolean';
-            defaultValue = explicitDefault !== undefined ? explicitDefault === 'true' : false;
-          } else if (rawType.includes('select') || rawType.includes('|')) {
+          // Union type in JSDoc: @param {'fast'|'thorough'} mode or @param {("json"|"csv")} format
+          if (rawType.includes('|')) {
             type = 'select';
-          } else if (rawType.includes('json') || rawType.includes('object') || rawType.includes('array')) {
-            type = 'json';
+            selectOptions = rawType
+              .replace(/^[({]+|[})]+$/g, '')
+              .split('|')
+              .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+              .filter(Boolean);
+            defaultValue = explicitDefault !== undefined ? explicitDefault.replace(/^['"]|['"]$/g, '') : (selectOptions[0] || '');
+          } else {
+            const lowerType = rawType.toLowerCase();
+            if (lowerType.includes('number') || lowerType.includes('int') || lowerType.includes('float')) {
+              type = 'number';
+              defaultValue = explicitDefault !== undefined ? Number(explicitDefault) : 0;
+            } else if (lowerType.includes('bool')) {
+              type = 'boolean';
+              defaultValue = explicitDefault !== undefined ? explicitDefault === 'true' : false;
+            } else if (lowerType.includes('select')) {
+              type = 'select';
+            } else if (lowerType.includes('json') || lowerType.includes('object') || lowerType.includes('array')) {
+              type = 'json';
+            } else if (lowerType.includes('color')) {
+              type = 'color';
+            } else if (lowerType.includes('range')) {
+              type = 'range';
+            }
           }
+
+          type = inferSemanticType(paramName, defaultValue, type);
 
           result.options.push({
             key: paramName,
             label: formatCamelLabel(paramName),
             type,
+            options: selectOptions,
             default: defaultValue,
             description,
             source: 'jsdoc'
@@ -447,10 +573,51 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 3. Traverse Top-Level AST Nodes
+  // 3. process.env AST Auto-Detection
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function scanForProcessEnv(node: any) {
+    if (!node) return;
+    if (node.type === 'MemberExpression') {
+      const obj = node.object;
+      if (obj && obj.type === 'MemberExpression' && obj.object?.name === 'process' && obj.property?.name === 'env') {
+        const envKey = node.property?.name || node.property?.value;
+        if (typeof envKey === 'string' && envKey && !jsdocKeys.has(envKey) && !result.options.some(o => o.key === envKey)) {
+          let envType: OptionDescriptor['type'] = 'string';
+          let envDefault: unknown = '';
+          if (isBooleanParamName(envKey) || /^(?:DEBUG|VERBOSE|FORCE|PROD|PRODUCTION)$/i.test(envKey)) {
+            envType = 'boolean';
+            envDefault = false;
+          } else if (/^(?:PORT|TIMEOUT|RETRIES|LIMIT|MAX|MIN|DELAY|SIZE|INTERVAL)$/i.test(envKey)) {
+            envType = 'number';
+            envDefault = 0;
+          }
+
+          result.options.push({
+            key: envKey,
+            label: formatCamelLabel(envKey),
+            type: envType,
+            default: envDefault,
+            source: 'env'
+          });
+        }
+      }
+    }
+    for (const k of Object.keys(node)) {
+      if (k === 'loc' || k === 'range') continue;
+      const child = node[k];
+      if (Array.isArray(child)) {
+        child.forEach(scanForProcessEnv);
+      } else if (child && typeof child === 'object') {
+        scanForProcessEnv(child);
+      }
+    }
+  }
+
+  // 4. Traverse Top-Level AST Nodes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   statements.forEach((stmt: any) => {
     scanForSockets(stmt);
+    scanForProcessEnv(stmt);
 
     // Unpack Export declarations
     let decl = stmt;
@@ -470,11 +637,13 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
       });
     }
 
-    // B. Top-Level Variable Arrow Functions / Function Expressions
+    // B. Top-Level Variable Arrow Functions / Config Objects
     if (decl.type === 'VariableDeclaration' && decl.declarations) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       decl.declarations.forEach((varDecl: any) => {
+        const varId = varDecl.id;
         const init = varDecl.init;
+
         if (init && (init.type === 'ArrowFunctionExpression' || init.type === 'FunctionExpression') && init.params) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           init.params.forEach((param: any) => {
@@ -483,11 +652,33 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
         }
 
         // Destructured Options in Code Body: const { file, timeout = 5000 } = options;
-        if (varDecl.id?.type === 'ObjectPattern' && init?.type === 'Identifier') {
+        if (varId?.type === 'ObjectPattern' && init?.type === 'Identifier') {
           const srcName = init.name;
           if (/^(?:options|opts|args|argv|params|config|input)$/i.test(srcName)) {
-            extractParamNodes(varDecl.id, code, jsdocKeys, result.options);
+            extractParamNodes(varId, code, jsdocKeys, result.options);
           }
+        }
+
+        // Top-Level Config Objects: const config = { endpoint: '...', retries: 3 }
+        if (varId?.type === 'Identifier' && /^(?:config|settings|options|defaults|CONFIG|SETTINGS|DEFAULTS|OPTIONS)$/i.test(varId.name) && init?.type === 'ObjectExpression') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          init.properties.forEach((prop: any) => {
+            if (prop.type === 'Property' || prop.type === 'ObjectProperty') {
+              const propKey = prop.key?.name || prop.key?.value || '';
+              if (propKey && !jsdocKeys.has(propKey) && !result.options.some(o => o.key === propKey)) {
+                const extracted = extractDefaultValue(prop.value, code);
+                if (!extracted.isRuntimeExpr) {
+                  result.options.push({
+                    key: propKey,
+                    label: formatCamelLabel(propKey),
+                    type: inferSemanticType(propKey, extracted.val, extracted.type),
+                    default: extracted.val,
+                    source: 'config'
+                  });
+                }
+              }
+            }
+          });
         }
       });
     }
@@ -506,7 +697,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   });
 
-  // 4. CLI Argument Flag Auto-Detection (e.g. process.argv.includes('--verbose'), args.includes('--verbose'), commander, parseArgs)
+  // 5. CLI Argument Flag Auto-Detection (process.argv, args.includes, commander, parseArgs, yargs)
   const cliFlagRegex = /(?:process\.argv(?:\.slice\([0-9]+\))?|[a-zA-Z0-9_$]+)\.includes\(\s*['"](--[a-zA-Z0-9-_]+|-([a-zA-Z0-9]))['"]\s*\)/g;
   let flagMatch;
   while ((flagMatch = cliFlagRegex.exec(code)) !== null) {
@@ -584,7 +775,38 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 5. Add Static Socket Security Notice if sockets detected
+  // Yargs option detection: yargs.option('timeout', { type: 'number', default: 5000 })
+  const yargsRegex = /yargs(?:\.[a-zA-Z0-9_$]+)*\.option\(\s*['"]([a-zA-Z0-9-_]+)['"]\s*,\s*\{([^}]+)\}\s*\)/g;
+  let yargsMatch;
+  while ((yargsMatch = yargsRegex.exec(code)) !== null) {
+    const key = yargsMatch[1];
+    const body = yargsMatch[2];
+    let type: OptionDescriptor['type'] = 'string';
+    let defaultValue: unknown = '';
+    const typeMatch = body.match(/type\s*:\s*['"]([a-zA-Z]+)['"]/i);
+    if (typeMatch) {
+      if (typeMatch[1] === 'number') type = 'number';
+      else if (typeMatch[1] === 'boolean') type = 'boolean';
+    }
+    const defMatch = body.match(/default\s*:\s*([^,}\n]+)/i);
+    if (defMatch) {
+      const raw = defMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      if (type === 'number') defaultValue = Number(raw);
+      else if (type === 'boolean') defaultValue = raw === 'true';
+      else defaultValue = raw;
+    }
+    if (key && !jsdocKeys.has(key) && !result.options.some(o => o.key === key)) {
+      result.options.push({
+        key,
+        label: formatCamelLabel(key),
+        type,
+        default: defaultValue,
+        source: 'autodetected'
+      });
+    }
+  }
+
+  // 6. Add Static Socket Security Notice if sockets detected
   if (hasSocketCall && (!result.warnings || !result.warnings.length)) {
     result.warnings = [
       "⚠️ Direct raw TCP/UDP socket connections (via 'net' or 'tls') are restricted by browser security policies and will run in simulated mode. For network traffic, use fetch(), WebSocket, or HTTPS."

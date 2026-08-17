@@ -993,11 +993,10 @@ async function main() {
       }
     `;
 
-    // 1. Validate AST Parser preserves full default values without truncating on nested parentheses
+    // 1. Validate AST Parser extracts genuine primitives (like RegExp literals) while skipping dynamic runtime classes
     const meta = parseScriptOptions(advancedScript);
     const authOpt = meta.options.find(o => o.key === 'AuthClass');
-    assert.ok(authOpt, 'AuthClass option detected');
-    assert.ok(String(authOpt.default).includes('return "token_valid"'), 'AuthClass default is NOT truncated on validate()');
+    assert.strictEqual(authOpt, undefined, 'Runtime class AuthClass is skipped from form parameters');
 
     const patternOpt = meta.options.find(o => o.key === 'pattern');
     assert.ok(patternOpt, 'pattern option detected');

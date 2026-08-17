@@ -107,9 +107,27 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
                   {opt.source === 'autodetected' && (
                     <span
                       className="rounded bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-medium border border-amber-500/20 whitespace-nowrap shrink-0 cursor-help"
-                      title="Parameter auto-detected from code property usage"
+                      title="Parameter auto-detected from code signature"
                     >
                       Auto
+                    </span>
+                  )}
+
+                  {opt.source === 'env' && (
+                    <span
+                      className="rounded bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 text-[9px] font-medium border border-emerald-500/20 whitespace-nowrap shrink-0 cursor-help"
+                      title="Environment variable detected from process.env"
+                    >
+                      ENV
+                    </span>
+                  )}
+
+                  {opt.source === 'config' && (
+                    <span
+                      className="rounded bg-purple-500/10 text-purple-400 px-1.5 py-0.5 text-[9px] font-medium border border-purple-500/20 whitespace-nowrap shrink-0 cursor-help"
+                      title="Configuration option detected from config object"
+                    >
+                      Config
                     </span>
                   )}
 
