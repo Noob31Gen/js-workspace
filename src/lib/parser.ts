@@ -94,7 +94,7 @@ function tryFormatJsonString(str: string): string {
 }
 
 /**
- * Formats camelCase strings into human-readable labels preserving acronyms (SSL, IP, URL, etc.)
+ * Formats camelCase strings into human-readable labels preserving acronyms (SSL, IP, URL, DNS, TLS, TCP, CIDR, etc.)
  */
 function formatCamelLabel(key: string): string {
   if (!key) return '';
@@ -104,10 +104,38 @@ function formatCamelLabel(key: string): string {
     .replace(/([a-zA-Z])([0-9]+)/g, '$1 $2')
     .replace(/_/g, ' ')
     .trim();
-  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+
+  // Normalize common developer & network acronyms
+  const ACRONYMS = new Set([
+    'DNS', 'TLS', 'SSL', 'IP', 'ID', 'URL', 'URI', 'API', 'TCP', 'UDP',
+    'CIDR', 'HTTP', 'HTTPS', 'JSON', 'CSV', 'HTML', 'XML', 'CVE', 'TTL', 'MAC', 'SSH', 'FTP'
+  ]);
+
+  const words = withSpaces.split(/\s+/).map(word => {
+    const upper = word.toUpperCase();
+    if (ACRONYMS.has(upper)) {
+      return upper;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+
+  return words.join(' ');
 }
 
 const CALLBACK_PARAM_NAMES = new Set(['err', 'error', 'req', 'res', 'resolve', 'reject', 'done', 'next', 'event', 'e', 'item', 'idx', 'i', 'v', 'val', 'elem', 'entry']);
+const CONTROL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'catch', 'with', 'return', 'typeof', 'delete', 'void', 'new', 'import', 'export']);
+
+/**
+ * Checks if a parameter name should be heuristically inferred as boolean.
+ */
+function isBooleanParamName(name: string): boolean {
+  if (!name) return false;
+  // Disallow false positives like user, username, userid, use_case, width, etc.
+  if (/^(?:user|username|userid|use_case|withdraw|within|without|width)/i.test(name)) {
+    return false;
+  }
+  return /^(?:is[A-Z0-9_]|has[A-Z0-9_]|should[A-Z0-9_]|can[A-Z0-9_]|enable[A-Z0-9_]?|disable[A-Z0-9_]?|show[A-Z0-9_]?|hide[A-Z0-9_]?|dry[A-Z0-9_]?|verify[A-Z0-9_]?|use[A-Z0-9_]|with[A-Z0-9_]|no[A-Z0-9_]|promiscuous|verbose|force|silent|quiet|debug|recursive|raw)/i.test(name);
+}
 
 /**
  * Finds the index of the matching closing bracket or brace.
@@ -224,13 +252,13 @@ function extractParamDescriptors(rawParam: string, jsdocKeys: Set<string>, resul
             inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
           }
         } else {
-          if (/^(is|enable|disable|has|use|with|show|hide|dry|verify)/i.test(paramKey)) {
+          if (isBooleanParamName(paramKey)) {
             inferredType = 'boolean';
             inferredDefault = false;
           } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(paramKey)) {
             inferredType = 'number';
             inferredDefault = 0;
-          } else if (/ip|host|url|domain|path|file|name|user|email|address|route|job/i.test(paramKey)) {
+          } else if (/ip|host|url|domain|path|file|name|user|email|address|route|job|command|cidr|protocol/i.test(paramKey)) {
             inferredType = 'string';
             inferredDefault = '';
           }
@@ -319,13 +347,13 @@ function extractParamDescriptors(rawParam: string, jsdocKeys: Set<string>, resul
     }
   } else {
     // Heuristic inferences for positional params without defaults
-    if (/^(is|enable|disable|has|use|with|show|hide|dry|verify)/i.test(paramKey)) {
+    if (isBooleanParamName(paramKey)) {
       inferredType = 'boolean';
       inferredDefault = false;
     } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(paramKey)) {
       inferredType = 'number';
       inferredDefault = 0;
-    } else if (/ip|host|url|domain|path|file|name|user|email|address|route|job/i.test(paramKey)) {
+    } else if (/ip|host|url|domain|path|file|name|user|email|address|route|job|command|cidr|protocol/i.test(paramKey)) {
       inferredType = 'string';
       inferredDefault = '';
     }
@@ -389,13 +417,30 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 3. Extract Function Parameters (Destructured Objects, Arrays, Positional & Rest Parameters)
-  // Matches: function name(...), const name = (...) =>, async function(...), etc.
-  const allFuncSigRegex = /(?:(?:export\s+)?(?:async\s+)?function\s*([a-zA-Z0-9_$]+)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function\s*([a-zA-Z0-9_$]+)?)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
+  // 3. Extract Function, Method, and Class Constructor Parameters
+  // A. Functions & Arrow Functions: e.g. function name(...), const name = (...) =>
+  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function(?:\s+([a-zA-Z0-9_$]+))?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function(?:\s+([a-zA-Z0-9_$]+))?)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
   let funcMatch;
 
-  while ((funcMatch = allFuncSigRegex.exec(code)) !== null) {
-    const rawParamList = funcMatch[4];
+  while ((funcMatch = funcSigRegex.exec(code)) !== null) {
+    const rawParamList = funcMatch[5];
+    if (!rawParamList || !rawParamList.trim()) continue;
+
+    const rawParams = splitParameters(rawParamList.trim());
+    for (const rawParam of rawParams) {
+      extractParamDescriptors(rawParam, jsdocKeys, result.options);
+    }
+  }
+
+  // B. Class Constructors & Methods: e.g. constructor(...) {, scanRange(...) {
+  const classMethodRegex = /^\s*(?:(?:async|get|set|static)\s+)?(?:constructor|([a-zA-Z0-9_$]+))\s*\(([\s\S]*?)\)\s*\{/gim;
+  let methodMatch;
+
+  while ((methodMatch = classMethodRegex.exec(code)) !== null) {
+    const methodName = (methodMatch[1] || '').trim();
+    if (methodName && CONTROL_KEYWORDS.has(methodName)) continue;
+
+    const rawParamList = methodMatch[2];
     if (!rawParamList || !rawParamList.trim()) continue;
 
     const rawParams = splitParameters(rawParamList.trim());
@@ -443,7 +488,7 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
       let inferredType: OptionDescriptor['type'] = 'string';
       let inferredDefault: unknown = '';
 
-      if (/^(is|enable|disable|has|use|with|show|hide|dry|verify)/i.test(camelKey)) {
+      if (isBooleanParamName(camelKey)) {
         inferredType = 'boolean';
         inferredDefault = false;
       } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(camelKey)) {

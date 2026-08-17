@@ -291,7 +291,7 @@ async function main() {
     const [optIp, optPort, optLog, optConfig, optFlags] = meta.options;
     
     assert.strictEqual(optIp.key, 'targetIp');
-    assert.strictEqual(optIp.label, 'Target Ip');
+    assert.strictEqual(optIp.label, 'Target IP');
     assert.strictEqual(optIp.type, 'string');
     
     assert.strictEqual(optPort.key, 'port');
@@ -367,7 +367,7 @@ async function main() {
     assert.strictEqual(meta.options.length, 6, 'Detected all 6 parameters');
 
     const optJobId = meta.options.find(o => o.key === 'jobId');
-    assert.strictEqual(optJobId?.label, 'Job Id');
+    assert.strictEqual(optJobId?.label, 'Job ID');
     assert.strictEqual(optJobId?.type, 'number');
 
     const optRoute1 = meta.options.find(o => o.key === 'route1');
@@ -423,10 +423,107 @@ async function main() {
     assert.strictEqual(optTimeout?.type, 'number');
     assert.strictEqual(optTimeout?.default, 5000);
 
+    const optUser = meta.options.find(o => o.key === 'user');
+    assert.strictEqual(optUser?.label, 'User');
+    assert.strictEqual(optUser?.type, 'string', 'User is a string, NOT a boolean');
+
+    const optPass = meta.options.find(o => o.key === 'pass');
+    assert.strictEqual(optPass?.label, 'Pass');
+    assert.strictEqual(optPass?.type, 'string');
+
     const optPort = meta.options.find(o => o.key === 'port');
     assert.strictEqual(optPort?.label, 'Port');
     assert.strictEqual(optPort?.type, 'number');
     assert.strictEqual(optPort?.default, 8080);
+  });
+
+  // 10. Test Full Multi-Pattern Script (Classes, Constructors, Array & Object Destructuring, Rest Params)
+  await runTest('parseScriptOptions parses full multi-pattern script seamlessly', async () => {
+    const { parseScriptOptions } = await import('../src/lib/parser.ts');
+
+    const fullScript = `
+      // 1. Standard Primitives & Default Values
+      function testPrimitives(targetIp, port = 443, useTls = true, protocol = "TCP") {
+          console.log({ targetIp, port, useTls, protocol });
+      }
+
+      // 2. Object Destructuring with Defaults & Aliasing
+      function testObjectDestructuring({ 
+          host, 
+          port = 8080, 
+          timeout: msTimeout = 5000,
+          credentials: { user, pass } = {}
+      } = {}) {
+          console.log({ host, port, msTimeout, user, pass });
+      }
+
+      // 3. Array Destructuring with Defaults & Rest Elements
+      function testArrayDestructuring([primaryDns, secondaryDns = "1.1.1.1", ...fallbackDns] = []) {
+          console.log({ primaryDns, secondaryDns, fallbackDns });
+      }
+
+      // 4. Callbacks and Rest Parameters
+      function testRestAndCallback(command, callbackFn, ...args) {
+          console.log({ command, args });
+      }
+
+      // 5. The "Kitchen Sink"
+      function testKitchenSink(
+          jobId,
+          [route1, route2 = "0.0.0.0/0"],
+          { verifySSL = true, retries = 3 } = {},
+          ...tags
+      ) {
+          console.log({ jobId, route1, route2, verifySSL, retries, tags });
+      }
+
+      // 6. Class Constructors and Methods
+      class NetworkScanner {
+          constructor(interfaceName, { promiscuous = false } = {}) {
+              this.interfaceName = interfaceName;
+              this.promiscuous = promiscuous;
+          }
+
+          scanRange(cidr, timeout = 2000) {
+              console.log({ cidr, timeout });
+          }
+      }
+    `;
+
+    const meta = parseScriptOptions(fullScript);
+    const keys = meta.options.map(o => o.key);
+
+    // Primitives
+    const optTargetIp = meta.options.find(o => o.key === 'targetIp');
+    assert.strictEqual(optTargetIp?.label, 'Target IP', 'Acronym IP preserved');
+    assert.strictEqual(optTargetIp?.type, 'string');
+
+    const optUseTls = meta.options.find(o => o.key === 'useTls');
+    assert.strictEqual(optUseTls?.label, 'Use TLS', 'Acronym TLS preserved');
+    assert.strictEqual(optUseTls?.type, 'boolean');
+    assert.strictEqual(optUseTls?.default, true);
+
+    const optProtocol = meta.options.find(o => o.key === 'protocol');
+    assert.strictEqual(optProtocol?.type, 'string');
+    assert.strictEqual(optProtocol?.default, 'TCP');
+
+    // Array Destructuring
+    const optPrimaryDns = meta.options.find(o => o.key === 'primaryDns');
+    assert.strictEqual(optPrimaryDns?.label, 'Primary DNS', 'Acronym DNS preserved');
+
+    const optSecondaryDns = meta.options.find(o => o.key === 'secondaryDns');
+    assert.strictEqual(optSecondaryDns?.default, '1.1.1.1');
+
+    // Class Constructor & Methods
+    assert.ok(keys.includes('interfaceName'), 'Detected class constructor param interfaceName');
+    assert.ok(keys.includes('promiscuous'), 'Detected class constructor destructured promiscuous');
+    const optPromisc = meta.options.find(o => o.key === 'promiscuous');
+    assert.strictEqual(optPromisc?.type, 'boolean');
+    assert.strictEqual(optPromisc?.default, false);
+
+    assert.ok(keys.includes('cidr'), 'Detected class method param cidr');
+    const optCidr = meta.options.find(o => o.key === 'cidr');
+    assert.strictEqual(optCidr?.label, 'CIDR', 'Acronym CIDR preserved');
   });
 
   console.log('==================================================');
