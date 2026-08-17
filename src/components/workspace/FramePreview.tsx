@@ -15,7 +15,7 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
 
   if (!frame) {
     return (
-      <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px]">
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full w-full min-h-0 flex-1">
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-3.5 py-2 shrink-0 select-none">
           <div className="flex items-center gap-2">
@@ -84,24 +84,24 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
 
   const getViewportWidth = () => {
     switch (viewport) {
-      case 'mobile': return 'max-w-[375px]';
-      case 'tablet': return 'max-w-[768px]';
+      case 'mobile': return 'w-full max-w-[375px]';
+      case 'tablet': return 'w-full max-w-[768px]';
       default: return 'w-full';
     }
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full min-h-0 flex-1 md:h-[520px]">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm flex flex-col h-full w-full min-h-0 flex-1">
       {/* Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-3 gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+      <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-muted/30 px-3 sm:px-4 py-2.5 sm:py-3 gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-              {frame.title || 'Visual Sandbox Frame Preview'}
-              <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] uppercase font-mono font-bold border border-primary/20">
+          <div className="min-w-0 truncate">
+            <h3 className="text-xs sm:text-sm font-bold tracking-tight text-foreground flex items-center gap-2 truncate">
+              <span className="truncate">{frame.title || 'Visual Sandbox Frame Preview'}</span>
+              <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] uppercase font-mono font-bold border border-primary/20 shrink-0">
                 {frame.type}
               </span>
             </h3>
@@ -109,21 +109,21 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
         </div>
 
         {/* Viewport & Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {frame.type === 'html' && (
             <>
               <div className="flex items-center rounded-lg border border-border/60 bg-background p-0.5 text-xs">
                 <button
                   onClick={() => setViewport('desktop')}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 transition-all ${viewport === 'desktop' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  title="Desktop View (100%)"
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 transition-all ${viewport === 'desktop' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  title="Full Screen / Desktop View (100%)"
                 >
                   <Monitor className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Desktop</span>
                 </button>
                 <button
                   onClick={() => setViewport('tablet')}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 transition-all ${viewport === 'tablet' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 transition-all ${viewport === 'tablet' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Tablet View (768px)"
                 >
                   <Tablet className="h-3.5 w-3.5" />
@@ -131,7 +131,7 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
                 </button>
                 <button
                   onClick={() => setViewport('mobile')}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 transition-all ${viewport === 'mobile' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 transition-all ${viewport === 'mobile' ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Mobile View (375px)"
                 >
                   <Smartphone className="h-3.5 w-3.5" />
@@ -141,67 +141,75 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
 
               <button
                 onClick={() => setFrameBg(prev => prev === 'dark' ? 'light' : 'dark')}
-                className="rounded-lg border border-border/60 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all"
+                className="rounded-lg border border-border/60 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-all shrink-0"
               >
-                {frameBg === 'dark' ? '☀️ Light Frame' : '🌙 Dark Frame'}
+                {frameBg === 'dark' ? '☀️ Light' : '🌙 Dark'}
               </button>
             </>
           )}
 
           <button
             onClick={() => handleCopy(typeof frame.content === 'string' ? frame.content : JSON.stringify(frame.content, null, 2))}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0 cursor-pointer"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
+            <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
           </button>
         </div>
       </div>
 
       {/* Frame Content Body */}
-      <div className={`p-4 transition-all flex justify-center ${frameBg === 'dark' ? 'bg-[#09090b]' : 'bg-slate-100'}`}>
+      <div className={`p-2 sm:p-4 transition-all flex justify-center flex-1 h-full min-h-0 w-full overflow-auto ${frameBg === 'dark' ? 'bg-[#09090b]' : 'bg-slate-100'}`}>
         {frame.type === 'html' && (
-          <div className={`${getViewportWidth()} transition-all duration-300 rounded-lg overflow-hidden border border-border/40 shadow-md`}>
+          <div className={`${getViewportWidth()} h-full min-h-0 flex-1 flex flex-col transition-all duration-300 rounded-lg overflow-hidden border border-border/40 shadow-md bg-background`}>
             <iframe
               srcDoc={`
                 <!DOCTYPE html>
                 <html>
                   <head>
                     <meta charset="utf-8"/>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"/>
                     <style>
-                      body { 
+                      html, body { 
                         margin: 0; 
-                        padding: 16px; 
-                        font-family: system-ui, -apple-system, sans-serif; 
+                        padding: 14px; 
+                        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
                         color: ${frameBg === 'dark' ? '#fafafa' : '#09090b'}; 
                         background: ${frameBg === 'dark' ? '#0c0c0e' : '#ffffff'};
+                        min-height: 100%;
+                        box-sizing: border-box;
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
                       }
-                      * { box-sizing: border-box; }
+                      *, *::before, *::after { box-sizing: border-box; }
+                      table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                      img, svg, canvas { max-width: 100%; height: auto; }
+                      pre, code { white-space: pre-wrap; word-break: break-word; }
                     </style>
                   </head>
                   <body>${frame.content}</body>
                 </html>
               `}
               title="Frame Output Preview"
-              className="w-full min-h-[320px] max-h-[500px] border-0 bg-transparent"
+              className="w-full h-full min-h-[350px] flex-1 border-0 bg-transparent"
               sandbox="allow-scripts allow-modals"
             />
           </div>
         )}
 
         {frame.type === 'image' && (
-          <div className="flex flex-col items-center gap-3 p-4">
+          <div className="flex flex-col items-center justify-center gap-3 p-4 w-full h-full min-h-0 overflow-auto">
             <img
               src={String(frame.content)}
               alt="Frame Rendered Output"
-              className="max-h-[400px] rounded-lg border border-border/60 shadow-lg object-contain"
+              className="max-h-[80vh] max-w-full rounded-lg border border-border/60 shadow-lg object-contain"
             />
             <a
               href={String(frame.content)}
               download="frame-output.png"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 transition-all shrink-0"
             >
               <Download className="h-3.5 w-3.5" />
               Download Image Frame
@@ -213,8 +221,8 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
           const tableRows = frame.content as Record<string, unknown>[];
           const firstRow = tableRows[0] || {};
           return (
-            <div className="w-full space-y-3">
-              <div className="flex items-center justify-between gap-4">
+            <div className="w-full h-full min-h-0 flex flex-col space-y-3">
+              <div className="flex items-center justify-between gap-4 shrink-0">
                 <input
                   type="text"
                   placeholder="Filter table records..."
@@ -222,14 +230,14 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border border-border bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full max-w-xs"
                 />
-                <span className="text-xs text-muted-foreground font-mono">
+                <span className="text-xs text-muted-foreground font-mono shrink-0">
                   {tableRows.length} Total Records
                 </span>
               </div>
 
-              <div className="rounded-lg border border-border/60 overflow-x-auto bg-background">
+              <div className="rounded-lg border border-border/60 overflow-auto flex-1 min-h-0 bg-background">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
+                  <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[10px] font-bold tracking-wider sticky top-0 bg-muted/90 backdrop-blur-xs z-10">
                     <tr>
                       <th className="px-3 py-2 border-r border-border/40 w-12">#</th>
                       {Object.keys(firstRow).map((colKey) => (
@@ -242,7 +250,7 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
                   <tbody className="divide-y divide-border/40 font-mono">
                     {tableRows
                       .filter(row => !searchTerm || JSON.stringify(row).toLowerCase().includes(searchTerm.toLowerCase()))
-                      .slice(0, 50)
+                      .slice(0, 100)
                       .map((row, idx) => (
                         <tr key={idx} className="hover:bg-muted/20 transition-colors">
                           <td className="px-3 py-2 border-r border-border/40 text-muted-foreground text-[11px]">{idx + 1}</td>

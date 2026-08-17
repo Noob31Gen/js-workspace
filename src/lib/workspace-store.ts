@@ -254,59 +254,61 @@ function generateSummaryCard(title, env, metrics, services) {
 
   const rows = services.map(s => \`
     <tr style="border-bottom: 1px solid #27272a;">
-      <td style="padding: 10px 12px; font-weight: 600; color: #f4f4f5;">\${s.name}</td>
-      <td style="padding: 10px 12px; color: #a1a1aa;">\${s.region}</td>
-      <td style="padding: 10px 12px;">
+      <td style="padding: 10px 12px; font-weight: 600; color: #f4f4f5; white-space: nowrap;">\${s.name}</td>
+      <td style="padding: 10px 12px; color: #a1a1aa; white-space: nowrap;">\${s.region}</td>
+      <td style="padding: 10px 12px; white-space: nowrap;">
         <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; background: \${s.status === 'Operational' ? '#064e3b' : '#78350f'}; color: \${s.status === 'Operational' ? '#6ee7b7' : '#fcd34d'};">
           \${s.status}
         </span>
       </td>
-      <td style="padding: 10px 12px; text-align: right; color: #38bdf8; font-family: monospace;">\${s.uptime}%</td>
-      <td style="padding: 10px 12px; text-align: right; color: #a1a1aa; font-family: monospace;">\${formatCurrency(s.budget)}</td>
+      <td style="padding: 10px 12px; text-align: right; color: #38bdf8; font-family: monospace; white-space: nowrap;">\${s.uptime}%</td>
+      <td style="padding: 10px 12px; text-align: right; color: #a1a1aa; font-family: monospace; white-space: nowrap;">\${formatCurrency(s.budget)}</td>
     </tr>
   \`).join('');
 
   return \`
-    <div style="font-family: system-ui, -apple-system, sans-serif; background: #09090b; color: #fafafa; padding: 24px; border-radius: 16px; border: 1px solid #27272a; max-width: 720px; margin: 0 auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #27272a; padding-bottom: 16px;">
-        <div>
-          <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #f4f4f5;">\${title}</h2>
-          <p style="margin: 4px 0 0 0; font-size: 12px; color: #a1a1aa;">Generated live via JS Workspace Frame Preview</p>
+    <div style="font-family: system-ui, -apple-system, sans-serif; background: #09090b; color: #fafafa; padding: clamp(12px, 4vw, 20px); border-radius: 16px; border: 1px solid #27272a; max-width: 720px; width: 100%; box-sizing: border-box; margin: 0 auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #27272a; padding-bottom: 14px;">
+        <div style="min-width: 0;">
+          <h2 style="margin: 0; font-size: clamp(16px, 4vw, 20px); font-weight: 700; color: #f4f4f5; word-break: break-word;">\${title}</h2>
+          <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa;">Generated live via JS Workspace Frame Preview</p>
         </div>
-        <span style="background: \${badgeBg}; color: \${badgeColor}; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+        <span style="background: \${badgeBg}; color: \${badgeColor}; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; shrink-0;">
           \${env}
         </span>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
-        <div style="background: #18181b; padding: 14px; border-radius: 12px; border: 1px solid #27272a;">
-          <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 600;">Avg Uptime</div>
-          <div style="font-size: 22px; font-weight: 700; color: #10b981; margin-top: 4px;">\${metrics.avgUptime}%</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px;">
+        <div style="background: #18181b; padding: 12px 14px; border-radius: 12px; border: 1px solid #27272a;">
+          <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Avg Uptime</div>
+          <div style="font-size: 20px; font-weight: 700; color: #10b981; margin-top: 3px;">\${metrics.avgUptime}%</div>
         </div>
-        <div style="background: #18181b; padding: 14px; border-radius: 12px; border: 1px solid #27272a;">
-          <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 600;">Total Budget</div>
-          <div style="font-size: 22px; font-weight: 700; color: #3b82f6; margin-top: 4px;">\${formatCurrency(metrics.totalBudget)}</div>
+        <div style="background: #18181b; padding: 12px 14px; border-radius: 12px; border: 1px solid #27272a;">
+          <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Total Budget</div>
+          <div style="font-size: 20px; font-weight: 700; color: #3b82f6; margin-top: 3px;">\${formatCurrency(metrics.totalBudget)}</div>
         </div>
-        <div style="background: #18181b; padding: 14px; border-radius: 12px; border: 1px solid #27272a;">
-          <div style="font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 600;">Healthy Services</div>
-          <div style="font-size: 22px; font-weight: 700; color: #f59e0b; margin-top: 4px;">\${metrics.healthyCount} / \${services.length}</div>
+        <div style="background: #18181b; padding: 12px 14px; border-radius: 12px; border: 1px solid #27272a;">
+          <div style="font-size: 10px; color: #a1a1aa; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Healthy Services</div>
+          <div style="font-size: 20px; font-weight: 700; color: #f59e0b; margin-top: 3px;">\${metrics.healthyCount} / \${services.length}</div>
         </div>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 1px solid #3f3f46; color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-            <th style="padding: 8px 12px;">Service</th>
-            <th style="padding: 8px 12px;">Region</th>
-            <th style="padding: 8px 12px;">Status</th>
-            <th style="padding: 8px 12px; text-align: right;">Uptime</th>
-            <th style="padding: 8px 12px; text-align: right;">Budget</th>
-          </tr>
-        </thead>
-        <tbody>
-          \${rows}
-        </tbody>
-      </table>
+      <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; border: 1px solid #27272a; background: #121214;">
+        <table style="width: 100%; min-width: 480px; border-collapse: collapse; font-size: 12px; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 1px solid #27272a; background: #18181b; color: #a1a1aa; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+              <th style="padding: 8px 12px;">Service</th>
+              <th style="padding: 8px 12px;">Region</th>
+              <th style="padding: 8px 12px;">Status</th>
+              <th style="padding: 8px 12px; text-align: right;">Uptime</th>
+              <th style="padding: 8px 12px; text-align: right;">Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${rows}
+          </tbody>
+        </table>
+      </div>
     </div>
   \`;
 }
