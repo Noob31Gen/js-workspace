@@ -175,9 +175,17 @@ export function App() {
     const effectiveArgs: Record<string, unknown> = {};
     parsedMeta.options.forEach(opt => {
       let val = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
-      if (opt.type === 'json' && typeof val === 'string') {
+      if (typeof val === 'string') {
         const trimmed = val.trim();
-        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        if (/^-?\d+n$/.test(trimmed)) {
+          try {
+            val = BigInt(trimmed.slice(0, -1));
+          } catch {
+            // fallback
+          }
+        } else if (/^0x[0-9a-fA-F]+$/i.test(trimmed) || /^0b[01]+$/i.test(trimmed) || /^0o[0-7]+$/i.test(trimmed)) {
+          val = Number(trimmed);
+        } else if (opt.type === 'json' || (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
           try {
             val = JSON.parse(val);
           } catch {
@@ -197,7 +205,15 @@ export function App() {
       if (effectiveArgs[k] === undefined) {
         if (typeof v === 'string') {
           const trimmed = v.trim();
-          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          if (/^-?\d+n$/.test(trimmed)) {
+            try {
+              effectiveArgs[k] = BigInt(trimmed.slice(0, -1));
+            } catch {
+              effectiveArgs[k] = v;
+            }
+          } else if (/^0x[0-9a-fA-F]+$/i.test(trimmed) || /^0b[01]+$/i.test(trimmed) || /^0o[0-7]+$/i.test(trimmed)) {
+            effectiveArgs[k] = Number(trimmed);
+          } else if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
             try {
               effectiveArgs[k] = JSON.parse(v);
             } catch {

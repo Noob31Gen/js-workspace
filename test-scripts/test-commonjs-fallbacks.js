@@ -794,6 +794,158 @@ async function main() {
     assert.strictEqual(keys.includes('iters'), false, 'Inner nested param iters is NOT extracted');
   });
 
+  // 15. Test BigInt literals, Symbols, TypedArrays, and ES6 Collections in Defaults
+  await runTest('Simulate BigInt math, Symbols, TypedArray lengths, and Sets/Maps in defaults', async () => {
+    const cryptoScript = `
+      function testCryptographicPrimitives(
+          primeModulus = 2147483647n,
+          multiplier = 16807n,
+          sessionToken = Symbol("auth_session")
+      ) {
+          const result = primeModulus * multiplier;
+          return { result: result.toString(), desc: sessionToken.description, isSymbol: typeof sessionToken === 'symbol' };
+      }
+
+      function testMemoryStructures(
+          byteStream = new Uint8Array([0x4D, 0x5A, 0x90, 0x00]),
+          iocs = new Set(["10.0.0.5", "malicious.local", "10.0.0.5"]),
+          metadata = new Map([["threat_level", "high"], ["analyzed", true]])
+      ) {
+          return {
+              byteLength: byteStream.length,
+              iocsCount: iocs.size,
+              metaObj: Object.fromEntries(metadata)
+          };
+      }
+    `;
+
+    const mockCurrentFilePath = 'crypto-test.js';
+    const __dirname = '.';
+    const __filename = mockCurrentFilePath;
+    const dirname = __dirname;
+    const filename = __filename;
+    const global = globalThis;
+    const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+    const exports = module.exports;
+    const process = { env: {}, argv: ['node', mockCurrentFilePath] };
+    const Buffer = BufferPolyfill;
+    const require = function(id) { return {}; };
+    const workspace = {};
+
+    const scriptFunc = new Function(
+      '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global', '__code_source__',
+      `return (async () => {
+        ${cryptoScript}
+        if (typeof run === "function") return await run(__workspace_args__);
+        if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+
+        function __safeEvalValue(val) {
+          if (typeof val === "string") {
+            var t = val.trim();
+            if (!t) return val;
+            if (/^-?\\d+n$/.test(t)) {
+              try { return BigInt(t.slice(0, -1)); } catch(e) {}
+            }
+            if (/^0x[0-9a-fA-F]+$/i.test(t) || /^0b[01]+$/i.test(t) || /^0o[0-7]+$/i.test(t)) {
+              try { return Number(t); } catch(e) {}
+            }
+            if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+              try { return JSON.parse(val); } catch(e) {
+                try { var fixed = val.replace(/([a-zA-Z0-9_$]+)\\s*:/g, '"$1":').replace(/'/g, '"'); return JSON.parse(fixed); } catch(e2) {}
+              }
+            }
+            if (/^(?:Symbol|new\\s+(?:Uint8Array|Uint16Array|Uint32Array|Int8Array|Int16Array|Int32Array|Float32Array|Float64Array|BigInt64Array|BigUint64Array|Uint8ClampedArray|ArrayBuffer|Set|Map|WeakSet|WeakMap|Date|RegExp|Error)|Buffer\\.from)\\b/.test(t)) {
+              try { var evalFunc = new Function("Buffer", "return (" + t + ");"); var b = typeof Buffer !== "undefined" ? Buffer : (typeof self !== "undefined" && self.Buffer ? self.Buffer : null); return evalFunc(b); } catch(e) {}
+            }
+          }
+          return val;
+        }
+
+        if (__workspace_args__ && typeof __workspace_args__ === "object") {
+          Object.keys(__workspace_args__).forEach(function(k) { __workspace_args__[k] = __safeEvalValue(__workspace_args__[k]); });
+        }
+        
+        var __autoResults__ = {};
+        var __fnNames__ = [];
+        var __rawCodeStr = (typeof __code_source__ === "string") ? __code_source__ : "";
+        var __fnRegex__ = /(?:^|\\n)\\s*(?:async\\s+)?function(?:\\s*\\*)?\\s*([a-zA-Z0-9_$]+)/g;
+        var __fnMatch__;
+        while ((__fnMatch__ = __fnRegex__.exec(__rawCodeStr)) !== null) {
+          if (__fnMatch__[1] && __fnNames__.indexOf(__fnMatch__[1]) === -1) { __fnNames__.push(__fnMatch__[1]); }
+        }
+        for (var f = 0; f < __fnNames__.length; f++) {
+          var fnName = __fnNames__[f];
+          var fn = null;
+          try { fn = eval(fnName); } catch(e) { continue; }
+          if (typeof fn !== "function") continue;
+          try {
+            var fnStr = fn.toString();
+            var isDestructured = /^[^(]*\\(\\s*\\{/.test(fnStr);
+            var res;
+            if (isDestructured) {
+              res = await fn(__workspace_args__);
+            } else {
+              var paramNames = [];
+              var paramMatch = fnStr.match(/^[^(]*\\(([^)]*)\\)/);
+              if (paramMatch && paramMatch[1]) {
+                var rawParams = paramMatch[1].split(",");
+                for (var p = 0; p < rawParams.length; p++) {
+                  var pName = rawParams[p].split("=")[0].trim().replace(/^\\.\\.\\./, "");
+                  if (pName) paramNames.push(pName);
+                }
+              }
+              if (paramNames.length > 0 && __workspace_args__ && typeof __workspace_args__ === "object") {
+                var callArgs = paramNames.map(function(k) { return __safeEvalValue(__workspace_args__[k]); });
+                res = await fn.apply(null, callArgs);
+              } else {
+                res = await fn(__workspace_args__);
+              }
+            }
+            if (res && typeof res.next === "function" && typeof res[Symbol.iterator] === "function") {
+              var genItems = [];
+              var step;
+              while (!(step = res.next()).done) { genItems.push(step.value); }
+              __autoResults__[fnName] = genItems;
+            } else {
+              __autoResults__[fnName] = res;
+            }
+          } catch(e) {
+            console.error("Error executing " + fnName + ":", e.message);
+          }
+        }
+        if (Object.keys(__autoResults__).length > 0) {
+          return __autoResults__;
+        }
+        return module.exports;
+      })();`
+    );
+
+    // Pass default raw strings as extracted by parser from UI form
+    const rawFormArgs = {
+      primeModulus: '2147483647n',
+      multiplier: '16807n',
+      sessionToken: 'Symbol("auth_session")',
+      byteStream: 'new Uint8Array([0x4D, 0x5A, 0x90, 0x00])',
+      iocs: 'new Set(["10.0.0.5", "malicious.local", "10.0.0.5"])',
+      metadata: 'new Map([["threat_level", "high"], ["analyzed", true]])'
+    };
+
+    const result = await scriptFunc(
+      rawFormArgs,
+      require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, cryptoScript
+    );
+
+    assert.ok(result.testCryptographicPrimitives, 'testCryptographicPrimitives executed');
+    assert.strictEqual(result.testCryptographicPrimitives.result, '36092757655129', 'BigInt math calculated correctly');
+    assert.strictEqual(result.testCryptographicPrimitives.desc, 'auth_session', 'Symbol description retained');
+    assert.strictEqual(result.testCryptographicPrimitives.isSymbol, true, 'typeof sessionToken is symbol');
+
+    assert.ok(result.testMemoryStructures, 'testMemoryStructures executed');
+    assert.strictEqual(result.testMemoryStructures.byteLength, 4, 'ByteStream length is 4 (real Uint8Array, not string length 40)');
+    assert.strictEqual(result.testMemoryStructures.iocsCount, 2, 'Unique IOCs count is 2 (real Set)');
+    assert.strictEqual(result.testMemoryStructures.metaObj.threat_level, 'high', 'Map threat_level is high');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');

@@ -336,6 +336,12 @@ function extractParamDescriptors(rawParam: string, jsdocKeys: Set<string>, resul
     if (defaultValRaw === 'true' || defaultValRaw === 'false') {
       inferredType = 'boolean';
       inferredDefault = defaultValRaw === 'true';
+    } else if (/^-?\d+n$/.test(defaultValRaw)) {
+      inferredType = 'number';
+      inferredDefault = defaultValRaw;
+    } else if (/^0x[0-9a-fA-F]+$/i.test(defaultValRaw) || /^0b[01]+$/i.test(defaultValRaw) || /^0o[0-7]+$/i.test(defaultValRaw)) {
+      inferredType = 'number';
+      inferredDefault = Number(defaultValRaw);
     } else if (!isNaN(Number(defaultValRaw))) {
       inferredType = 'number';
       inferredDefault = Number(defaultValRaw);
