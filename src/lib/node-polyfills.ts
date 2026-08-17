@@ -3,6 +3,19 @@
  * path, buffer, process, events, crypto, util, and Virtual fs.
  */
 
+if (typeof (globalThis as unknown as { global: unknown }).global === 'undefined') {
+  (globalThis as unknown as { global: unknown }).global = globalThis;
+}
+
+if (typeof (globalThis as unknown as { setImmediate: unknown }).setImmediate === 'undefined') {
+  (globalThis as unknown as { setImmediate: unknown }).setImmediate = function(fn: (...args: unknown[]) => void, ...args: unknown[]) {
+    return setTimeout(() => fn(...args), 0);
+  };
+  (globalThis as unknown as { clearImmediate: unknown }).clearImmediate = function(id: number) {
+    clearTimeout(id);
+  };
+}
+
 if (typeof globalThis.SharedArrayBuffer === 'undefined') {
   (globalThis as unknown as { SharedArrayBuffer: typeof ArrayBuffer }).SharedArrayBuffer = ArrayBuffer;
 }

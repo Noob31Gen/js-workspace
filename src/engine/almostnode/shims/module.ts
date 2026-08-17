@@ -69,6 +69,15 @@ export function syncBuiltinESMExports(): void {
   // No-op in browser
 }
 
+export const wrapper = [
+  '(function (exports, require, module, __filename, __dirname) { ',
+  '\n});'
+] as const;
+
+export function wrap(script: string): string {
+  return wrapper[0] + script + wrapper[1];
+}
+
 export const Module = {
   createRequire,
   builtinModules,
@@ -77,6 +86,8 @@ export const Module = {
   _extensions,
   _pathCache,
   syncBuiltinESMExports,
+  wrapper,
+  wrap,
 };
 
 export default Module;

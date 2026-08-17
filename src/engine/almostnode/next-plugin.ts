@@ -8,9 +8,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - import.meta.url is available in ESM
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+function getDirname(): string {
+  try {
+    // @ts-ignore - import.meta.url is available in ESM
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      return path.dirname(fileURLToPath(import.meta.url));
+    }
+  } catch {
+    // Ignore ESM resolution error
+  }
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  return typeof process !== 'undefined' && process.cwd ? process.cwd() : '.';
+}
+
+const __dirname = getDirname();
 
 /**
  * Get the contents of the almostnode service worker file.
