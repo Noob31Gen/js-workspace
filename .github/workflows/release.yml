@@ -1,19 +1,10 @@
-name: Immutable Build & Release Sequence
+name: Immutable Tag & Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: 'Version tag to release (e.g. v1.0.0)'
-        required: true
-        default: 'v1.0.0'
-      draft:
-        description: 'Create as draft release'
-        type: boolean
-        default: false
 
 # Enforce least-privilege permissions across the workflow
 permissions:
@@ -21,50 +12,48 @@ permissions:
   id-token: write
   attestations: write
 
-# Prevent concurrent mutable runs on the same ref
+# Prevent duplicate concurrent runs on the same tag
 concurrency:
-  group: release-${{ github.ref_name || github.run_id }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   validate-and-build:
-    name: Deterministic Build & Validation
+    name: Build, Lint & Test Verification
     runs-on: ubuntu-latest
     steps:
-      # Pinned commit SHA for actions/checkout (v4.2.2)
-      - name: Checkout Source Code (Immutable Commit)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      # Pinned commit SHA for actions/setup-node (v4.2.0)
-      - name: Setup Node.js Runtime (LTS 20.x)
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+      - name: Setup Node.js Runtime (LTS 22.x)
+        uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 22.x
           cache: 'npm'
 
       - name: Verify Frozen Lockfile & Install Dependencies
         run: |
           npm ci --prefer-offline --no-audit
 
-      - name: Execute Full Automated Test Matrix
+      - name: Run Linter
+        run: |
+          npm run lint
+
+      - name: Run Test Suites
         run: |
           npm test
 
-      - name: Compile Production Artifacts
+      - name: Build Production Assets
         run: |
           npm run build
 
       - name: Package Deterministic Release Archives
         id: package
         run: |
-          VERSION="${{ github.ref_name }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.release_tag }}"
-          fi
-
+          VERSION="${GITHUB_REF_NAME}"
           DIST_ZIP="js-workspace-${VERSION}-dist.zip"
           DIST_TARGZ="js-workspace-${VERSION}-dist.tar.gz"
 
@@ -75,16 +64,11 @@ jobs:
           # Generate Cryptographic SHA-256 Checksum Manifest
           sha256sum "${DIST_ZIP}" "${DIST_TARGZ}" > SHA256SUMS
 
-          echo "Generated Checksums:"
+          echo "Generated Checksums for ${VERSION}:"
           cat SHA256SUMS
 
-          echo "dist_zip=${DIST_ZIP}" >> "$GITHUB_OUTPUT"
-          echo "dist_targz=${DIST_TARGZ}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      # Pinned commit SHA for actions/upload-artifact (v4.6.1)
-      - name: Upload Immutable Build Outputs
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: release-assets
           path: |
@@ -94,18 +78,16 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  attest-and-publish:
-    name: Cryptographic Attestation & Release
+  publish-release:
+    name: GitHub Release Publishing
     needs: validate-and-build
     runs-on: ubuntu-latest
     steps:
-      # Pinned commit SHA for actions/checkout (v4.2.2)
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
-      # Pinned commit SHA for actions/download-artifact (v4.1.9)
       - name: Download Build Assets
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.9
+        uses: actions/download-artifact@v4
         with:
           name: release-assets
           path: ./release-files
@@ -115,47 +97,30 @@ jobs:
           cd ./release-files
           sha256sum --check SHA256SUMS
 
-      # Generate Cryptographic SLSA Build Provenance (GitHub Official Attestation)
-      # Pinned commit SHA for actions/attest-build-provenance (v2.2.3)
-      - name: Generate Cryptographic SLSA Build Attestations
-        uses: actions/attest-build-provenance@c074443f1a5fb4aee83904b7124fa0a5148a44d1 # v2.2.3
-        with:
-          subject-path: |
-            ./release-files/js-workspace-*-dist.zip
-            ./release-files/js-workspace-*-dist.tar.gz
-
-      - name: Publish Immutable GitHub Release
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ github.ref_name }}"
-          DRAFT_FLAG=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.release_tag }}"
-            if [ "${{ github.event.inputs.draft }}" = "true" ]; then
-              DRAFT_FLAG="--draft"
-            fi
-          fi
+          VERSION="${GITHUB_REF_NAME}"
 
-          RELEASE_NOTES="### 🚀 JS-Workspace Production Release \`${VERSION}\`
+          {
+            echo "### 🚀 JS-Workspace Production Release \`${VERSION}\`"
+            echo ""
+            echo "#### 🔒 Release Checksums & Verification:"
+            echo "- **Node Runtime**: Node.js 22 LTS"
+            echo "- **Validation**: 100% automated test suite verified before release"
+            echo ""
+            echo "#### 📦 Release Assets & Checksums:"
+            echo '```'
+            cat ./release-files/SHA256SUMS
+            echo '```'
+          } > release_notes.md
 
-#### 🔒 Cryptographic Immutability & Provenance:
-- **Build Provenance**: Cryptographically attested via Sigstore & GitHub SLSA Level 3
-- **Action Pinning**: Pinned 40-character commit SHAs across all workflow steps
-- **Validation**: 100% automated test suite verified before release
-
-#### 📦 Release Assets & Checksums:
-\`\`\`
-$(cat ./release-files/SHA256SUMS)
-\`\`\`
-"
-
-          # Create or update GitHub Release with pinned assets & checksums
+          # Create or update GitHub Release with assets & checksums
           gh release create "${VERSION}" \
             ./release-files/js-workspace-*-dist.zip \
             ./release-files/js-workspace-*-dist.tar.gz \
             ./release-files/SHA256SUMS \
             --title "Release ${VERSION}" \
-            --notes "${RELEASE_NOTES}" \
-            ${DRAFT_FLAG} \
+            --notes-file release_notes.md \
             --generate-notes || gh release upload "${VERSION}" ./release-files/* --clobber
