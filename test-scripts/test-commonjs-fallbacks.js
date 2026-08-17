@@ -763,6 +763,37 @@ async function main() {
     assert.strictEqual(result.generateHexSequence[0], '1A', 'Yielded correct first hex value');
   });
 
+  // 14. Test Nested Inner Functions (e.g. generateHexSequence inside testGeneratorExecution)
+  await runTest('Simulate nested inner generator helper function without out-of-scope errors', async () => {
+    const { parseScriptOptions } = await import('../src/lib/parser.ts');
+
+    const nestedScript = `
+      function testGeneratorExecution(seed = 0x1A, iterations = 5) {
+          function* generateHexSequence(s, iters) {
+              let current = s;
+              for (let i = 0; i < iters; i++) {
+                  yield current.toString(16).toUpperCase();
+                  current = (current * 16807) % 2147483647; 
+              }
+          }
+          const iterator = generateHexSequence(seed, iterations);
+          const results = [];
+          for (let val of iterator) {
+              results.push(val);
+          }
+          return results;
+      }
+    `;
+
+    // Ensure parser only extracted top-level parameters (seed, iterations), NOT inner helper params (s, iters)
+    const meta = parseScriptOptions(nestedScript);
+    const keys = meta.options.map(o => o.key);
+    assert.ok(keys.includes('seed'), 'Detected top-level seed');
+    assert.ok(keys.includes('iterations'), 'Detected top-level iterations');
+    assert.strictEqual(keys.includes('s'), false, 'Inner nested param s is NOT extracted');
+    assert.strictEqual(keys.includes('iters'), false, 'Inner nested param iters is NOT extracted');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');

@@ -417,12 +417,46 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
+/**
+ * Computes brace depth at a given index in code, ignoring strings and comments.
+ */
+function getBraceDepthAt(codeStr: string, index: number): number {
+  let depth = 0;
+  let inString: string | null = null;
+  for (let i = 0; i < index; i++) {
+    const c = codeStr[i];
+    if (inString) {
+      if (c === inString && codeStr[i - 1] !== '\\') inString = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') {
+      inString = c;
+      continue;
+    }
+    if (c === '/' && codeStr[i + 1] === '/') {
+      while (i < index && codeStr[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && codeStr[i + 1] === '*') {
+      i += 2;
+      while (i < index && !(codeStr[i] === '*' && codeStr[i + 1] === '/')) i++;
+      i++;
+      continue;
+    }
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+  }
+  return depth;
+}
+
   // 3. Extract Function, Method, and Class Constructor Parameters
   // A. Functions & Arrow Functions: e.g. function name(...), const name = (...) =>
-  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function(?:\s+([a-zA-Z0-9_$]+))?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function(?:\s+([a-zA-Z0-9_$]+))?)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
+  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function(?:\s*\*|\s+([a-zA-Z0-9_$]+))?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function(?:\s+([a-zA-Z0-9_$]+))?)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
   let funcMatch;
 
   while ((funcMatch = funcSigRegex.exec(code)) !== null) {
+    if (getBraceDepthAt(code, funcMatch.index) > 0) continue;
+
     const rawParamList = funcMatch[5];
     if (!rawParamList || !rawParamList.trim()) continue;
 
