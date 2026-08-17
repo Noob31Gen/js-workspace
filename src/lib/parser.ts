@@ -31,7 +31,7 @@ function stripComments(codeStr: string): string {
 }
 
 /**
- * Splits parameter strings respecting nested braces, brackets, parentheses, and quotes.
+ * Splits parameter strings respecting nested braces, brackets, parentheses, quotes, and regex literals.
  */
 function splitParameters(paramStr: string): string[] {
   const cleanStr = stripComments(paramStr);
@@ -55,6 +55,24 @@ function splitParameters(paramStr: string): string[] {
     if (char === '"' || char === "'" || char === '`') {
       inString = char;
       current += char;
+      continue;
+    }
+
+    // Skip regex literal: e.g. /(?:[0-9]{1,3}\.){3}[0-9]{1,3}/g
+    if (char === '/' && (current.trim().endsWith('=') || current.trim().endsWith(',') || current.trim().endsWith('(') || current.trim().endsWith(':') || current.trim() === '')) {
+      current += char;
+      i++;
+      while (i < cleanStr.length) {
+        current += cleanStr[i];
+        if (cleanStr[i] === '/' && cleanStr[i - 1] !== '\\') {
+          while (i + 1 < cleanStr.length && /[a-z]/i.test(cleanStr[i + 1])) {
+            i++;
+            current += cleanStr[i];
+          }
+          break;
+        }
+        i++;
+      }
       continue;
     }
 
@@ -455,15 +473,76 @@ function getBraceDepthAt(codeStr: string, index: number): number {
   return depth;
 }
 
+/**
+ * Finds matching closing parenthesis index respecting nested parentheses, braces, quotes, and regex literals.
+ */
+function findMatchingClosingParen(str: string, openIndex: number): number {
+  let depth = 0;
+  let inString: string | null = null;
+
+  for (let i = openIndex; i < str.length; i++) {
+    const c = str[i];
+
+    if (inString) {
+      if (c === inString && str[i - 1] !== '\\') {
+        inString = null;
+      }
+      continue;
+    }
+
+    if (c === '/' && str[i + 1] === '/') {
+      while (i < str.length && str[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && str[i + 1] === '*') {
+      i += 2;
+      while (i < str.length && !(str[i] === '*' && str[i + 1] === '/')) i++;
+      i++;
+      continue;
+    }
+
+    // Skip regex literal
+    if (c === '/' && (i === openIndex || /[=(:,\[{]/.test(str.slice(openIndex, i).trim().slice(-1)))) {
+      i++;
+      while (i < str.length) {
+        if (str[i] === '/' && str[i - 1] !== '\\') {
+          while (i + 1 < str.length && /[a-z]/i.test(str[i + 1])) i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    if (c === '"' || c === "'" || c === '`') {
+      inString = c;
+      continue;
+    }
+
+    if (c === '(') {
+      depth++;
+    } else if (c === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+
+  return -1;
+}
+
   // 3. Extract Function, Method, and Class Constructor Parameters
   // A. Functions & Arrow Functions: e.g. function name(...), const name = (...) =>
-  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function(?:\s*\*|\s+([a-zA-Z0-9_$]+))?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function(?:\s+([a-zA-Z0-9_$]+))?)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
+  const funcStartRegex = /(?:(?:export\s+)?(?:async\s+)?function(?:\s*\*|\s+([a-zA-Z0-9_$]+))?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function(?:\s+([a-zA-Z0-9_$]+))?)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?)\s*\(/gi;
   let funcMatch;
 
-  while ((funcMatch = funcSigRegex.exec(code)) !== null) {
+  while ((funcMatch = funcStartRegex.exec(code)) !== null) {
     if (getBraceDepthAt(code, funcMatch.index) > 0) continue;
 
-    const rawParamList = funcMatch[5];
+    const openParenIdx = funcStartRegex.lastIndex - 1;
+    const closeParenIdx = findMatchingClosingParen(code, openParenIdx);
+    if (closeParenIdx === -1) continue;
+
+    const rawParamList = code.slice(openParenIdx + 1, closeParenIdx);
     if (!rawParamList || !rawParamList.trim()) continue;
 
     const rawParams = splitParameters(rawParamList.trim());
@@ -473,14 +552,18 @@ function getBraceDepthAt(codeStr: string, index: number): number {
   }
 
   // B. Class Constructors & Methods: e.g. constructor(...) {, scanRange(...) {
-  const classMethodRegex = /^\s*(?:(?:async|get|set|static)\s+)?(?:constructor|([a-zA-Z0-9_$]+))\s*\(([\s\S]*?)\)\s*\{/gim;
+  const classMethodRegex = /^\s*(?:(?:async|get|set|static)\s+)?(?:constructor|([a-zA-Z0-9_$]+))\s*\(/gim;
   let methodMatch;
 
   while ((methodMatch = classMethodRegex.exec(code)) !== null) {
     const methodName = (methodMatch[1] || '').trim();
     if (methodName && CONTROL_KEYWORDS.has(methodName)) continue;
 
-    const rawParamList = methodMatch[2];
+    const openParenIdx = classMethodRegex.lastIndex - 1;
+    const closeParenIdx = findMatchingClosingParen(code, openParenIdx);
+    if (closeParenIdx === -1) continue;
+
+    const rawParamList = code.slice(openParenIdx + 1, closeParenIdx);
     if (!rawParamList || !rawParamList.trim()) continue;
 
     const rawParams = splitParameters(rawParamList.trim());

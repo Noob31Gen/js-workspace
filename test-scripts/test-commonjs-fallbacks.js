@@ -946,6 +946,218 @@ async function main() {
     assert.strictEqual(result.testMemoryStructures.metaObj.threat_level, 'high', 'Map threat_level is high');
   });
 
+  // 16. Test Inline Classes, Regex Literals in Signatures, Object Rest Destructuring, and Tagged Templates
+  await runTest('Simulate inline classes, regex literals in defaults, rest destructuring, and Intl formatter', async () => {
+    const { parseScriptOptions } = await import('../src/lib/parser.ts');
+
+    const advancedScript = `
+      function testInlineConstructs(
+          AuthClass = class { validate() { return "token_valid"; } },
+          fallbackCb = () => "execution_halted"
+      ) {
+          const instance = new AuthClass();
+          return { classMethod: instance.validate(), cbResult: fallbackCb() };
+      }
+
+      async function testNativeInstances(
+          executionTime = new Date("2026-08-17T00:00:00Z"),
+          pattern = /(?:[0-9]{1,3}\\.){3}[0-9]{1,3}/g,
+          state = Promise.resolve("connected")
+      ) {
+          return {
+              isDate: executionTime instanceof Date,
+              dateIso: executionTime instanceof Date ? executionTime.toISOString() : null,
+              regexMatch: "Client IP: 192.168.1.100".match(pattern)?.[0] || null,
+              promiseState: await state
+          };
+      }
+
+      function testWeakReferences(
+          { targetIP, ...networkConfig } = { targetIP: "10.0.0.1", gateway: "10.0.0.254", subnet: "/24" }
+      ) {
+          return { targetIP, networkConfig };
+      }
+
+      function sanitizeQuery(strings, ...values) {
+          return strings.reduce((result, str, i) => result + str + (values[i] !== undefined ? encodeURIComponent(values[i]) : ''), '');
+      }
+
+      function testAdvancedGlobals(
+          query = sanitizeQuery\`SELECT data FROM logs WHERE ip = \${"10.0.0.1' OR 1=1"}\`,
+          formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC' })
+      ) {
+          return {
+              query,
+              formattedDate: formatter.format(new Date(0))
+          };
+      }
+    `;
+
+    // 1. Validate AST Parser preserves full default values without truncating on nested parentheses
+    const meta = parseScriptOptions(advancedScript);
+    const authOpt = meta.options.find(o => o.key === 'AuthClass');
+    assert.ok(authOpt, 'AuthClass option detected');
+    assert.ok(String(authOpt.default).includes('return "token_valid"'), 'AuthClass default is NOT truncated on validate()');
+
+    const patternOpt = meta.options.find(o => o.key === 'pattern');
+    assert.ok(patternOpt, 'pattern option detected');
+    assert.strictEqual(patternOpt.default, '/(?:[0-9]{1,3}\\.){3}[0-9]{1,3}/g', 'Pattern regex is NOT truncated on parenthesis inside regex');
+
+    // 2. Validate Worker Execution
+    const mockCurrentFilePath = 'advanced-test.js';
+    const __dirname = '.';
+    const __filename = mockCurrentFilePath;
+    const dirname = __dirname;
+    const filename = __filename;
+    const global = globalThis;
+    const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+    const exports = module.exports;
+    const process = { env: {}, argv: ['node', mockCurrentFilePath] };
+    const Buffer = BufferPolyfill;
+    const require = function(id) { return {}; };
+    const workspace = {};
+
+    const scriptFunc = new Function(
+      '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global', '__code_source__',
+      `return (async () => {
+        ${advancedScript}
+        if (typeof run === "function") return await run(__workspace_args__);
+        if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+
+        function __safeEvalValue(val) {
+          if (typeof val === "string") {
+            var t = val.trim();
+            if (!t) return val;
+            if (/^-?\\d+n$/.test(t)) {
+              try { return BigInt(t.slice(0, -1)); } catch(e) {}
+            }
+            if (/^0x[0-9a-fA-F]+$/i.test(t) || /^0b[01]+$/i.test(t) || /^0o[0-7]+$/i.test(t)) {
+              try { return Number(t); } catch(e) {}
+            }
+            if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+              try { return JSON.parse(val); } catch(e) {
+                try { var fixed = val.replace(/([a-zA-Z0-9_$]+)\\s*:/g, '"$1":').replace(/'/g, '"'); return JSON.parse(fixed); } catch(e2) {}
+              }
+            }
+            if (/^\\/.*\\/[gimsuy]*$/.test(t)) {
+              try { var evalFunc = new Function("return (" + t + ");"); return evalFunc(); } catch(e) {}
+            }
+            if (/^(?:class\\b|\\([a-zA-Z0-9_$,\\s]*\\)\\s*=>|function\\b|Symbol\\b|Promise\\b|Intl\\b|sanitizeQuery|new\\s+)/.test(t)) {
+              try { var evalFunc = new Function("Buffer", "sanitizeQuery", "return (" + t + ");"); var b = typeof Buffer !== "undefined" ? Buffer : (typeof self !== "undefined" && self.Buffer ? self.Buffer : null); var sq = typeof sanitizeQuery === "function" ? sanitizeQuery : null; return evalFunc(b, sq); } catch(e) {}
+            }
+          }
+          return val;
+        }
+
+        if (__workspace_args__ && typeof __workspace_args__ === "object") {
+          Object.keys(__workspace_args__).forEach(function(k) { __workspace_args__[k] = __safeEvalValue(__workspace_args__[k]); });
+        }
+        
+        var __autoResults__ = {};
+        var __fnNames__ = [];
+        var __rawCodeStr = (typeof __code_source__ === "string") ? __code_source__ : "";
+        var __fnRegex__ = /(?:^|\\n)\\s*(?:async\\s+)?function(?:\\s*\\*)?\\s*([a-zA-Z0-9_$]+)/g;
+        var __fnMatch__;
+        while ((__fnMatch__ = __fnRegex__.exec(__rawCodeStr)) !== null) {
+          if (__fnMatch__[1] && __fnNames__.indexOf(__fnMatch__[1]) === -1) { __fnNames__.push(__fnMatch__[1]); }
+        }
+        for (var f = 0; f < __fnNames__.length; f++) {
+          var fnName = __fnNames__[f];
+          var fn = null;
+          try { fn = eval(fnName); } catch(e) { continue; }
+          if (typeof fn !== "function") continue;
+          try {
+            var fnStr = fn.toString();
+            var isDestructured = /^[^(]*\\(\\s*\\{/.test(fnStr);
+            var res;
+            if (isDestructured) {
+              var destrKeys = [];
+              var destrMatch = fnStr.match(/^[^(]*\\(\\s*\\{([^}]*)\\}/);
+              if (destrMatch && destrMatch[1]) {
+                var rawDestr = destrMatch[1].split(",");
+                for (var d = 0; d < rawDestr.length; d++) {
+                  var dKey = rawDestr[d].split("=")[0].split(":")[0].trim().replace(/^\\.\\.\\./, "");
+                  if (dKey) destrKeys.push(dKey);
+                }
+              }
+              var destrArgs = {};
+              var hasCustomArg = false;
+              if (__workspace_args__ && typeof __workspace_args__ === "object") {
+                for (var dk = 0; dk < destrKeys.length; dk++) {
+                  var kName = destrKeys[dk];
+                  if (__workspace_args__[kName] !== undefined && __workspace_args__[kName] !== "") {
+                    destrArgs[kName] = __safeEvalValue(__workspace_args__[kName]);
+                    hasCustomArg = true;
+                  }
+                }
+              }
+              if (hasCustomArg) {
+                res = await fn(destrArgs);
+              } else {
+                res = await fn();
+              }
+            } else {
+              var paramNames = [];
+              var paramMatch = fnStr.match(/^[^(]*\\(([^)]*)\\)/);
+              if (paramMatch && paramMatch[1]) {
+                var rawParams = paramMatch[1].split(",");
+                for (var p = 0; p < rawParams.length; p++) {
+                  var pName = rawParams[p].split("=")[0].trim().replace(/^\\.\\.\\./, "");
+                  if (pName) paramNames.push(pName);
+                }
+              }
+              if (paramNames.length > 0 && __workspace_args__ && typeof __workspace_args__ === "object") {
+                var callArgs = paramNames.map(function(k) { return __workspace_args__[k] !== undefined ? __safeEvalValue(__workspace_args__[k]) : undefined; });
+                res = await fn.apply(null, callArgs);
+              } else {
+                res = await fn();
+              }
+            }
+            if (res && typeof res.next === "function" && typeof res[Symbol.iterator] === "function") {
+              var genItems = [];
+              var step;
+              while (!(step = res.next()).done) { genItems.push(step.value); }
+              __autoResults__[fnName] = genItems;
+            } else {
+              __autoResults__[fnName] = res;
+            }
+          } catch(e) {
+            if (fnName !== "sanitizeQuery") console.error("Error executing " + fnName + ":", e.message);
+          }
+        }
+        if (Object.keys(__autoResults__).length > 0) {
+          return __autoResults__;
+        }
+        return module.exports;
+      })();`
+    );
+
+    const formDefaults = {};
+    meta.options.forEach(o => { formDefaults[o.key] = o.default; });
+
+    const result = await scriptFunc(
+      formDefaults,
+      require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, advancedScript
+    );
+
+    assert.ok(result.testInlineConstructs, 'testInlineConstructs executed');
+    assert.strictEqual(result.testInlineConstructs.classMethod, 'token_valid', 'Class method executed and returned token_valid');
+    assert.strictEqual(result.testInlineConstructs.cbResult, 'execution_halted', 'Fallback callback executed');
+
+    assert.ok(result.testNativeInstances, 'testNativeInstances executed');
+    assert.strictEqual(result.testNativeInstances.isDate, true, 'isDate is true');
+    assert.strictEqual(result.testNativeInstances.regexMatch, '192.168.1.100', 'Regex matched IP successfully');
+    assert.strictEqual(result.testNativeInstances.promiseState, 'connected', 'Promise resolved successfully');
+
+    assert.ok(result.testWeakReferences, 'testWeakReferences executed');
+    assert.strictEqual(result.testWeakReferences.targetIP, '10.0.0.1', 'targetIP correctly unpacked');
+    assert.deepStrictEqual(result.testWeakReferences.networkConfig, { gateway: '10.0.0.254', subnet: '/24' }, 'Rest networkConfig correctly isolated without foreign workspace keys');
+
+    assert.ok(result.testAdvancedGlobals, 'testAdvancedGlobals executed');
+    assert.strictEqual(result.testAdvancedGlobals.query, "SELECT data FROM logs WHERE ip = 10.0.0.1'%20OR%201%3D1", 'Tagged template literal sanitized');
+    assert.strictEqual(result.testAdvancedGlobals.formattedDate, '1/1/1970', 'Intl.DateTimeFormat formatted UTC timestamp correctly');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
