@@ -104,13 +104,6 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
 
           {
-            echo "### 🚀 JS-Workspace Production Release \`${VERSION}\`"
-            echo ""
-            echo "#### 🔒 Release Checksums & Verification:"
-            echo "- **Node Runtime**: Node.js 22 LTS"
-            echo "- **Validation**: 100% automated test suite verified before release"
-            echo ""
-            echo "#### 📦 Release Assets & Checksums:"
             echo '```'
             cat ./release-files/SHA256SUMS
             echo '```'
