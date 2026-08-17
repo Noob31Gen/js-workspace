@@ -526,6 +526,111 @@ async function main() {
     assert.strictEqual(optCidr?.label, 'CIDR', 'Acronym CIDR preserved');
   });
 
+  // 11. Test Auto-Invocation of Multi-Function Test Scripts in Worker Execution Wrapper
+  await runTest('Worker loader auto-invokes top-level functions when no explicit run/main is called', async () => {
+    const { buildOnMessageHandler } = await import('../src/lib/worker-runner.ts');
+
+    const onMessageCode = buildOnMessageHandler();
+    assert.ok(onMessageCode.includes('__autoResults__'), 'Includes autoResults map');
+    assert.ok(onMessageCode.includes('__fnRegex__'), 'Includes runtime function name regex');
+  });
+
+  // 12. Test Execution Simulation of the 4 Uninvoked Functions Script
+  await runTest('Simulate multi-function uninvoked script auto-executing all 4 functions', async () => {
+    const userScript = `
+      function testNodeGlobals(encodeString = "Hello Sandbox", envVar = "NODE_ENV") {
+          const buf = typeof Buffer !== "undefined" ? Buffer.from(encodeString).toString('base64') : "Buffer not defined";
+          const env = typeof process !== "undefined" ? process.env[envVar] || "Env var not found" : "Process not defined";
+          return { buf, env };
+      }
+
+      function testCoreModules({ algorithm = "sha256", data = "test data" } = {}) {
+          const crypto = require('crypto');
+          const hashResult = crypto.createHash(algorithm).update(data).digest('hex');
+          return { hashResult };
+      }
+    `;
+
+    const mockCurrentFilePath = 'test-node-globals.js';
+    const __dirname = '.';
+    const __filename = mockCurrentFilePath;
+    const dirname = __dirname;
+    const filename = __filename;
+    const global = globalThis;
+    const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+    const exports = module.exports;
+    const process = { env: { NODE_ENV: 'test-environment' }, argv: ['node', mockCurrentFilePath] };
+    const Buffer = BufferPolyfill;
+    const crypto = await import('crypto');
+    const require = function(id) { if (id === 'crypto') return crypto; return {}; };
+    const workspace = {};
+
+    const scriptFunc = new Function(
+      '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global', '__code_source__',
+      `return (async () => {
+        ${userScript}
+        if (typeof run === "function") return await run(__workspace_args__);
+        if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+        
+        var __autoResults__ = {};
+        var __fnNames__ = [];
+        var __rawCodeStr = (typeof __code_source__ === "string") ? __code_source__ : "";
+        var __fnRegex__ = /(?:^|\\n)\\s*(?:async\\s+)?function\\s*([a-zA-Z0-9_$]+)/g;
+        var __fnMatch__;
+        while ((__fnMatch__ = __fnRegex__.exec(__rawCodeStr)) !== null) {
+          if (__fnMatch__[1] && __fnNames__.indexOf(__fnMatch__[1]) === -1) { __fnNames__.push(__fnMatch__[1]); }
+        }
+        for (var f = 0; f < __fnNames__.length; f++) {
+          var fnName = __fnNames__[f];
+          try {
+            var fn = eval(fnName);
+            if (typeof fn === "function") {
+              var fnStr = fn.toString();
+              var isDestructured = /^[^(]*\\(\\s*\\{/.test(fnStr);
+              if (isDestructured) {
+                __autoResults__[fnName] = await fn(__workspace_args__);
+              } else {
+                var paramNames = [];
+                var paramMatch = fnStr.match(/^[^(]*\\(([^)]*)\\)/);
+                if (paramMatch && paramMatch[1]) {
+                  var rawParams = paramMatch[1].split(",");
+                  for (var p = 0; p < rawParams.length; p++) {
+                    var pName = rawParams[p].split("=")[0].trim().replace(/^\\.\\.\\./, "");
+                    if (pName) paramNames.push(pName);
+                  }
+                }
+                if (paramNames.length > 0 && __workspace_args__ && typeof __workspace_args__ === "object") {
+                  var callArgs = paramNames.map(function(k) { return __workspace_args__[k]; });
+                  __autoResults__[fnName] = await fn.apply(null, callArgs);
+                } else {
+                  __autoResults__[fnName] = await fn(__workspace_args__);
+                }
+              }
+            }
+          } catch(e) {
+            console.error("Error executing " + fnName + ":", e.message);
+          }
+        }
+        if (Object.keys(__autoResults__).length > 0) {
+          return __autoResults__;
+        }
+        return module.exports;
+      })();`
+    );
+
+    const result = await scriptFunc(
+      { encodeString: 'Hello Sandbox', envVar: 'NODE_ENV', algorithm: 'sha256', data: 'test data' },
+      require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, userScript
+    );
+
+    assert.ok(result.testNodeGlobals, 'testNodeGlobals was executed');
+    assert.strictEqual(result.testNodeGlobals.buf, 'SGVsbG8gU2FuZGJveA==');
+    assert.strictEqual(result.testNodeGlobals.env, 'test-environment');
+
+    assert.ok(result.testCoreModules, 'testCoreModules was executed');
+    assert.ok(result.testCoreModules.hashResult, 'hashResult generated');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
