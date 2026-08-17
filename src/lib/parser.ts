@@ -414,34 +414,189 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 7. Extract CLI process.argv.includes Flags: e.g. const isVerbose = process.argv.includes('--verbose')
-  const processArgvIncludesRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*process\.argv\.includes\(['"]--?([a-zA-Z0-9_$-]+)['"]\)/gi;
-  let argvIncMatch;
+  // 7. Extract CLI Array Checks & Flags: e.g. args.includes('--verbose'), extraFlags.includes('--force'), argv.indexOf('-d') !== -1
+  const arrayFlagRegex = /(?:(?:process\.argv|argv|args|extraFlags|flags|cmdArgs|options|opts)\s*\.\s*(?:includes|indexOf)\(\s*['"]--?([a-zA-Z0-9_$-]+)['"]\)|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:process\.argv|argv|args|extraFlags|flags)\s*\.\s*includes\(\s*['"]--?([a-zA-Z0-9_$-]+)['"]\))/gi;
+  let arrayFlagMatch;
 
-  while ((argvIncMatch = processArgvIncludesRegex.exec(code)) !== null) {
-    const varName = argvIncMatch[1].trim();
-    const flagName = argvIncMatch[2].trim();
+  while ((arrayFlagMatch = arrayFlagRegex.exec(code)) !== null) {
+    const flagName = arrayFlagMatch[1] || arrayFlagMatch[3];
+    const varName = arrayFlagMatch[2];
+    if (!flagName) continue;
+
     const camelKey = flagName.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
-
     const key = varName || camelKey;
-    if (key && !jsdocKeys.has(key)) {
+
+    if (key && !jsdocKeys.has(key) && !jsdocKeys.has(camelKey) && !jsdocKeys.has(flagName)) {
       const formattedLabel = key
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase());
 
       result.options.push({
-        key,
-        label: formattedLabel,
+        key: camelKey,
+        label: `${formattedLabel} (--${flagName})`,
         type: 'boolean',
         default: false,
         source: 'autodetected',
-        description: `Auto-detected CLI boolean flag from process.argv.includes('--${flagName}')`
+        description: `Auto-detected CLI boolean flag (--${flagName})`
       });
       jsdocKeys.add(key);
+      jsdocKeys.add(camelKey);
+      jsdocKeys.add(flagName);
     }
   }
 
-  // 8. Extract CLI process.env Variables: e.g. const apiKey = process.env.API_KEY || 'default'
+  // 8. Extract Commander.js CLI Options: e.g. program.option('-v, --verbose', 'enable verbose output', false), .option('--port <number>', 'port', 8080)
+  const commanderOptionRegex = /\.(?:option|requiredOption)\(\s*['"](?:-[a-zA-Z0-9],\s*)?--([a-zA-Z0-9_$-]+)(?:\s*(<[^>]+>|\[[^\]]+\]))?['"](?:\s*,\s*['"]([^'"]+)['"])?(?:\s*,\s*([^,\)]+))?/gi;
+  let cmdMatch;
+
+  while ((cmdMatch = commanderOptionRegex.exec(code)) !== null) {
+    const flagName = cmdMatch[1]?.trim();
+    if (!flagName) continue;
+
+    const valuePlaceholder = cmdMatch[2]?.trim();
+    const description = cmdMatch[3]?.trim();
+    const defaultRaw = cmdMatch[4]?.trim();
+
+    const camelKey = flagName.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+    if (!jsdocKeys.has(camelKey) && !jsdocKeys.has(flagName)) {
+      let inferredType: OptionDescriptor['type'] = 'boolean';
+      let inferredDefault: unknown = false;
+
+      if (valuePlaceholder) {
+        inferredType = 'string';
+        inferredDefault = '';
+
+        if (defaultRaw) {
+          if (!isNaN(Number(defaultRaw))) {
+            inferredType = 'number';
+            inferredDefault = Number(defaultRaw);
+          } else if (defaultRaw === 'true' || defaultRaw === 'false') {
+            inferredType = 'boolean';
+            inferredDefault = defaultRaw === 'true';
+          } else {
+            inferredDefault = defaultRaw.replace(/^["']|["']$/g, '');
+          }
+        } else if (/num|port|timeout|delay|limit|size|count|retries|index/i.test(flagName)) {
+          inferredType = 'number';
+          inferredDefault = 0;
+        }
+      } else if (defaultRaw) {
+        inferredDefault = defaultRaw === 'true';
+      }
+
+      const formattedLabel = description || camelKey
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key: camelKey,
+        label: `${formattedLabel} (--${flagName})`,
+        type: inferredType,
+        default: inferredDefault,
+        source: 'autodetected',
+        description: description || `Commander option --${flagName}`
+      });
+      jsdocKeys.add(camelKey);
+      jsdocKeys.add(flagName);
+    }
+  }
+
+  // 9. Extract util.parseArgs & Minimist Options: e.g. parseArgs({ options: { verbose: { type: 'boolean' } } })
+  const parseArgsRegex = /parseArgs\(\s*\{([\s\S]*?)\}\s*\)/gi;
+  let parseArgsMatch;
+
+  while ((parseArgsMatch = parseArgsRegex.exec(code)) !== null) {
+    const parseArgsBody = parseArgsMatch[1];
+    const optionBlockMatch = parseArgsBody.match(/options\s*:\s*\{([\s\S]*)/i);
+    if (!optionBlockMatch) continue;
+
+    const optionsContent = optionBlockMatch[1];
+    const optionEntryRegex = /([a-zA-Z0-9_$-]+)\s*:\s*\{([^}]+)\}/gi;
+    let entryMatch;
+
+    while ((entryMatch = optionEntryRegex.exec(optionsContent)) !== null) {
+      const flagName = entryMatch[1].trim();
+      const configStr = entryMatch[2];
+      const camelKey = flagName.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+
+      if (!jsdocKeys.has(camelKey) && !jsdocKeys.has(flagName)) {
+        const isString = /type\s*:\s*['"]string['"]/i.test(configStr);
+        const defaultMatch = configStr.match(/default\s*:\s*([^,\n}]+)/i);
+        const defaultRaw = defaultMatch ? defaultMatch[1].trim() : undefined;
+
+        let inferredType: OptionDescriptor['type'] = isString ? 'string' : 'boolean';
+        let inferredDefault: unknown = isString ? '' : false;
+
+        if (defaultRaw) {
+          if (defaultRaw === 'true' || defaultRaw === 'false') {
+            inferredType = 'boolean';
+            inferredDefault = defaultRaw === 'true';
+          } else if (!isNaN(Number(defaultRaw))) {
+            inferredType = 'number';
+            inferredDefault = Number(defaultRaw);
+          } else {
+            inferredDefault = defaultRaw.replace(/^["']|["']$/g, '');
+          }
+        }
+
+        const formattedLabel = camelKey
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase());
+
+        result.options.push({
+          key: camelKey,
+          label: `${formattedLabel} (--${flagName})`,
+          type: inferredType,
+          default: inferredDefault,
+          source: 'autodetected',
+          description: `Auto-detected from util.parseArgs (--${flagName})`
+        });
+        jsdocKeys.add(camelKey);
+        jsdocKeys.add(flagName);
+      }
+    }
+  }
+
+  // 10. Extract Literal CLI Flag Strings (e.g. "--verbose", "--force", "--dry-run" in invocations or arrays)
+  const literalFlagRegex = /(?:^|[^a-zA-Z0-9_$-])['"]--([a-zA-Z][a-zA-Z0-9_$-]{1,30})['"]/g;
+  let litMatch;
+
+  // Filter out common non-CLI CSS variables or HTML/SVG attributes
+  const CSS_OR_NON_CLI_FLAGS = new Set([
+    'font', 'color', 'background', 'foreground', 'border', 'input', 'ring', 'radius',
+    'sidebar', 'primary', 'secondary', 'muted', 'accent', 'destructive', 'card', 'popover',
+    'tw', 'esm', 'cjs', 'webkit', 'moz', 'ms', 'o'
+  ]);
+
+  while ((litMatch = literalFlagRegex.exec(code)) !== null) {
+    const flagName = litMatch[1].trim();
+    if (!flagName || CSS_OR_NON_CLI_FLAGS.has(flagName.toLowerCase())) continue;
+
+    // Check if it's a CSS variable prefix (e.g. --font-sans, --color-primary)
+    const basePrefix = flagName.split('-')[0].toLowerCase();
+    if (CSS_OR_NON_CLI_FLAGS.has(basePrefix)) continue;
+
+    const camelKey = flagName.replace(/-([a-z])/g, (_, g) => g.toUpperCase());
+
+    if (!jsdocKeys.has(camelKey) && !jsdocKeys.has(flagName)) {
+      const formattedLabel = camelKey
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase());
+
+      result.options.push({
+        key: camelKey,
+        label: `${formattedLabel} (--${flagName})`,
+        type: 'boolean',
+        default: false,
+        source: 'autodetected',
+        description: `Auto-detected CLI flag (--${flagName})`
+      });
+      jsdocKeys.add(camelKey);
+      jsdocKeys.add(flagName);
+    }
+  }
+
+  // 11. Extract CLI process.env Variables: e.g. const apiKey = process.env.API_KEY || 'default'
   const processEnvRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*process\.env\.([a-zA-Z0-9_$]+)(?:\s*\|\|\s*([^;\n]+))?/gi;
   let envMatch;
 

@@ -122,7 +122,13 @@ function buildOnMessageHandler(): string {
   lines.push('      ' + JSON.stringify('if (__workspace_args__ && typeof __workspace_args__ === "object") {') + ' + ' + NL + ' +');
   lines.push('      ' + JSON.stringify('var argvList = ["node", typeof CURRENT_FILE_PATH !== "undefined" ? CURRENT_FILE_PATH : "script.js"];') + ' + ' + NL + ' +');
   lines.push('      ' + JSON.stringify('Object.entries(__workspace_args__).forEach(function(e) {') + ' + ' + NL + ' +');
-  lines.push('      ' + JSON.stringify('if (e[1] !== undefined && e[1] !== null && e[1] !== "") { argvList.push(String(e[1])); }') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('if (e[1] !== undefined && e[1] !== null && e[1] !== "") {') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('  if (typeof e[1] === "boolean") {') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('    if (e[1] === true) { argvList.push("--" + e[0].replace(/([A-Z])/g, "-$1").toLowerCase()); }') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('  } else {') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('    argvList.push(String(e[1]));') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('  }') + ' + ' + NL + ' +');
+  lines.push('      ' + JSON.stringify('}') + ' + ' + NL + ' +');
   lines.push('      ' + JSON.stringify('});') + ' + ' + NL + ' +');
   lines.push('      ' + JSON.stringify('process.argv = argvList;') + ' + ' + NL + ' +');
   lines.push('      ' + JSON.stringify('}') + ' + ' + NL + ' +');
