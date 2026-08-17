@@ -171,13 +171,46 @@ export function App() {
     setIsRunning(true);
     currentRunFilesRef.current = [];
 
-    // Ensure all options have their default or user-entered values filled
+    // Ensure all options have their default or user-entered values filled and parsed
     const effectiveArgs: Record<string, unknown> = {};
     parsedMeta.options.forEach(opt => {
-      effectiveArgs[opt.key] = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
+      let val = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
+      if (opt.type === 'json' && typeof val === 'string') {
+        const trimmed = val.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          try {
+            val = JSON.parse(val);
+          } catch {
+            try {
+              const fixed = (val as string).replace(/([a-zA-Z0-9_$]+)\s*:/g, '"$1":').replace(/'/g, '"');
+              val = JSON.parse(fixed);
+            } catch {
+              // fallback to raw string
+            }
+          }
+        }
+      }
+      effectiveArgs[opt.key] = val;
     });
-    // Also include any extra optionValues keys
-    Object.assign(effectiveArgs, optionValues);
+    // Also include any extra optionValues keys with JSON parsing if applicable
+    Object.entries(optionValues).forEach(([k, v]) => {
+      if (effectiveArgs[k] === undefined) {
+        if (typeof v === 'string') {
+          const trimmed = v.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              effectiveArgs[k] = JSON.parse(v);
+            } catch {
+              effectiveArgs[k] = v;
+            }
+          } else {
+            effectiveArgs[k] = v;
+          }
+        } else {
+          effectiveArgs[k] = v;
+        }
+      }
+    });
 
     const runOptions = {
       code: activeCode,

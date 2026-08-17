@@ -631,6 +631,138 @@ async function main() {
     assert.ok(result.testCoreModules.hashResult, 'hashResult generated');
   });
 
+  // 13. Test JSON String Parsing into Actual Array/Object and Generator Iteration
+  await runTest('Simulate port scan with JSON string array and generator sequence', async () => {
+    const portScript = `
+      async function simulatePortScan(target = "192.168.1.1", ports = [22, 80, 443], timeoutMs = 10) {
+          const scannedPorts = [];
+          for (let i = 0; i < ports.length; i++) {
+              scannedPorts.push(ports[i]);
+          }
+          return { target, scanned: scannedPorts.length, scannedPorts };
+      }
+
+      function* generateHexSequence(seed = 0x1A, iterations = 3) {
+          let current = seed;
+          for (let i = 0; i < iterations; i++) {
+              yield current.toString(16).toUpperCase();
+              current = (current * 16807) % 2147483647; 
+          }
+      }
+    `;
+
+    const mockCurrentFilePath = 'port-scanner.js';
+    const __dirname = '.';
+    const __filename = mockCurrentFilePath;
+    const dirname = __dirname;
+    const filename = __filename;
+    const global = globalThis;
+    const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+    const exports = module.exports;
+    const process = { env: {}, argv: ['node', mockCurrentFilePath] };
+    const Buffer = BufferPolyfill;
+    const require = function(id) { return {}; };
+    const workspace = {};
+
+    const scriptFunc = new Function(
+      '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global', '__code_source__',
+      `return (async () => {
+        ${portScript}
+        if (typeof run === "function") return await run(__workspace_args__);
+        if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+
+        function __safeParseJson(val) {
+          if (typeof val === "string") {
+            var t = val.trim();
+            if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+              try { return JSON.parse(val); } catch(e) {
+                try { var fixed = val.replace(/([a-zA-Z0-9_$]+)\\s*:/g, '"$1":').replace(/'/g, '"'); return JSON.parse(fixed); } catch(e2) { return val; }
+              }
+            }
+          }
+          return val;
+        }
+
+        if (__workspace_args__ && typeof __workspace_args__ === "object") {
+          Object.keys(__workspace_args__).forEach(function(k) { __workspace_args__[k] = __safeParseJson(__workspace_args__[k]); });
+        }
+        
+        var __autoResults__ = {};
+        var __fnNames__ = [];
+        var __rawCodeStr = (typeof __code_source__ === "string") ? __code_source__ : "";
+        var __fnRegex__ = /(?:^|\\n)\\s*(?:async\\s+)?function(?:\\s*\\*)?\\s*([a-zA-Z0-9_$]+)/g;
+        var __fnMatch__;
+        while ((__fnMatch__ = __fnRegex__.exec(__rawCodeStr)) !== null) {
+          if (__fnMatch__[1] && __fnNames__.indexOf(__fnMatch__[1]) === -1) { __fnNames__.push(__fnMatch__[1]); }
+        }
+        for (var f = 0; f < __fnNames__.length; f++) {
+          var fnName = __fnNames__[f];
+          try {
+            var fn = eval(fnName);
+            if (typeof fn === "function") {
+              var fnStr = fn.toString();
+              var isDestructured = /^[^(]*\\(\\s*\\{/.test(fnStr);
+              var res;
+              if (isDestructured) {
+                res = await fn(__workspace_args__);
+              } else {
+                var paramNames = [];
+                var paramMatch = fnStr.match(/^[^(]*\\(([^)]*)\\)/);
+                if (paramMatch && paramMatch[1]) {
+                  var rawParams = paramMatch[1].split(",");
+                  for (var p = 0; p < rawParams.length; p++) {
+                    var pName = rawParams[p].split("=")[0].trim().replace(/^\\.\\.\\./, "");
+                    if (pName) paramNames.push(pName);
+                  }
+                }
+                if (paramNames.length > 0 && __workspace_args__ && typeof __workspace_args__ === "object") {
+                  var callArgs = paramNames.map(function(k) { return __safeParseJson(__workspace_args__[k]); });
+                  res = await fn.apply(null, callArgs);
+                } else {
+                  res = await fn(__workspace_args__);
+                }
+              }
+              if (res && typeof res.next === "function" && typeof res[Symbol.iterator] === "function") {
+                var genItems = [];
+                var step;
+                while (!(step = res.next()).done) { genItems.push(step.value); }
+                __autoResults__[fnName] = genItems;
+              } else {
+                __autoResults__[fnName] = res;
+              }
+            }
+          } catch(e) {
+            console.error("Error executing " + fnName + ":", e.message);
+          }
+        }
+        if (Object.keys(__autoResults__).length > 0) {
+          return __autoResults__;
+        }
+        return module.exports;
+      })();`
+    );
+
+    // Pass ports as a multiline JSON string as received from form textarea
+    const rawFormArgs = {
+      target: '192.168.1.1',
+      ports: '[\n  22,\n  80,\n  443\n]',
+      timeoutMs: 10
+    };
+
+    const result = await scriptFunc(
+      rawFormArgs,
+      require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, portScript
+    );
+
+    assert.ok(result.simulatePortScan, 'simulatePortScan executed');
+    assert.strictEqual(result.simulatePortScan.scanned, 3, 'Scanned exactly 3 ports');
+    assert.deepStrictEqual(result.simulatePortScan.scannedPorts, [22, 80, 443], 'Parsed JSON string to real numbers [22, 80, 443]');
+
+    assert.ok(result.generateHexSequence, 'generateHexSequence generator executed');
+    assert.strictEqual(result.generateHexSequence.length, 3, 'Yielded 3 iterations');
+    assert.strictEqual(result.generateHexSequence[0], '1A', 'Yielded correct first hex value');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
