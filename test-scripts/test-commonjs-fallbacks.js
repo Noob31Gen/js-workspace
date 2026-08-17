@@ -174,6 +174,106 @@ runTest('Simulate CommonJS exports.run in ScriptRunner', async () => {
   assert.strictEqual(result.success, true, 'exports.run returned expected object');
 });
 
+// 5. Test require.main === module execution flow
+runTest('Simulate require.main === module CLI block execution', async () => {
+  const mockCurrentFilePath = 'test-engine.js';
+  const __dirname = '.';
+  const __filename = mockCurrentFilePath;
+  const dirname = __dirname;
+  const filename = __filename;
+  const global = globalThis;
+  const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+  const exports = module.exports;
+  const process = { env: {}, argv: ['node', mockCurrentFilePath, '--verbose'] };
+  const Buffer = BufferPolyfill;
+  const require = function(id) { return {}; };
+  require.main = module; // Bind require.main === module
+  const workspace = {};
+
+  let cliExecuted = false;
+
+  const cjsCode = `
+    function runDiagnostics(targetIp, port = 443) {
+      return { status: "success", targetIp, port };
+    }
+    module.exports = { runDiagnostics };
+
+    if (require.main === module) {
+      cliExecuted = true;
+      module.exports.cliResult = runDiagnostics("192.168.1.100", 8080);
+    }
+  `;
+
+  const scriptFunc = new Function(
+    '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global',
+    `return (async () => {
+      var cliExecuted = false;
+      ${cjsCode}
+      if (typeof run === "function") return await run(__workspace_args__);
+      if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+      if (module.exports && typeof module.exports.run === "function") return await module.exports.run(__workspace_args__);
+      if (typeof exports.run === "function") return await exports.run(__workspace_args__);
+      return module.exports;
+    })();`
+  );
+
+  const result = await scriptFunc({}, require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global);
+
+  assert.ok(result.runDiagnostics, 'module.exports.runDiagnostics exists');
+  assert.ok(result.cliResult, 'CLI result was generated');
+  assert.strictEqual(result.cliResult.targetIp, '192.168.1.100');
+  assert.strictEqual(result.cliResult.port, 8080);
+
+  // Verify safe cloning of module containing functions (does not throw with structuredClone)
+  const safeCloneForPostMessage = function(val, seen, depth) {
+    if (depth === undefined) depth = 0;
+    if (depth > 20) return '[Max Depth Reached]';
+    if (val === null || val === undefined) return val;
+    var t = typeof val;
+    if (t === 'number' || t === 'string' || t === 'boolean' || t === 'bigint') return val;
+    if (t === 'function') return '[Function: ' + (val.name || 'anonymous') + ']';
+    if (t === 'symbol') return val.toString();
+    if (seen === undefined) seen = new Set();
+    if (typeof val === 'object') {
+      if (seen.has(val)) return '[Circular Reference]';
+      seen.add(val);
+    }
+    if (val instanceof Error) return { name: val.name, message: val.message, stack: val.stack };
+    if (val instanceof Date) return val.toISOString();
+    if (val instanceof RegExp) return val.toString();
+    if (val instanceof Uint8Array || val instanceof ArrayBuffer) return val;
+    if (Array.isArray(val)) {
+      var arrOut = [];
+      for (var i = 0; i < val.length; i++) {
+        arrOut.push(safeCloneForPostMessage(val[i], seen, depth + 1));
+      }
+      return arrOut;
+    }
+    if (typeof val === 'object') {
+      var objOut = {};
+      var keys = Object.keys(val);
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        try {
+          objOut[key] = safeCloneForPostMessage(val[key], seen, depth + 1);
+        } catch(e) {
+          objOut[key] = '[Unserializable Property]';
+        }
+      }
+      return objOut;
+    }
+    return String(val);
+  };
+
+  const sanitized = safeCloneForPostMessage(result);
+  assert.strictEqual(sanitized.runDiagnostics, '[Function: runDiagnostics]');
+  
+  // structuredClone must now succeed on the sanitized output!
+  const cloned = structuredClone(sanitized);
+  assert.strictEqual(cloned.runDiagnostics, '[Function: runDiagnostics]');
+  assert.strictEqual(cloned.cliResult.targetIp, '192.168.1.100');
+});
+
 console.log('==================================================');
 console.log(`Results: ${passCount} passed, ${failCount} failed`);
 console.log('==================================================');
