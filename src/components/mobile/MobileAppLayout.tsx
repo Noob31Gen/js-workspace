@@ -43,6 +43,7 @@ interface MobileAppLayoutProps {
   inputPrompt?: string | null;
   onSendInput?: (value: string) => void;
   parsedOptions: OptionDescriptor[];
+  warnings?: string[];
   optionValues: Record<string, unknown>;
   onChangeOptionValue: (key: string, val: unknown) => void;
   frame: FramePayload | null;
@@ -91,6 +92,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
   inputPrompt,
   onSendInput,
   parsedOptions,
+  warnings,
   optionValues,
   onChangeOptionValue,
   frame,
@@ -184,6 +186,7 @@ export const MobileAppLayout: React.FC<MobileAppLayoutProps> = ({
             <DynamicOptionForm
               options={parsedOptions}
               values={optionValues}
+              warnings={warnings}
               onChangeValue={onChangeOptionValue}
             />
           </div>

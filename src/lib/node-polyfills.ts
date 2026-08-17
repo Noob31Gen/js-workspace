@@ -1,10 +1,17 @@
 /**
  * Pure JavaScript Browser Compatibility Layer for Node.js Core Modules:
- * path, buffer, process, events, crypto, util, and Virtual fs.
+ * buffer, path, process, events, crypto, util, and Virtual fs.
  */
+import { Buffer } from 'buffer';
+import path from 'path-browserify';
+import EventEmitter from 'events';
 
 if (typeof (globalThis as unknown as { global: unknown }).global === 'undefined') {
   (globalThis as unknown as { global: unknown }).global = globalThis;
+}
+
+if (typeof (globalThis as unknown as { Buffer: unknown }).Buffer === 'undefined') {
+  (globalThis as unknown as { Buffer: unknown }).Buffer = Buffer;
 }
 
 if (typeof (globalThis as unknown as { setImmediate: unknown }).setImmediate === 'undefined') {
@@ -20,134 +27,12 @@ if (typeof globalThis.SharedArrayBuffer === 'undefined') {
   (globalThis as unknown as { SharedArrayBuffer: typeof ArrayBuffer }).SharedArrayBuffer = ArrayBuffer;
 }
 
-// 1. Path Polyfill
-export const pathPolyfill = {
-  sep: '/',
-  join(...parts: string[]): string {
-    const cleanParts = parts.filter(Boolean).map(p => String(p).trim());
-    const joined = cleanParts.join('/');
-    return pathPolyfill.normalize(joined);
-  },
-  resolve(...parts: string[]): string {
-    return pathPolyfill.join(...parts).replace(/^\//, '');
-  },
-  dirname(p: string): string {
-    const segments = String(p).replace(/\/$/, '').split('/');
-    segments.pop();
-    return segments.join('/') || '.';
-  },
-  basename(p: string, ext?: string): string {
-    const filename = String(p).split('/').pop() || '';
-    if (ext && filename.endsWith(ext)) {
-      return filename.slice(0, -ext.length);
-    }
-    return filename;
-  },
-  extname(p: string): string {
-    const filename = pathPolyfill.basename(p);
-    const dotIdx = filename.lastIndexOf('.');
-    if (dotIdx <= 0) return '';
-    return filename.slice(dotIdx);
-  },
-  normalize(p: string): string {
-    const isAbs = p.startsWith('/');
-    const parts = p.split('/').filter(Boolean);
-    const stack: string[] = [];
+// 1. Path Polyfill (Official path-browserify)
+export const pathPolyfill = path;
 
-    for (const part of parts) {
-      if (part === '.') continue;
-      if (part === '..') {
-        if (stack.length > 0) stack.pop();
-      } else {
-        stack.push(part);
-      }
-    }
-
-    const res = stack.join('/');
-    return isAbs ? '/' + res : res;
-  },
-  isAbsolute(p: string): boolean {
-    return String(p).startsWith('/');
-  }
-};
-
-// 2. Buffer Polyfill
-export class BufferPolyfill {
-  public data: Uint8Array;
-
-  constructor(data: Uint8Array | ArrayBuffer | number) {
-    if (typeof data === 'number') {
-      this.data = new Uint8Array(data);
-    } else if (data instanceof ArrayBuffer) {
-      this.data = new Uint8Array(data);
-    } else {
-      this.data = data;
-    }
-  }
-
-  public get length(): number {
-    return this.data.length;
-  }
-
-  public static from(data: unknown, encoding: string = 'utf8'): BufferPolyfill {
-    if (typeof data === 'string') {
-      if (encoding === 'base64') {
-        const bStr = atob(data);
-        const bytes = new Uint8Array(bStr.length);
-        for (let i = 0; i < bStr.length; i++) bytes[i] = bStr.charCodeAt(i);
-        return new BufferPolyfill(bytes);
-      }
-      if (encoding === 'hex') {
-        const bytes = new Uint8Array(data.length / 2);
-        for (let i = 0; i < data.length; i += 2) bytes[i / 2] = parseInt(data.substring(i * 2, i * 2 + 2), 16);
-        return new BufferPolyfill(bytes);
-      }
-      const encoder = new TextEncoder();
-      const arr = encoder.encode(data);
-      return new BufferPolyfill(arr);
-    } else if (data instanceof Uint8Array || Array.isArray(data)) {
-      return new BufferPolyfill(new Uint8Array(data));
-    }
-    return new BufferPolyfill(0);
-  }
-
-  public static alloc(size: number, fill: number = 0): BufferPolyfill {
-    const arr = new Uint8Array(size);
-    if (fill) arr.fill(fill);
-    return new BufferPolyfill(arr);
-  }
-
-  public static concat(list: Uint8Array[]): BufferPolyfill {
-    const totalLen = list.reduce((acc, curr) => acc + curr.length, 0);
-    const result = new Uint8Array(totalLen);
-    let offset = 0;
-    for (const buf of list) {
-      result.set(buf, offset);
-      offset += buf.length;
-    }
-    return new BufferPolyfill(result);
-  }
-
-  public static isBuffer(obj: unknown): boolean {
-    return obj instanceof BufferPolyfill || obj instanceof Uint8Array;
-  }
-
-  public toString(encoding: string = 'utf8'): string {
-    if (encoding === 'base64') {
-      let binary = '';
-      const len = this.data.length;
-      for (let i = 0; i < len; i++) binary += String.fromCharCode(this.data[i]);
-      return btoa(binary);
-    }
-    if (encoding === 'hex') {
-      let hex = '';
-      for (let i = 0; i < this.data.length; i++) hex += this.data[i].toString(16).padStart(2, '0');
-      return hex;
-    }
-    const decoder = new TextDecoder();
-    return decoder.decode(this.data);
-  }
-}
+// 2. Buffer Polyfill (Official Buffer package)
+export const BufferPolyfill = Buffer;
+export { Buffer };
 
 // 3. Process Polyfill
 export const processPolyfill = {
@@ -169,55 +54,11 @@ export const processPolyfill = {
   browser: true
 };
 
-// 4. Events EventEmitter Polyfill
+// 4. Events EventEmitter Polyfill (Official EventEmitter)
+export const EventEmitterPolyfill = EventEmitter;
 type EventListenerFn = (...args: unknown[]) => unknown;
 
-export class EventEmitterPolyfill {
-  static EventEmitter = EventEmitterPolyfill;
-  static default = EventEmitterPolyfill;
-  private _events: Record<string, EventListenerFn[]> = {};
-
-  public on(event: string, listener: EventListenerFn): this {
-    if (!this._events[event]) this._events[event] = [];
-    this._events[event].push(listener);
-    return this;
-  }
-
-  public once(event: string, listener: EventListenerFn): this {
-    const g = (...args: unknown[]) => {
-      this.off(event, g);
-      listener.apply(this, args);
-    };
-    return this.on(event, g);
-  }
-
-  public emit(event: string, ...args: unknown[]): boolean {
-    const listeners = this._events[event];
-    if (!listeners || listeners.length === 0) return false;
-    listeners.slice().forEach(fn => fn.apply(this, args));
-    return true;
-  }
-
-  public off(event: string, listener: EventListenerFn): this {
-    if (!this._events[event]) return this;
-    this._events[event] = this._events[event].filter(fn => fn !== listener);
-    return this;
-  }
-
-  public removeListener(event: string, listener: EventListenerFn): this {
-    return this.off(event, listener);
-  }
-
-  public removeAllListeners(event?: string): this {
-    if (event) {
-      delete this._events[event];
-    } else {
-      this._events = {};
-    }
-    return this;
-  }
-}
-
+// 5. Crypto Hashing Functions (MD5, SHA-1, SHA-256)
 function md5(str: string): string {
   function rL(v: number, s: number) { return (v << s) | (v >>> (32 - s)); }
   function aU(x: number, y: number) {
@@ -270,7 +111,104 @@ function md5(str: string): string {
   return (w2h(a) + w2h(b) + w2h(c) + w2h(d)).toLowerCase();
 }
 
-// 5. Crypto Polyfill
+const SHA256_K = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+];
+
+function sha256(str: string): string {
+  function rotr(n: number, b: number) { return (n >>> b) | (n << (32 - b)); }
+
+  let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a;
+  let h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+
+  const len = str.length;
+  const blocks: number[] = [];
+  for (let i = 0; i < len; i++) {
+    blocks[i >> 2] |= (str.charCodeAt(i) & 0xff) << (24 - (i % 4) * 8);
+  }
+  blocks[len >> 2] |= 0x80 << (24 - (len % 4) * 8);
+
+  const blockCount = (((len + 8) >> 6) + 1) * 16;
+  while (blocks.length < blockCount) blocks.push(0);
+  blocks[blockCount - 1] = len * 8;
+
+  const W = new Array(64);
+  for (let i = 0; i < blocks.length; i += 16) {
+    for (let t = 0; t < 16; t++) W[t] = blocks[i + t] | 0;
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotr(W[t - 15], 7) ^ rotr(W[t - 15], 18) ^ (W[t - 15] >>> 3);
+      const s1 = rotr(W[t - 2], 17) ^ rotr(W[t - 2], 19) ^ (W[t - 2] >>> 10);
+      W[t] = (W[t - 16] + s0 + W[t - 7] + s1) | 0;
+    }
+
+    let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = (e & f) ^ ((~e) & g);
+      const temp1 = (h + S1 + ch + SHA256_K[t] + W[t]) | 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const temp2 = (S0 + maj) | 0;
+
+      h = g; g = f; f = e; e = (d + temp1) | 0;
+      d = c; c = b; b = a; a = (temp1 + temp2) | 0;
+    }
+
+    h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+    h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
+  }
+
+  function hex(n: number) { return ('00000000' + (n >>> 0).toString(16)).slice(-8); }
+  return hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4) + hex(h5) + hex(h6) + hex(h7);
+}
+
+function sha1(str: string): string {
+  function rol(n: number, c: number) { return (n << c) | (n >>> (32 - c)); }
+  const block = [];
+  const len = str.length;
+  for (let i = 0; i < len - 3; i += 4) {
+    block.push((str.charCodeAt(i) << 24) | (str.charCodeAt(i + 1) << 16) | (str.charCodeAt(i + 2) << 8) | str.charCodeAt(i + 3));
+  }
+  let last = 0;
+  const rem = len % 4;
+  for (let i = 0; i < rem; i++) {
+    last |= str.charCodeAt(len - rem + i) << ((3 - i) * 8);
+  }
+  last |= 0x80 << ((3 - rem) * 8);
+  block.push(last);
+  while ((block.length % 16) !== 14) block.push(0);
+  block.push((len >>> 29) & 0xff);
+  block.push((len * 8) & 0xffffffff);
+
+  let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0;
+  const w = new Array(80);
+  for (let i = 0; i < block.length; i += 16) {
+    for (let t = 0; t < 16; t++) w[t] = block[i + t];
+    for (let t = 16; t < 80; t++) w[t] = rol(w[t - 3] ^ w[t - 8] ^ w[t - 14] ^ w[t - 16], 1);
+    let a = h0, b = h1, c = h2, d = h3, e = h4;
+    for (let t = 0; t < 80; t++) {
+      let f, k;
+      if (t < 20) { f = (b & c) | ((~b) & d); k = 0x5a827999; }
+      else if (t < 40) { f = b ^ c ^ d; k = 0x6ed9eba1; }
+      else if (t < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8f1bbcdc; }
+      else { f = b ^ c ^ d; k = 0xca62c1d6; }
+      const temp = (rol(a, 5) + f + e + k + w[t]) & 0xffffffff;
+      e = d; d = c; c = rol(b, 30); b = a; a = temp;
+    }
+    h0 = (h0 + a) & 0xffffffff; h1 = (h1 + b) & 0xffffffff; h2 = (h2 + c) & 0xffffffff; h3 = (h3 + d) & 0xffffffff; h4 = (h4 + e) & 0xffffffff;
+  }
+  function hex(n: number) { return ('00000000' + (n >>> 0).toString(16)).slice(-8); }
+  return hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4);
+}
+
+// 6. Crypto Polyfill
 export const cryptoPolyfill = {
   randomUUID(): string {
     if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -282,14 +220,14 @@ export const cryptoPolyfill = {
       return v.toString(16);
     });
   },
-  randomBytes(size: number): BufferPolyfill {
+  randomBytes(size: number): Buffer {
     const arr = new Uint8Array(size);
     if (globalThis.crypto?.getRandomValues) {
       globalThis.crypto.getRandomValues(arr);
     } else {
       for (let i = 0; i < size; i++) arr[i] = (Math.random() * 256) | 0;
     }
-    return new BufferPolyfill(arr.buffer);
+    return Buffer.from(arr);
   },
   createHash(algo: string) {
     let _data = '';
@@ -299,15 +237,20 @@ export const cryptoPolyfill = {
         return this;
       },
       digest(encoding: string = 'hex') {
-        const hex = algo.toLowerCase() === 'md5' ? md5(_data) : md5(_data);
-        if (encoding === 'hex') return hex;
-        return BufferPolyfill.from(hex, 'hex').toString(encoding);
+        const norm = String(algo || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        let hexResult = '';
+        if (norm === 'sha256') hexResult = sha256(_data);
+        else if (norm === 'sha1') hexResult = sha1(_data);
+        else hexResult = md5(_data);
+
+        if (encoding === 'hex') return hexResult;
+        return Buffer.from(hexResult, 'hex').toString(encoding as BufferEncoding);
       }
     };
   }
 };
 
-// 6. Util Polyfill
+// 7. Util Polyfill
 export const utilPolyfill = {
   promisify(fn: (...args: unknown[]) => void) {
     return function (...args: unknown[]) {
@@ -336,7 +279,7 @@ export const utilPolyfill = {
   }
 };
 
-// 7. OS Polyfill
+// 8. OS Polyfill
 export const osPolyfill = {
   cpus: () => [{ model: 'Browser Virtual CPU', speed: 3000, times: { user: 100, nice: 0, sys: 50, idle: 850, irq: 0 } }],
   totalmem: () => 8589934592,
@@ -354,8 +297,8 @@ export const osPolyfill = {
   tmpdir: () => '/tmp'
 };
 
-// 8. Stream Polyfill
-export class StreamPolyfill extends EventEmitterPolyfill {
+// 9. Stream Polyfill
+export class StreamPolyfill extends EventEmitter {
   static Stream = StreamPolyfill;
   static Readable = StreamPolyfill;
   static Writable = StreamPolyfill;
@@ -376,21 +319,21 @@ export class StreamPolyfill extends EventEmitterPolyfill {
   static default = StreamPolyfill;
 }
 
-// 9. Zlib Polyfill
+// 10. Zlib Polyfill
 export const zlibPolyfill = {
-  gzip: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, BufferPolyfill.from(buf)), 0),
-  gzipSync: (buf: unknown) => BufferPolyfill.from(buf),
-  gunzip: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, BufferPolyfill.from(buf)), 0),
-  gunzipSync: (buf: unknown) => BufferPolyfill.from(buf),
-  deflate: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, BufferPolyfill.from(buf)), 0),
-  inflate: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, BufferPolyfill.from(buf)), 0),
+  gzip: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, Buffer.from(buf as string)), 0),
+  gzipSync: (buf: unknown) => Buffer.from(buf as string),
+  gunzip: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, Buffer.from(buf as string)), 0),
+  gunzipSync: (buf: unknown) => Buffer.from(buf as string),
+  deflate: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, Buffer.from(buf as string)), 0),
+  inflate: (buf: unknown, cb: (err: unknown, res: unknown) => void) => setTimeout(() => cb(null, Buffer.from(buf as string)), 0),
   createGzip: () => new StreamPolyfill(),
   createGunzip: () => new StreamPolyfill(),
   createBrotliCompress: () => new StreamPolyfill()
 };
 
-// 10. Net Polyfill
-export class SocketPolyfill extends EventEmitterPolyfill {
+// 11. Net Polyfill (Simulated with Sandbox Notice)
+export class SocketPolyfill extends EventEmitter {
   connect(port: number, host?: string, cb?: () => void) {
     void port; void host;
     setTimeout(() => { this.emit('connect'); if (cb) cb(); }, 0);
@@ -433,7 +376,7 @@ export const netPolyfill = {
     return s;
   },
   createServer: (cb?: (s: SocketPolyfill) => void) => {
-    const s = new EventEmitterPolyfill();
+    const s = new EventEmitter();
     (s as unknown as Record<string, unknown>).listen = () => s;
     (s as unknown as Record<string, unknown>).close = (c?: () => void) => { if (c) c(); };
     if (cb) s.on('connection', cb as unknown as EventListenerFn);
@@ -441,7 +384,7 @@ export const netPolyfill = {
   }
 };
 
-// 11. DNS Polyfill
+// 12. DNS Polyfill
 export const dnsPolyfill = {
   lookup: (domain: string, cb: (err: unknown, addr: string, family: number) => void) => { void domain; setTimeout(() => cb(null, '127.0.0.1', 4), 0); },
   resolve: (domain: string, cb: (err: unknown, addrs: string[]) => void) => { void domain; setTimeout(() => cb(null, ['127.0.0.1']), 0); },
@@ -455,24 +398,24 @@ export const dnsPolyfill = {
   }
 };
 
-// 12. HTTP & HTTPS Polyfill
-export class ClientRequestPolyfill extends EventEmitterPolyfill {
+// 13. HTTP & HTTPS Polyfill
+export class ClientRequestPolyfill extends EventEmitter {
   write() { return true; }
   end() { return this; }
 }
 
 export const httpPolyfill = {
   ClientRequest: ClientRequestPolyfill,
-  get: (url: unknown, opts: unknown, cb?: (res: EventEmitterPolyfill) => void) => httpPolyfill.request(url, opts, cb),
-  request: (url: unknown, opts: unknown, cb?: (res: EventEmitterPolyfill) => void) => {
+  get: (url: unknown, opts: unknown, cb?: (res: EventEmitter) => void) => httpPolyfill.request(url, opts, cb),
+  request: (url: unknown, opts: unknown, cb?: (res: EventEmitter) => void) => {
     let callback = cb;
-    if (typeof opts === 'function') { callback = opts as (res: EventEmitterPolyfill) => void; }
+    if (typeof opts === 'function') { callback = opts as (res: EventEmitter) => void; }
     void opts;
     const req = new ClientRequestPolyfill();
     const targetUrl = typeof url === 'string' ? url : String(url || '');
     setTimeout(() => {
       fetch(targetUrl).then(res => res.text().then(text => {
-        const incoming = new EventEmitterPolyfill();
+        const incoming = new EventEmitter();
         (incoming as unknown as Record<string, unknown>).statusCode = res.status;
         (incoming as unknown as Record<string, unknown>).headers = {};
         if (callback) callback(incoming);
@@ -482,8 +425,8 @@ export const httpPolyfill = {
     }, 0);
     return req;
   },
-  createServer: (cb?: (req: EventEmitterPolyfill, res: EventEmitterPolyfill) => void) => {
-    const s = new EventEmitterPolyfill();
+  createServer: (cb?: (req: EventEmitter, res: EventEmitter) => void) => {
+    const s = new EventEmitter();
     (s as unknown as Record<string, unknown>).listen = () => s;
     (s as unknown as Record<string, unknown>).close = (c?: () => void) => { if (c) c(); };
     if (cb) s.on('request', cb as unknown as EventListenerFn);
@@ -491,14 +434,14 @@ export const httpPolyfill = {
   }
 };
 export const httpsPolyfill = { ...httpPolyfill };
-export const http2Polyfill = { connect: () => new EventEmitterPolyfill(), createServer: httpPolyfill.createServer };
+export const http2Polyfill = { connect: () => new EventEmitter(), createServer: httpPolyfill.createServer };
 export const tlsPolyfill = { connect: (p: number, h?: string, cb?: () => void) => netPolyfill.connect(p, h, cb), createServer: httpPolyfill.createServer, TLSSocket: SocketPolyfill };
 
-// 13. Child Process Polyfill
-export class ChildProcessPolyfill extends EventEmitterPolyfill {
-  stdout = new EventEmitterPolyfill();
-  stderr = new EventEmitterPolyfill();
-  stdin = new EventEmitterPolyfill();
+// 14. Child Process Polyfill
+export class ChildProcessPolyfill extends EventEmitter {
+  stdout = new EventEmitter();
+  stderr = new EventEmitter();
+  stdin = new EventEmitter();
   kill() { this.emit('exit', 0, null); }
 }
 
@@ -530,16 +473,16 @@ export const childProcessPolyfill = {
   }
 };
 
-// 14. Worker Threads & Cluster Polyfill
+// 15. Worker Threads & Cluster Polyfill
 export const workerThreadsPolyfill = {
   isMainThread: true,
   parentPort: null,
-  Worker: class extends EventEmitterPolyfill { postMessage() {} },
-  MessageChannel: class { port1 = new EventEmitterPolyfill(); port2 = new EventEmitterPolyfill(); }
+  Worker: class extends EventEmitter { postMessage() {} },
+  MessageChannel: class { port1 = new EventEmitter(); port2 = new EventEmitter(); }
 };
 export const clusterPolyfill = { isMaster: true, isPrimary: true, isWorker: false, fork: () => new ChildProcessPolyfill() };
 
-// 15. VM Polyfill
+// 16. VM Polyfill
 export const vmPolyfill = {
   Script: class {
     code: string;
@@ -554,11 +497,10 @@ export const vmPolyfill = {
   runInThisContext: (code: string) => eval(code)
 };
 
-// 16. V8, Perf & Inspector Polyfill
+// 17. V8, Perf & Inspector Polyfill
 export const v8Polyfill = {
   getHeapStatistics: () => ({ total_heap_size: 33554432, total_heap_size_executable: 4194304, total_physical_size: 33554432, total_available_size: 4294967296, heap_size_limit: 4294967296, used_heap_size: 16777216 }),
   getHeapSpaceStatistics: () => []
 };
 export const perfHooksPolyfill = { performance: globalThis.performance || { now: () => Date.now() } };
 export const inspectorPolyfill = { open: () => {}, close: () => {}, url: () => undefined };
-

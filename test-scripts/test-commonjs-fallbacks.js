@@ -1132,11 +1132,10 @@ async function main() {
       })();`
     );
 
-    const formDefaults = {};
-    meta.options.forEach(o => { formDefaults[o.key] = o.default; });
+    const emptyFormArgs = {};
 
     const result = await scriptFunc(
-      formDefaults,
+      emptyFormArgs,
       require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, advancedScript
     );
 

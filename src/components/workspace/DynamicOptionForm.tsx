@@ -5,6 +5,7 @@ import { Sliders, RotateCcw } from 'lucide-react';
 interface DynamicOptionFormProps {
   options: OptionDescriptor[];
   values: Record<string, unknown>;
+  warnings?: string[];
   onChangeValue: (key: string, value: unknown) => void;
   onResetDefaults?: () => void;
 }
@@ -12,12 +13,23 @@ interface DynamicOptionFormProps {
 export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
   options,
   values,
+  warnings,
   onChangeValue,
   onResetDefaults
 }) => {
   if (!options || options.length === 0) {
     return (
       <div className="rounded-xl border border-border/60 bg-card p-5 text-center space-y-2">
+        {warnings && warnings.length > 0 && (
+          <div className="mb-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] text-left leading-relaxed flex items-start gap-2">
+            <span className="shrink-0 text-sm">⚠️</span>
+            <div className="space-y-1">
+              {warnings.map((w, idx) => (
+                <p key={idx}>{w.replace(/^⚠️\s*/, '')}</p>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
           <Sliders className="h-4 w-4" />
         </div>
@@ -58,6 +70,17 @@ export const DynamicOptionForm: React.FC<DynamicOptionFormProps> = ({
           </button>
         )}
       </div>
+
+      {warnings && warnings.length > 0 && (
+        <div className="mt-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed flex items-start gap-2 shrink-0">
+          <span className="shrink-0 text-sm">⚠️</span>
+          <div className="space-y-1">
+            {warnings.map((w, idx) => (
+              <p key={idx}>{w.replace(/^⚠️\s*/, '')}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto pr-1 space-y-3 pt-3">
         {options.map((opt) => {

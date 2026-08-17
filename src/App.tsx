@@ -706,6 +706,7 @@ export function App() {
           inputPrompt={inputPrompt}
           onSendInput={handleSendInput}
           parsedOptions={parsedMeta.options}
+          warnings={parsedMeta.warnings}
           optionValues={optionValues}
           onChangeOptionValue={(key: string, val: unknown) => setOptionValues(prev => ({ ...prev, [key]: val }))}
           frame={frame}
@@ -824,6 +825,7 @@ export function App() {
             <div>
               <DynamicOptionForm
                 options={parsedMeta.options}
+                warnings={parsedMeta.warnings}
                 values={optionValues}
                 onChangeValue={(key, val) => setOptionValues(prev => ({ ...prev, [key]: val }))}
               />
