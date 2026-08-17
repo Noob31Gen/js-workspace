@@ -3,6 +3,7 @@ import { ShieldCheck, ShieldAlert, Terminal, Code2, BookOpen, ExternalLink, Wifi
 import { checkExtensionConnected } from '@/lib/extension-client';
 import { ExtensionModal } from '@/components/extension/ExtensionModal';
 import { OfflinePackageModal } from '@/components/pwa/OfflinePackageModal';
+import packageJson from '../../../package.json';
 
 interface HeaderProps {
   onOpenDocs: (docName: string) => void;
@@ -161,11 +162,11 @@ export const Header: React.FC<HeaderProps> = ({
           <h1 className="text-lg sm:text-xl font-brand font-black tracking-tight text-foreground bg-gradient-to-r from-primary to-primary/80 bg-clip-text flex items-center gap-2 whitespace-nowrap">
             <span>JS Workspace.</span>
             <span className="hidden md:inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-sans font-medium text-muted-foreground border border-border/60 whitespace-nowrap shrink-0">
-              v1.5.0 PWA
+              v{packageJson.version}
             </span>
           </h1>
           <p className="text-[10px] text-muted-foreground hidden lg:block whitespace-nowrap truncate">
-            Browser Script Execution & PWA Offline Engine
+            Browser Script Execution & Virtual File System Engine
           </p>
         </div>
       </div>
