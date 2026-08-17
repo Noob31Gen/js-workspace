@@ -21,6 +21,68 @@ export interface ParsedScriptMeta {
 }
 
 /**
+ * Splits parameter strings respecting nested braces, brackets, parentheses, and quotes.
+ */
+function splitParameters(paramStr: string): string[] {
+  const params: string[] = [];
+  let current = '';
+  let depthBrace = 0;
+  let depthBracket = 0;
+  let depthParen = 0;
+  let inString: string | null = null;
+
+  for (let i = 0; i < paramStr.length; i++) {
+    const char = paramStr[i];
+    if (inString) {
+      if (char === inString && paramStr[i - 1] !== '\\') {
+        inString = null;
+      }
+      current += char;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      inString = char;
+      current += char;
+      continue;
+    }
+
+    if (char === '{') depthBrace++;
+    else if (char === '}') depthBrace--;
+    else if (char === '[') depthBracket++;
+    else if (char === ']') depthBracket--;
+    else if (char === '(') depthParen++;
+    else if (char === ')') depthParen--;
+
+    if (char === ',' && depthBrace === 0 && depthBracket === 0 && depthParen === 0) {
+      if (current.trim()) params.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) params.push(current.trim());
+  return params;
+}
+
+/**
+ * Formats a default JSON string cleanly.
+ */
+function tryFormatJsonString(str: string): string {
+  try {
+    return JSON.stringify(JSON.parse(str), null, 2);
+  } catch {
+    try {
+      const fixed = str.replace(/([a-zA-Z0-9_$]+)\s*:/g, '"$1":').replace(/'/g, '"');
+      return JSON.stringify(JSON.parse(fixed), null, 2);
+    } catch {
+      return str;
+    }
+  }
+}
+
+/**
  * Parses script source code for JSDoc annotations and code-level logic (destructuring, property access, function signatures).
  */
 export function parseScriptOptions(code: string): ParsedScriptMeta {
@@ -63,21 +125,30 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
     }
   }
 
-  // 3. Extract Destructured Function Parameters: e.g. function main({ file, dryRun = false })
-  const funcSigRegex = /(?:(?:export\s+)?(?:async\s+)?function\s*(?:[a-zA-Z0-9_$]+)?|(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=\s*(?:async\s*)?)\s*\(\s*\{([^}]+)\}\s*\)/gi;
+  // 3. Extract Function Parameters (both Destructured and Positional Signatures)
+  // Matches: function name(...), const name = (...) =>, async function(...), etc.
+  const allFuncSigRegex = /(?:(?:export\s+)?(?:async\s+)?function\s*([a-zA-Z0-9_$]+)?|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?(?:function\s*([a-zA-Z0-9_$]+)?)?)\s*\(([\s\S]*?)\)\s*(?:=>|\{)/gi;
   let funcMatch;
 
-  while ((funcMatch = funcSigRegex.exec(code)) !== null) {
-    if (funcMatch && funcMatch[1]) {
-      const rawParams = funcMatch[1].split(',');
+  // Ignore common internal callback parameter names
+  const CALLBACK_PARAM_NAMES = new Set(['err', 'error', 'req', 'res', 'resolve', 'reject', 'done', 'next', 'event', 'e', 'item', 'idx', 'i', 'v', 'val', 'elem', 'entry']);
+
+  while ((funcMatch = allFuncSigRegex.exec(code)) !== null) {
+    const rawParamList = funcMatch[4];
+    if (!rawParamList || !rawParamList.trim()) continue;
+
+    const trimmedParamList = rawParamList.trim();
+
+    // Case A: Destructured single parameter { a, b = 123 }
+    if (trimmedParamList.startsWith('{') && trimmedParamList.endsWith('}')) {
+      const innerParams = trimmedParamList.slice(1, -1);
+      const rawParams = splitParameters(innerParams);
       for (const rawParam of rawParams) {
-        const trimmed = rawParam.trim();
-        if (!trimmed) continue;
+        const [paramKeyRaw, ...defaultValParts] = rawParam.split('=');
+        const defaultValRaw = defaultValParts.length > 0 ? defaultValParts.join('=').trim() : undefined;
+        const paramKey = paramKeyRaw.trim().replace(/^[^a-zA-Z0-9_$]+/, '');
 
-        const [paramKeyRaw, defaultValRaw] = trimmed.split('=').map(s => s.trim());
-        const paramKey = paramKeyRaw.replace(/^[^a-zA-Z0-9_$]+/, '');
-
-        if (paramKey && !jsdocKeys.has(paramKey)) {
+        if (paramKey && !jsdocKeys.has(paramKey) && !CALLBACK_PARAM_NAMES.has(paramKey)) {
           let inferredType: OptionDescriptor['type'] = 'string';
           let inferredDefault: unknown = '';
 
@@ -88,8 +159,19 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
             } else if (!isNaN(Number(defaultValRaw))) {
               inferredType = 'number';
               inferredDefault = Number(defaultValRaw);
+            } else if (defaultValRaw.startsWith('{') || defaultValRaw.startsWith('[')) {
+              inferredType = 'json';
+              inferredDefault = tryFormatJsonString(defaultValRaw);
             } else {
               inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+            }
+          } else {
+            if (/^(is|enable|disable|has|use|with|show|hide|dry)/i.test(paramKey)) {
+              inferredType = 'boolean';
+              inferredDefault = false;
+            } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(paramKey)) {
+              inferredType = 'number';
+              inferredDefault = 0;
             }
           }
 
@@ -104,6 +186,83 @@ export function parseScriptOptions(code: string): ParsedScriptMeta {
             default: inferredDefault,
             source: 'autodetected',
             description: 'Auto-detected from function signature'
+          });
+          jsdocKeys.add(paramKey);
+        }
+      }
+    } else {
+      // Case B: Positional parameters e.g. (targetIp, port = 443, enableLogging = true, config = { ... }, ...extraFlags)
+      const rawParams = splitParameters(trimmedParamList);
+      for (const rawParam of rawParams) {
+        if (!rawParam) continue;
+
+        // Check if rest parameter ...extraFlags
+        let isRest = false;
+        let cleanParam = rawParam;
+        if (cleanParam.startsWith('...')) {
+          isRest = true;
+          cleanParam = cleanParam.slice(3).trim();
+        }
+
+        // Split key and default value (first '=' at depth 0)
+        let paramKeyRaw = cleanParam;
+        let defaultValRaw: string | undefined = undefined;
+
+        const eqIdx = cleanParam.indexOf('=');
+        if (eqIdx > 0) {
+          paramKeyRaw = cleanParam.slice(0, eqIdx).trim();
+          defaultValRaw = cleanParam.slice(eqIdx + 1).trim();
+        }
+
+        // Clean identifier
+        const paramKey = paramKeyRaw.replace(/^[^a-zA-Z0-9_$]+/, '').trim();
+        if (paramKey && !jsdocKeys.has(paramKey) && !CALLBACK_PARAM_NAMES.has(paramKey)) {
+          let inferredType: OptionDescriptor['type'] = 'string';
+          let inferredDefault: unknown = '';
+
+          if (isRest) {
+            inferredType = 'text';
+            inferredDefault = defaultValRaw ? defaultValRaw.replace(/^["']|["']$/g, '') : '';
+          } else if (defaultValRaw) {
+            if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+              inferredType = 'boolean';
+              inferredDefault = defaultValRaw === 'true';
+            } else if (!isNaN(Number(defaultValRaw))) {
+              inferredType = 'number';
+              inferredDefault = Number(defaultValRaw);
+            } else if (defaultValRaw.startsWith('{') || defaultValRaw.startsWith('[')) {
+              inferredType = 'json';
+              inferredDefault = tryFormatJsonString(defaultValRaw);
+            } else {
+              inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+            }
+          } else {
+            // Heuristic inferences for positional params without defaults
+            if (/^(is|enable|disable|has|use|with|show|hide|dry)/i.test(paramKey)) {
+              inferredType = 'boolean';
+              inferredDefault = false;
+            } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(paramKey)) {
+              inferredType = 'number';
+              inferredDefault = 0;
+            } else if (/ip|host|url|domain|path|file|name|user|email|address/i.test(paramKey)) {
+              inferredType = 'string';
+              inferredDefault = '';
+            }
+          }
+
+          const formattedLabel = paramKey
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase());
+
+          result.options.push({
+            key: paramKey,
+            label: formattedLabel,
+            type: inferredType,
+            default: inferredDefault,
+            source: 'autodetected',
+            description: isRest
+              ? `Auto-detected rest parameter (...${paramKey})`
+              : 'Auto-detected from function signature'
           });
           jsdocKeys.add(paramKey);
         }

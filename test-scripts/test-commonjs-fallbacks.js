@@ -274,6 +274,49 @@ runTest('Simulate require.main === module CLI block execution', async () => {
   assert.strictEqual(cloned.cliResult.targetIp, '192.168.1.100');
 });
 
+// 6. Test Positional Function Signature Parameter Auto-Detection
+runTest('parseScriptOptions detects positional function parameters & defaults', async () => {
+  const { parseScriptOptions } = await import('../src/lib/parser.ts');
+  
+  const testScript = `
+function runDiagnostics(
+    targetIp,
+    port = 443,
+    enableLogging = true,
+    config = { timeout: 5000, retry: 3 },
+    ...extraFlags
+) {
+    console.log(targetIp);
+}
+  `;
+
+  const meta = parseScriptOptions(testScript);
+  assert.strictEqual(meta.options.length, 5, 'Detected 5 parameters');
+  
+  const [optIp, optPort, optLog, optConfig, optFlags] = meta.options;
+  
+  assert.strictEqual(optIp.key, 'targetIp');
+  assert.strictEqual(optIp.label, 'Target Ip');
+  assert.strictEqual(optIp.type, 'string');
+  
+  assert.strictEqual(optPort.key, 'port');
+  assert.strictEqual(optPort.label, 'Port');
+  assert.strictEqual(optPort.type, 'number');
+  assert.strictEqual(optPort.default, 443);
+  
+  assert.strictEqual(optLog.key, 'enableLogging');
+  assert.strictEqual(optLog.label, 'Enable Logging');
+  assert.strictEqual(optLog.type, 'boolean');
+  assert.strictEqual(optLog.default, true);
+  
+  assert.strictEqual(optConfig.key, 'config');
+  assert.strictEqual(optConfig.type, 'json');
+  
+  assert.strictEqual(optFlags.key, 'extraFlags');
+  assert.strictEqual(optFlags.label, 'Extra Flags');
+  assert.strictEqual(optFlags.type, 'text');
+});
+
 console.log('==================================================');
 console.log(`Results: ${passCount} passed, ${failCount} failed`);
 console.log('==================================================');
