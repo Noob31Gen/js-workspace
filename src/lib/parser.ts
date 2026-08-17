@@ -21,9 +21,20 @@ export interface ParsedScriptMeta {
 }
 
 /**
+ * Strips single-line and multi-line comments from code strings.
+ */
+function stripComments(codeStr: string): string {
+  if (!codeStr) return '';
+  return codeStr
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\r\n]*/g, '');
+}
+
+/**
  * Splits parameter strings respecting nested braces, brackets, parentheses, and quotes.
  */
 function splitParameters(paramStr: string): string[] {
+  const cleanStr = stripComments(paramStr);
   const params: string[] = [];
   let current = '';
   let depthBrace = 0;
@@ -31,10 +42,10 @@ function splitParameters(paramStr: string): string[] {
   let depthParen = 0;
   let inString: string | null = null;
 
-  for (let i = 0; i < paramStr.length; i++) {
-    const char = paramStr[i];
+  for (let i = 0; i < cleanStr.length; i++) {
+    const char = cleanStr[i];
     if (inString) {
-      if (char === inString && paramStr[i - 1] !== '\\') {
+      if (char === inString && cleanStr[i - 1] !== '\\') {
         inString = null;
       }
       current += char;
@@ -99,35 +110,150 @@ function formatCamelLabel(key: string): string {
 const CALLBACK_PARAM_NAMES = new Set(['err', 'error', 'req', 'res', 'resolve', 'reject', 'done', 'next', 'event', 'e', 'item', 'idx', 'i', 'v', 'val', 'elem', 'entry']);
 
 /**
- * Recursively extracts parameter descriptors handling objects, arrays, defaults, and rest parameters.
+ * Finds the index of the matching closing bracket or brace.
+ */
+function findMatchingClosingIndex(str: string, startIndex: number, openChar: string, closeChar: string): number {
+  let depth = 0;
+  let inString: string | null = null;
+  for (let i = startIndex; i < str.length; i++) {
+    const c = str[i];
+    if (inString) {
+      if (c === inString && str[i - 1] !== '\\') inString = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') {
+      inString = c;
+      continue;
+    }
+    if (c === openChar) depth++;
+    else if (c === closeChar) {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Recursively extracts parameter descriptors handling objects, arrays, defaults, aliases, and rest parameters.
  */
 function extractParamDescriptors(rawParam: string, jsdocKeys: Set<string>, resultOptions: OptionDescriptor[]) {
-  const trimmed = rawParam.trim();
+  const trimmed = stripComments(rawParam).trim();
   if (!trimmed) return;
 
-  // 1. Check if Object Destructuring: { verifySSL = true, retries = 3 } = {} or { a, b }
-  const objDestructMatch = trimmed.match(/^\{([\s\S]*?)\}(?:\s*=\s*[\s\S]*)?$/);
-  if (objDestructMatch) {
-    const inner = objDestructMatch[1];
-    const innerParams = splitParameters(inner);
-    for (const innerP of innerParams) {
-      extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+  // 1. Check if Anonymous Object Destructuring: { ... } = default or { ... }
+  if (trimmed.startsWith('{')) {
+    const closeIdx = findMatchingClosingIndex(trimmed, 0, '{', '}');
+    if (closeIdx !== -1) {
+      const inner = trimmed.slice(1, closeIdx);
+      const innerParams = splitParameters(inner);
+      for (const innerP of innerParams) {
+        extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+      }
+      return;
     }
-    return;
   }
 
-  // 2. Check if Array Destructuring: [route1, route2 = "0.0.0.0/0"] = [] or [a, b]
-  const arrDestructMatch = trimmed.match(/^\[([\s\S]*?)\](?:\s*=\s*[\s\S]*)?$/);
-  if (arrDestructMatch) {
-    const inner = arrDestructMatch[1];
-    const innerParams = splitParameters(inner);
-    for (const innerP of innerParams) {
-      extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+  // 2. Check if Anonymous Array Destructuring: [ ... ] = default or [ ... ]
+  if (trimmed.startsWith('[')) {
+    const closeIdx = findMatchingClosingIndex(trimmed, 0, '[', ']');
+    if (closeIdx !== -1) {
+      const inner = trimmed.slice(1, closeIdx);
+      const innerParams = splitParameters(inner);
+      for (const innerP of innerParams) {
+        extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+      }
+      return;
     }
-    return;
   }
 
-  // 3. Check if Rest parameter: ...tags
+  // 3. Check if Colon Property Destructuring: propName: { ... } or propName: [ ... ] or propName: aliasName = default
+  const colonIdx = trimmed.indexOf(':');
+  const eqIdx = trimmed.indexOf('=');
+
+  // Ensure colon comes before '=' and before any '{' or '['
+  if (colonIdx !== -1 && (eqIdx === -1 || colonIdx < eqIdx)) {
+    const propNameRaw = trimmed.slice(0, colonIdx).trim();
+    const afterColon = trimmed.slice(colonIdx + 1).trim();
+
+    if (afterColon.startsWith('{')) {
+      const closeIdx = findMatchingClosingIndex(afterColon, 0, '{', '}');
+      if (closeIdx !== -1) {
+        const inner = afterColon.slice(1, closeIdx);
+        const innerParams = splitParameters(inner);
+        for (const innerP of innerParams) {
+          extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+        }
+        return;
+      }
+    } else if (afterColon.startsWith('[')) {
+      const closeIdx = findMatchingClosingIndex(afterColon, 0, '[', ']');
+      if (closeIdx !== -1) {
+        const inner = afterColon.slice(1, closeIdx);
+        const innerParams = splitParameters(inner);
+        for (const innerP of innerParams) {
+          extractParamDescriptors(innerP, jsdocKeys, resultOptions);
+        }
+        return;
+      }
+    } else {
+      // Aliased scalar property: timeout: msTimeout = 5000 or timeout: msTimeout
+      const afterColonEqIdx = afterColon.indexOf('=');
+      const aliasNameRaw = afterColonEqIdx !== -1 ? afterColon.slice(0, afterColonEqIdx).trim() : afterColon.trim();
+      const defaultValRaw = afterColonEqIdx !== -1 ? afterColon.slice(afterColonEqIdx + 1).trim() : undefined;
+
+      const propKey = propNameRaw.replace(/^[^a-zA-Z0-9_$]+/, '').trim();
+      const aliasName = aliasNameRaw.replace(/^[^a-zA-Z0-9_$]+/, '').trim();
+
+      const paramKey = propKey || aliasName;
+      if (paramKey && !jsdocKeys.has(paramKey) && !CALLBACK_PARAM_NAMES.has(paramKey)) {
+        let inferredType: OptionDescriptor['type'] = 'string';
+        let inferredDefault: unknown = '';
+
+        if (defaultValRaw) {
+          if (defaultValRaw === 'true' || defaultValRaw === 'false') {
+            inferredType = 'boolean';
+            inferredDefault = defaultValRaw === 'true';
+          } else if (!isNaN(Number(defaultValRaw))) {
+            inferredType = 'number';
+            inferredDefault = Number(defaultValRaw);
+          } else if (defaultValRaw.startsWith('{') || defaultValRaw.startsWith('[')) {
+            inferredType = 'json';
+            inferredDefault = tryFormatJsonString(defaultValRaw);
+          } else {
+            inferredDefault = defaultValRaw.replace(/^["']|["']$/g, '');
+          }
+        } else {
+          if (/^(is|enable|disable|has|use|with|show|hide|dry|verify)/i.test(paramKey)) {
+            inferredType = 'boolean';
+            inferredDefault = false;
+          } else if (/(count|num|number|size|delay|ms|retries|limit|offset|timeout|index|port|id)$/i.test(paramKey)) {
+            inferredType = 'number';
+            inferredDefault = 0;
+          } else if (/ip|host|url|domain|path|file|name|user|email|address|route|job/i.test(paramKey)) {
+            inferredType = 'string';
+            inferredDefault = '';
+          }
+        }
+
+        const formattedLabel = formatCamelLabel(propKey);
+
+        resultOptions.push({
+          key: propKey,
+          label: formattedLabel,
+          type: inferredType,
+          default: inferredDefault,
+          source: 'autodetected',
+          description: `Auto-detected from aliased property (${propKey} -> ${aliasName})`
+        });
+        jsdocKeys.add(propKey);
+        if (aliasName) jsdocKeys.add(aliasName);
+        return;
+      }
+    }
+  }
+
+  // 4. Check if Rest parameter: ...tags
   let isRest = false;
   let cleanParam = trimmed;
   if (cleanParam.startsWith('...')) {
@@ -135,7 +261,7 @@ function extractParamDescriptors(rawParam: string, jsdocKeys: Set<string>, resul
     cleanParam = cleanParam.slice(3).trim();
   }
 
-  // 4. Split parameter name and default value: key = defaultVal at depth 0
+  // 5. Split parameter name and default value: key = defaultVal at depth 0
   let paramKeyRaw = cleanParam;
   let defaultValRaw: string | undefined = undefined;
 

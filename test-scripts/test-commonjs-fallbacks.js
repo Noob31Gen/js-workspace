@@ -394,6 +394,41 @@ async function main() {
     assert.strictEqual(optTags?.type, 'text');
   });
 
+  // 9. Test Aliased & Nested Object Destructuring with Inline Comments
+  await runTest('parseScriptOptions parses aliased & nested object destructuring with comments', async () => {
+    const { parseScriptOptions } = await import('../src/lib/parser.ts');
+
+    const aliasedCode = `
+      function testObjectDestructuring({
+          host,
+          port = 8080,
+          timeout: msTimeout = 5000, // Aliased variable
+          credentials: { user, pass } = {} // Nested destructuring
+      } = {}) {
+          console.log("--- testObjectDestructuring ---");
+      }
+    `;
+
+    const meta = parseScriptOptions(aliasedCode);
+    const keys = meta.options.map(o => o.key);
+
+    assert.ok(keys.includes('host'), 'Detected host');
+    assert.ok(keys.includes('port'), 'Detected port');
+    assert.ok(keys.includes('timeout'), 'Detected timeout from timeout: msTimeout');
+    assert.ok(keys.includes('user'), 'Detected user from credentials: { user, pass }');
+    assert.ok(keys.includes('pass'), 'Detected pass from credentials: { user, pass }');
+
+    const optTimeout = meta.options.find(o => o.key === 'timeout');
+    assert.strictEqual(optTimeout?.label, 'Timeout');
+    assert.strictEqual(optTimeout?.type, 'number');
+    assert.strictEqual(optTimeout?.default, 5000);
+
+    const optPort = meta.options.find(o => o.key === 'port');
+    assert.strictEqual(optPort?.label, 'Port');
+    assert.strictEqual(optPort?.type, 'number');
+    assert.strictEqual(optPort?.default, 8080);
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
