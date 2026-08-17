@@ -171,10 +171,10 @@ export function App() {
     setIsRunning(true);
     currentRunFilesRef.current = [];
 
-    // Ensure all options have their default or user-entered values filled and parsed
+    // Populate effectiveArgs with user-entered values or clean primitives, leaving un-overridden complex expressions as undefined for native JS default execution
     const effectiveArgs: Record<string, unknown> = {};
-    parsedMeta.options.forEach(opt => {
-      let val = optionValues[opt.key] !== undefined ? optionValues[opt.key] : opt.default;
+    Object.entries(optionValues).forEach(([k, v]) => {
+      let val = v;
       if (typeof val === 'string') {
         const trimmed = val.trim();
         if (/^-?\d+n$/.test(trimmed)) {
@@ -185,7 +185,7 @@ export function App() {
           }
         } else if (/^0x[0-9a-fA-F]+$/i.test(trimmed) || /^0b[01]+$/i.test(trimmed) || /^0o[0-7]+$/i.test(trimmed)) {
           val = Number(trimmed);
-        } else if (opt.type === 'json' || (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        } else if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
           try {
             val = JSON.parse(val);
           } catch {
@@ -198,34 +198,7 @@ export function App() {
           }
         }
       }
-      effectiveArgs[opt.key] = val;
-    });
-    // Also include any extra optionValues keys with JSON parsing if applicable
-    Object.entries(optionValues).forEach(([k, v]) => {
-      if (effectiveArgs[k] === undefined) {
-        if (typeof v === 'string') {
-          const trimmed = v.trim();
-          if (/^-?\d+n$/.test(trimmed)) {
-            try {
-              effectiveArgs[k] = BigInt(trimmed.slice(0, -1));
-            } catch {
-              effectiveArgs[k] = v;
-            }
-          } else if (/^0x[0-9a-fA-F]+$/i.test(trimmed) || /^0b[01]+$/i.test(trimmed) || /^0o[0-7]+$/i.test(trimmed)) {
-            effectiveArgs[k] = Number(trimmed);
-          } else if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            try {
-              effectiveArgs[k] = JSON.parse(v);
-            } catch {
-              effectiveArgs[k] = v;
-            }
-          } else {
-            effectiveArgs[k] = v;
-          }
-        } else {
-          effectiveArgs[k] = v;
-        }
-      }
+      effectiveArgs[k] = val;
     });
 
     const runOptions = {

@@ -1158,6 +1158,218 @@ async function main() {
     assert.strictEqual(result.testAdvancedGlobals.formattedDate, '1/1/1970', 'Intl.DateTimeFormat formatted UTC timestamp correctly');
   });
 
+  // 17. Test TDZ Parameter References, Async Stream IIFEs, and Object Getters/Setters
+  await runTest('Simulate TDZ parameter scope, async stream IIFEs, object getters/setters, and Wasm', async () => {
+    const scopeScript = `
+      function testParameterScope(
+          baseKey = 0x5A,
+          derivedKey = baseKey ^ 0xFF,
+          encoderFn = (data) => data.map(b => b ^ derivedKey)
+      ) {
+          return {
+              baseHex: baseKey.toString(16),
+              derivedHex: derivedKey.toString(16),
+              encoded: encoderFn([0x01, 0x02, 0x03])
+          };
+      }
+
+      async function testAsyncStream(
+          streamChunks = (async function* () { 
+              yield "MZ"; 
+              yield new Promise(r => setTimeout(() => r("\\x90\\x00"), 10)); 
+              yield "PE"; 
+          })()
+      ) {
+          let assembled = "";
+          for await (const chunk of streamChunks) {
+              assembled += chunk;
+          }
+          return { assembled };
+      }
+
+      function testObjectDescriptors(
+          config = {
+              _timeout: 1000,
+              get timeout() { return this._timeout; },
+              set timeout(v) { this._timeout = Math.min(v, 5000); }
+          }
+      ) {
+          const initial = config.timeout;
+          config.timeout = 9999;
+          const capped = config.timeout;
+          return { initial, capped };
+      }
+
+      async function testWasmExecution(
+          wasmBytes = new Uint8Array([
+              0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x07, 0x01, 0x60, 
+              0x02, 0x7f, 0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07, 0x07, 0x01, 
+              0x03, 0x61, 0x64, 0x64, 0x00, 0x00, 0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 
+              0x00, 0x20, 0x01, 0x6a, 0x0b
+          ])
+      ) {
+          const { instance } = await WebAssembly.instantiate(wasmBytes);
+          return { wasmSum: instance.exports.add(5, 7) };
+      }
+    `;
+
+    const mockCurrentFilePath = 'scope-test.js';
+    const __dirname = '.';
+    const __filename = mockCurrentFilePath;
+    const dirname = __dirname;
+    const filename = __filename;
+    const global = globalThis;
+    const module = { exports: {}, id: mockCurrentFilePath, filename: mockCurrentFilePath, path: __dirname, paths: [], loaded: false, children: [] };
+    const exports = module.exports;
+    const process = { env: {}, argv: ['node', mockCurrentFilePath] };
+    const Buffer = BufferPolyfill;
+    const require = function(id) { return {}; };
+    const workspace = {};
+
+    const scriptFunc = new Function(
+      '__workspace_args__', 'require', 'workspace', 'process', 'Buffer', '__dirname', '__filename', 'dirname', 'filename', 'module', 'exports', 'global', '__code_source__',
+      `return (async () => {
+        ${scopeScript}
+        if (typeof run === "function") return await run(__workspace_args__);
+        if (typeof module.exports === "function") return await module.exports(__workspace_args__);
+
+        function __safeEvalValue(val) {
+          if (typeof val === "string") {
+            var t = val.trim();
+            if (!t) return val;
+            if (/^-?\\d+n$/.test(t)) {
+              try { return BigInt(t.slice(0, -1)); } catch(e) {}
+            }
+            if (/^0x[0-9a-fA-F]+$/i.test(t) || /^0b[01]+$/i.test(t) || /^0o[0-7]+$/i.test(t)) {
+              try { return Number(t); } catch(e) {}
+            }
+            if (/get\\s+[a-zA-Z0-9_$]+\\s*\\(|set\\s+[a-zA-Z0-9_$]+\\s*\\(/.test(t)) {
+              try { var evalObj = new Function("return (" + t + ");"); return evalObj(); } catch(e) {}
+            }
+            if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+              try { return JSON.parse(val); } catch(e) {
+                try { var fixed = val.replace(/([a-zA-Z0-9_$]+)\\s*:/g, '"$1":').replace(/'/g, '"'); return JSON.parse(fixed); } catch(e2) {
+                  try { var evalObj = new Function("return (" + t + ");"); return evalObj(); } catch(e3) {}
+                }
+              }
+            }
+            if (/^\\/.*\\/[gimsuy]*$/.test(t)) {
+              try { var evalFunc = new Function("return (" + t + ");"); return evalFunc(); } catch(e) {}
+            }
+            if (/^(?:\\(|async\\s+function|class\\b|\\([a-zA-Z0-9_$,\\s]*\\)\\s*=>|function\\b|Symbol\\b|Promise\\b|Intl\\b|sanitizeQuery|new\\s+)/.test(t)) {
+              try { var evalFunc = new Function("Buffer", "sanitizeQuery", "return (" + t + ");"); var b = typeof Buffer !== "undefined" ? Buffer : (typeof self !== "undefined" && self.Buffer ? self.Buffer : null); var sq = typeof sanitizeQuery === "function" ? sanitizeQuery : null; return evalFunc(b, sq); } catch(e) {}
+            }
+          }
+          return val;
+        }
+
+        if (__workspace_args__ && typeof __workspace_args__ === "object") {
+          Object.keys(__workspace_args__).forEach(function(k) { __workspace_args__[k] = __safeEvalValue(__workspace_args__[k]); });
+        }
+        
+        var __autoResults__ = {};
+        var __fnNames__ = [];
+        var __rawCodeStr = (typeof __code_source__ === "string") ? __code_source__ : "";
+        var __fnRegex__ = /(?:^|\\n)\\s*(?:async\\s+)?function(?:\\s*\\*)?\\s*([a-zA-Z0-9_$]+)/g;
+        var __fnMatch__;
+        while ((__fnMatch__ = __fnRegex__.exec(__rawCodeStr)) !== null) {
+          if (__fnMatch__[1] && __fnNames__.indexOf(__fnMatch__[1]) === -1) { __fnNames__.push(__fnMatch__[1]); }
+        }
+        for (var f = 0; f < __fnNames__.length; f++) {
+          var fnName = __fnNames__[f];
+          var fn = null;
+          try { fn = eval(fnName); } catch(e) { continue; }
+          if (typeof fn !== "function") continue;
+          try {
+            var fnStr = fn.toString();
+            var isDestructured = /^[^(]*\\(\\s*\\{/.test(fnStr);
+            var res;
+            if (isDestructured) {
+              var destrKeys = [];
+              var destrMatch = fnStr.match(/^[^(]*\\(\\s*\\{([^}]*)\\}/);
+              if (destrMatch && destrMatch[1]) {
+                var rawDestr = destrMatch[1].split(",");
+                for (var d = 0; d < rawDestr.length; d++) {
+                  var dKey = rawDestr[d].split("=")[0].split(":")[0].trim().replace(/^\\.\\.\\./, "");
+                  if (dKey) destrKeys.push(dKey);
+                }
+              }
+              var destrArgs = {};
+              var hasCustomArg = false;
+              if (__workspace_args__ && typeof __workspace_args__ === "object") {
+                for (var dk = 0; dk < destrKeys.length; dk++) {
+                  var kName = destrKeys[dk];
+                  if (__workspace_args__[kName] !== undefined && __workspace_args__[kName] !== "") {
+                    destrArgs[kName] = __safeEvalValue(__workspace_args__[kName]);
+                    hasCustomArg = true;
+                  }
+                }
+              }
+              if (hasCustomArg) {
+                res = await fn(destrArgs);
+              } else {
+                res = await fn();
+              }
+            } else {
+              var paramNames = [];
+              var paramMatch = fnStr.match(/^[^(]*\\(([^)]*)\\)/);
+              if (paramMatch && paramMatch[1]) {
+                var rawParams = paramMatch[1].split(",");
+                for (var p = 0; p < rawParams.length; p++) {
+                  var pName = rawParams[p].split("=")[0].trim().replace(/^\\.\\.\\./, "");
+                  if (pName) paramNames.push(pName);
+                }
+              }
+              if (paramNames.length > 0 && __workspace_args__ && typeof __workspace_args__ === "object") {
+                var callArgs = paramNames.map(function(k) { return __workspace_args__[k] !== undefined ? __safeEvalValue(__workspace_args__[k]) : undefined; });
+                res = await fn.apply(null, callArgs);
+              } else {
+                res = await fn();
+              }
+            }
+            if (res && typeof res.next === "function" && typeof res[Symbol.iterator] === "function") {
+              var genItems = [];
+              var step;
+              while (!(step = res.next()).done) { genItems.push(step.value); }
+              __autoResults__[fnName] = genItems;
+            } else {
+              __autoResults__[fnName] = res;
+            }
+          } catch(e) {
+            if (fnName !== "sanitizeQuery") console.error("Error executing " + fnName + ":", e.message);
+          }
+        }
+        if (Object.keys(__autoResults__).length > 0) {
+          return __autoResults__;
+        }
+        return module.exports;
+      })();`
+    );
+
+    // Form args when un-overridden
+    const emptyFormArgs = {};
+
+    const result = await scriptFunc(
+      emptyFormArgs,
+      require, workspace, process, Buffer, __dirname, __filename, dirname, filename, module, exports, global, scopeScript
+    );
+
+    assert.ok(result.testParameterScope, 'testParameterScope executed');
+    assert.strictEqual(result.testParameterScope.baseHex, '5a', 'Base key is 5a');
+    assert.strictEqual(result.testParameterScope.derivedHex, 'a5', 'Derived key 0x5A ^ 0xFF = 0xA5 evaluated in native TDZ scope');
+    assert.deepStrictEqual(result.testParameterScope.encoded, [0xA4, 0xA7, 0xA6], 'Payload XOR encoded with derivedKey');
+
+    assert.ok(result.testAsyncStream, 'testAsyncStream executed');
+    assert.strictEqual(result.testAsyncStream.assembled, 'MZ\x90\x00PE', 'Async generator IIFE assembled binary stream');
+
+    assert.ok(result.testObjectDescriptors, 'testObjectDescriptors executed');
+    assert.strictEqual(result.testObjectDescriptors.initial, 1000, 'Initial getter returned 1000');
+    assert.strictEqual(result.testObjectDescriptors.capped, 5000, 'Setter capped at 5000');
+
+    assert.ok(result.testWasmExecution, 'testWasmExecution executed');
+    assert.strictEqual(result.testWasmExecution.wasmSum, 12, 'Wasm module added 5 + 7 = 12');
+  });
+
   console.log('==================================================');
   console.log(`Results: ${passCount} passed, ${failCount} failed`);
   console.log('==================================================');
