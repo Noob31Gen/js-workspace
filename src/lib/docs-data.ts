@@ -409,15 +409,21 @@ To ensure scripts and NPM packages run 100% offline without internet:
     id: 'CREDITS.md',
     title: 'Credits',
     category: 'About',
-    content: `# Credits
+    content: `# Credits & Open Source Technologies
 
-### [almostnode](https://github.com/macaly/almostnode)
-Browser-native Node.js runtime and compatibility layer by [Macaly](https://almostnode.dev) (MIT License).
+JS Workspace is powered by open source engines and libraries:
 
-#### Components Used:
-- **Node.js Core Shims**: In-browser implementations for \`fs\`, \`path\`, \`stream\`, \`buffer\`, \`events\`, \`crypto\`, \`net\`, \`http\`, \`child_process\`, \`zlib\`, \`os\`, and system utilities.
-- **Virtual File System**: In-memory POSIX-compatible filesystem layer with sync/async I/O.
-- **Package Management**: In-browser npm package resolver and tarball extraction.
+### 1. AST Parsing & Parameter Detection Engines
+- **[Acorn](https://github.com/acornjs/acorn)** (MIT License): Ultra-fast, tiny, standard ECMAScript parser powering primary AST parameter detection and module analysis.
+- **[@babel/parser](https://github.com/babel/babel)** (MIT License): Robust TypeScript type annotations, JSX, and syntax error recovery parser.
+
+### 2. Node.js Standard Library Polyfills
+- **[buffer](https://github.com/feross/buffer)** (MIT License): The official Node.js Buffer module for browser runtimes by Feross Aboukhadijeh.
+- **[path-browserify](https://github.com/browserify/path-browserify)** (MIT License): Complete Node.js \`path\` module for browser environments.
+- **[events](https://github.com/browserify/events)** (MIT License): Standard Node.js \`EventEmitter\` implementation for browsers.
+
+### 3. Editor, UI & Workspace Architecture
+- **[Monaco Editor](https://github.com/microsoft/monaco-editor)** (MIT License): Microsoft's full-featured code editor powering desktop and mobile script editing.
 `
   }
 };

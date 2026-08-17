@@ -29,7 +29,9 @@ Serves from `dist`.
 
 Serves from `http://localhost:3000`
 
-### Credits
+### Credits & Open Source Engines
 
-- **almostnode** (https://github.com/macaly/almostnode) for the comprehensive browser-native Node.js runtime shims and module compatibility layer.
+- **[Acorn](https://github.com/acornjs/acorn)** & **[@babel/parser](https://github.com/babel/babel)** for standard ECMAScript, TypeScript, and AST parameter parsing.
+- **[buffer](https://github.com/feross/buffer)**, **[path-browserify](https://github.com/browserify/path-browserify)**, and **[events](https://github.com/browserify/events)** for browser Node.js standard library polyfills.
+- **[Monaco Editor](https://github.com/microsoft/monaco-editor)** for the in-browser code editor.
 

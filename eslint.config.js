@@ -9,8 +9,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/node_modules/**',
       '**/music-transfer/**',
-      '**/android-template/**',
-      '**/src/engine/almostnode/**'
+      '**/android-template/**'
     ]
   },
   js.configs.recommended,

@@ -3,10 +3,8 @@
  */
 
 import assert from 'assert';
-import path from 'path';
 import { buildWorkerDependencyLoader } from '../src/lib/dependency-resolver.js';
-import { pathPolyfill, BufferPolyfill } from '../src/lib/node-polyfills.js';
-import Module from '../src/engine/almostnode/shims/module.js';
+import { BufferPolyfill, Module } from '../src/lib/node-polyfills.js';
 
 console.log('==================================================');
 console.log('   TESTING COMMONJS VARIABLES & FALLBACKS         ');
@@ -147,7 +145,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     const workspace = {};
 
     // Script using exports.run
@@ -187,7 +185,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath, '--verbose'] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     require.main = module; // Bind require.main === module
     const workspace = {};
 
@@ -252,7 +250,7 @@ async function main() {
           var key = keys[k];
           try {
             objOut[key] = safeCloneForPostMessage(val[key], seen, depth + 1);
-          } catch(e) {
+          } catch {
             objOut[key] = '[Unserializable Property]';
           }
         }
@@ -661,7 +659,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     const workspace = {};
 
     const scriptFunc = new Function(
@@ -829,7 +827,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     const workspace = {};
 
     const scriptFunc = new Function(
@@ -1013,7 +1011,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     const workspace = {};
 
     const scriptFunc = new Function(
@@ -1221,7 +1219,7 @@ async function main() {
     const exports = module.exports;
     const process = { env: {}, argv: ['node', mockCurrentFilePath] };
     const Buffer = BufferPolyfill;
-    const require = function(id) { return {}; };
+    const require = function() { return {}; };
     const workspace = {};
 
     const scriptFunc = new Function(

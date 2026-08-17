@@ -4,7 +4,9 @@
  */
 import { Buffer } from 'buffer';
 import path from 'path-browserify';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
+
+type BufferEncoding = 'ascii' | 'utf8' | 'utf-8' | 'utf16le' | 'ucs2' | 'ucs-2' | 'base64' | 'base64url' | 'latin1' | 'binary' | 'hex';
 
 if (typeof (globalThis as unknown as { global: unknown }).global === 'undefined') {
   (globalThis as unknown as { global: unknown }).global = globalThis;
@@ -238,10 +240,7 @@ export const cryptoPolyfill = {
       },
       digest(encoding: string = 'hex') {
         const norm = String(algo || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        let hexResult = '';
-        if (norm === 'sha256') hexResult = sha256(_data);
-        else if (norm === 'sha1') hexResult = sha1(_data);
-        else hexResult = md5(_data);
+        const hexResult = norm === 'sha256' ? sha256(_data) : norm === 'sha1' ? sha1(_data) : md5(_data);
 
         if (encoding === 'hex') return hexResult;
         return Buffer.from(hexResult, 'hex').toString(encoding as BufferEncoding);
@@ -504,3 +503,21 @@ export const v8Polyfill = {
 };
 export const perfHooksPolyfill = { performance: globalThis.performance || { now: () => Date.now() } };
 export const inspectorPolyfill = { open: () => {}, close: () => {}, url: () => undefined };
+
+// 18. Module Polyfill
+export const ModulePolyfill = {
+  wrapper: [
+    '(function (exports, require, module, __filename, __dirname) {\n',
+    '\n});'
+  ] as const,
+  wrap(script: string): string {
+    return ModulePolyfill.wrapper[0] + script + ModulePolyfill.wrapper[1];
+  },
+  builtinModules: [
+    'assert', 'buffer', 'child_process', 'cluster', 'crypto', 'dgram', 'dns',
+    'domain', 'events', 'fs', 'http', 'https', 'net', 'os', 'path', 'punycode',
+    'querystring', 'readline', 'stream', 'string_decoder', 'tls', 'tty', 'url',
+    'util', 'v8', 'vm', 'zlib'
+  ]
+};
+export const Module = ModulePolyfill;
