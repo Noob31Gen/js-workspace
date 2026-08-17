@@ -20,7 +20,7 @@ async function runTest(name, fn) {
     console.log(`✅ PASS: ${name}`);
   } catch (err) {
     failCount++;
-    console.error(`❌ FAIL: ${name}`, err.message);
+    console.error(`❌ FAIL: ${name}`, err.stack || err.message);
   }
 }
 
@@ -1364,6 +1364,124 @@ async function main() {
 
     assert.ok(result.testWasmExecution, 'testWasmExecution executed');
     assert.strictEqual(result.testWasmExecution.wasmSum, 12, 'Wasm module added 5 + 7 = 12');
+  });
+
+  // 17. Test Virtual DOM Polyfill (createElement, remove, setAttribute, style, innerText, outerHTML)
+  await runTest('Virtual DOM Polyfill supports createElement, remove(), style, setAttribute, and outerHTML', async () => {
+    const dummyNodes = [
+      {
+        id: 'file-dom',
+        name: 'dom-test.js',
+        type: 'file',
+        path: 'dom-test.js',
+        parentId: null,
+        code: `
+        function testIframeViewer(targetUrl, frameWidth, frameHeight, sandboxRules) {
+          targetUrl = targetUrl || "https://example.com";
+          frameWidth = frameWidth || "600px";
+          frameHeight = frameHeight || "400px";
+          sandboxRules = sandboxRules || "allow-scripts allow-same-origin";
+
+          const existingContainer = document.getElementById("sandbox-iframe-test");
+          if (existingContainer) {
+            existingContainer.remove();
+          }
+
+          const container = document.createElement('div');
+          container.id = "sandbox-iframe-test";
+          container.style.position = "fixed";
+          container.style.bottom = "20px";
+          container.style.right = "20px";
+          container.style.width = frameWidth;
+          container.style.height = frameHeight;
+          container.style.backgroundColor = "#1e1e1e";
+          container.style.border = "2px solid #007acc";
+          container.style.borderRadius = "8px";
+          container.style.display = "flex";
+          container.style.flexDirection = "column";
+
+          const header = document.createElement('div');
+          header.style.backgroundColor = "#2d2d2d";
+          header.style.color = "#cccccc";
+          header.style.padding = "8px 12px";
+
+          const title = document.createElement('span');
+          title.innerText = "Iframe Test: " + targetUrl;
+          header.appendChild(title);
+
+          const closeBtn = document.createElement('button');
+          closeBtn.innerText = "X";
+          closeBtn.onclick = function() { container.remove(); };
+          header.appendChild(closeBtn);
+
+          const iframe = document.createElement('iframe');
+          iframe.src = targetUrl;
+          iframe.style.flexGrow = "1";
+          if (sandboxRules) {
+            iframe.setAttribute('sandbox', sandboxRules);
+          }
+
+          container.appendChild(header);
+          container.appendChild(iframe);
+          document.body.appendChild(container);
+
+          return {
+            status: "success",
+            targetUrl: targetUrl,
+            renderedHtml: document.body.innerHTML
+          };
+        }
+
+        module.exports = { testIframeViewer: testIframeViewer };
+        `
+      }
+    ];
+
+    const loaderScript = buildWorkerDependencyLoader(dummyNodes, 'dom-test.js');
+    assert.ok(loaderScript.includes('VirtualDOMElement.prototype.remove'), 'Loader contains VirtualDOMElement.prototype.remove');
+    assert.ok(loaderScript.includes('VirtualDOMElement.prototype._serializeStyle'), 'Loader contains VirtualDOMElement style serializer');
+
+    // Create a mock worker execution environment
+    let lastPostedFrame = null;
+    const mockPostMessage = (msg) => {
+      if (msg.type === 'FRAME') lastPostedFrame = msg.payload;
+    };
+
+    const workerEnv = new Function(
+      'postMessage',
+      `
+      var self = { postMessage: postMessage, addEventListener: function() {}, removeEventListener: function() {} };
+      ${loaderScript}
+      return {
+        run: function() {
+          var mod = self.require('./dom-test.js');
+          return mod.testIframeViewer("https://example.com", "600px", "400px", "allow-scripts");
+        },
+        cleanup: function() {
+          var existing = self.document.getElementById("sandbox-iframe-test");
+          if (existing) existing.remove();
+          return self.document.body.innerHTML;
+        }
+      };
+      `
+    )(mockPostMessage);
+
+    const runResult = workerEnv.run();
+    assert.strictEqual(runResult.status, 'success', 'testIframeViewer executed without errors');
+    assert.ok(runResult.renderedHtml.includes('id="sandbox-iframe-test"'), 'Container ID present in body HTML');
+    assert.ok(runResult.renderedHtml.includes('position: fixed'), 'Style position: fixed serialized');
+    assert.ok(runResult.renderedHtml.includes('background-color: #1e1e1e'), 'CamelCase backgroundColor serialized as kebab-case');
+    assert.ok(runResult.renderedHtml.includes('src="https://example.com"'), 'Iframe src present');
+    assert.ok(runResult.renderedHtml.includes('sandbox="allow-scripts"'), 'Iframe sandbox attribute present');
+    assert.ok(runResult.renderedHtml.includes('onclick='), 'Event handler serialized into onclick attribute');
+    assert.ok(runResult.renderedHtml.includes('Iframe Test: https://example.com'), 'Inner text rendered');
+
+    assert.ok(lastPostedFrame, 'Frame preview message was posted');
+    assert.strictEqual(lastPostedFrame.type, 'html', 'Frame type is html');
+
+    // Test element.remove()
+    const afterCleanup = workerEnv.cleanup();
+    assert.strictEqual(afterCleanup, '', 'Container was successfully removed via existing.remove()');
   });
 
   console.log('==================================================');

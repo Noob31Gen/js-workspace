@@ -791,7 +791,7 @@ export function App() {
                   }`}
                 >
                   <Layout className="h-3.5 w-3.5" />
-                  Frame Preview {frame && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+                  Frame Preview
                 </button>
               </div>
             </div>

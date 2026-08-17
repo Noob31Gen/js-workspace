@@ -178,7 +178,7 @@ export const FramePreview: React.FC<FramePreviewProps> = ({ frame }) => {
                         background: ${frameBg === 'dark' ? '#0c0c0e' : '#ffffff'};
                         min-height: 100%;
                         box-sizing: border-box;
-                        overflow-x: auto;
+                        overflow: auto;
                         -webkit-overflow-scrolling: touch;
                       }
                       *, *::before, *::after { box-sizing: border-box; }
